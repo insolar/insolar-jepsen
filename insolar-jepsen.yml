@@ -1,4 +1,14 @@
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matrix
+spec:
+  selector:
+    app: insolar-jepsen
+  clusterIP: None
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,6 +23,8 @@ spec:
       labels:
         app: insolar-jepsen
     spec:
+      hostname: pulsar
+      subdomain: matrix
       containers:
       - name: insolar-pulsar
         image: insolar-jepsen
