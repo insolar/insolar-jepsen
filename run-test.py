@@ -51,7 +51,7 @@ for node in range(2, 5+1):
 
 run("rm -r /tmp/insolar-jepsen-configs || true")
 run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
-# TODO: replace hostnames
+# TODO: replace IPs
 
 ssh(1, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
 scp_to(1, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
