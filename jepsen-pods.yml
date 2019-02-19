@@ -1,3 +1,4 @@
+
 kind: Service
 apiVersion: v1
 metadata:
@@ -9,7 +10,6 @@ spec:
       nodePort: 32001
   selector:
     name: jepsen-1
-
 ---
 apiVersion: v1
 kind: Pod
@@ -20,6 +20,126 @@ metadata:
 spec:
   containers:
     - name: jepsen-1
+      image: ubuntu-ssh:latest
+      imagePullPolicy: Never
+      securityContext:
+        privileged: true
+      ports:
+        - containerPort: 22
+---
+
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: jepsen-2
+spec:
+  type: NodePort
+  ports:
+    - port: 22
+      nodePort: 32002
+  selector:
+    name: jepsen-2
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jepsen-2
+  labels:
+    name: jepsen-2
+spec:
+  containers:
+    - name: jepsen-2
+      image: ubuntu-ssh:latest
+      imagePullPolicy: Never
+      securityContext:
+        privileged: true
+      ports:
+        - containerPort: 22
+---
+
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: jepsen-3
+spec:
+  type: NodePort
+  ports:
+    - port: 22
+      nodePort: 32003
+  selector:
+    name: jepsen-3
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jepsen-3
+  labels:
+    name: jepsen-3
+spec:
+  containers:
+    - name: jepsen-3
+      image: ubuntu-ssh:latest
+      imagePullPolicy: Never
+      securityContext:
+        privileged: true
+      ports:
+        - containerPort: 22
+---
+
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: jepsen-4
+spec:
+  type: NodePort
+  ports:
+    - port: 22
+      nodePort: 32004
+  selector:
+    name: jepsen-4
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jepsen-4
+  labels:
+    name: jepsen-4
+spec:
+  containers:
+    - name: jepsen-4
+      image: ubuntu-ssh:latest
+      imagePullPolicy: Never
+      securityContext:
+        privileged: true
+      ports:
+        - containerPort: 22
+---
+
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: jepsen-5
+spec:
+  type: NodePort
+  ports:
+    - port: 22
+      nodePort: 32005
+  selector:
+    name: jepsen-5
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jepsen-5
+  labels:
+    name: jepsen-5
+spec:
+  containers:
+    - name: jepsen-5
       image: ubuntu-ssh:latest
       imagePullPolicy: Never
       securityContext:

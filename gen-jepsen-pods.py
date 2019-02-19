@@ -33,5 +33,7 @@ spec:
 
 for i in range(0, 5):
     node_name = "jepsen-"+str(i+1)
+    port = str(32001 + i)
     descr = template.replace("jepsen-1", node_name)
+    descr = descr.replace("32001", port)
     print(descr)

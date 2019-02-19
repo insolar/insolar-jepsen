@@ -6,7 +6,6 @@ Usage:
 
 ```
 docker build -t ubuntu-ssh .
-kubectl create -f insolar-jepsen.yml
-kubectl expose deployment insolar-jepsen
-kubectl get pods -l app=insolar-jepsen -o wide
+# ./gen-jepsen-pods.py > ./jepsen-pods.yml
+kubectl create -f jepsen-pods.yml
 ```
