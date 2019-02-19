@@ -29,15 +29,14 @@ def scp_from(node, rpath, lpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -P"+\
         str(START_PORT + node)+" " + flags + " gopher@localhost:"+rpath+" "+lpath+" 2>/dev/null")
 
+# building insolar from master on all nodes
+# TODO: run in parallel
+for node in range(1, 5+1):
+    ssh(node, "cd go/src/github.com/insolar/insolar && "+\
+        "git checkout master && git pull && make clean build")
 
-ssh(1, 'echo "aaa" > test.txt')
-scp_from(1, "test.txt", "/tmp/test.txt")
-scp_to(1, "/tmp/test.txt", "test2.txt")
-ssh(1, 'cat test2.txt')
-
+# copying `data` directory from node 1 to nodes 2...5
 run("rm -r /tmp/insolar-jepsen-data || true")
 scp_from(1, "go/src/github.com/insolar/insolar/data", "/tmp/insolar-jepsen-data", flags='-r')
-scp_to(2, "/tmp/insolar-jepsen-data", "go/src/github.com/insolar/insolar/data", flags='-r')
-scp_to(3, "/tmp/insolar-jepsen-data", "go/src/github.com/insolar/insolar/data", flags='-r')
-scp_to(4, "/tmp/insolar-jepsen-data", "go/src/github.com/insolar/insolar/data", flags='-r')
-scp_to(5, "/tmp/insolar-jepsen-data", "go/src/github.com/insolar/insolar/data", flags='-r')
+for node in range(2, 5+1):
+    scp_to(node, "/tmp/insolar-jepsen-data", "go/src/github.com/insolar/insolar/data", flags='-r')
