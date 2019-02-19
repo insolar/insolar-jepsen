@@ -53,5 +53,7 @@ run("rm -r /tmp/insolar-jepsen-configs || true")
 run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
 # TODO: replace hostnames
 
+ssh(1, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
 scp_to(1, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
+scp_to(1, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
 ssh(1, "cd " + INSPATH + " && ./bin/pulsard -c pulsar.yaml")

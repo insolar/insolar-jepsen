@@ -1,6 +1,6 @@
 FROM ubuntu:16.04
 
-RUN apt-get update && apt-get install -y openssh-server iptables net-tools iputils-ping vim sudo git make lsof gcc curl
+RUN apt-get update && apt-get install -y openssh-server iptables net-tools iputils-ping vim sudo git make lsof gcc curl tmux
 RUN mkdir /var/run/sshd
 RUN adduser --disabled-password --gecos '' gopher
 RUN usermod -a -G sudo gopher
