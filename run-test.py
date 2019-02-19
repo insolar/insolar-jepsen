@@ -18,6 +18,18 @@ def run(cmd):
 def ssh(node, cmd):
 	run("ssh -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -p"+\
         str(START_PORT + node)+""" gopher@localhost "bash -c 'source ./.bash_profile ; """+\
-        cmd + """ '" """)
+        cmd + """ '" 2>/dev/null""")
 
-ssh(1, 'id')
+def scp_to(node, lpath, rpath):
+    run("scp -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -P"+\
+        str(START_PORT + node)+" " + lpath + " gopher@localhost:"+rpath+" 2>/dev/null")
+
+def scp_from(node, rpath, lpath):
+    run("scp -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -P"+\
+        str(START_PORT + node)+" gopher@localhost:"+rpath+" "+lpath+" 2>/dev/null")
+
+
+ssh(1, 'echo "aaa" > test.txt')
+scp_from(1, "test.txt", "/tmp/test.txt")
+scp_to(1, "/tmp/test.txt", "test2.txt")
+ssh(1, 'cat test2.txt')
