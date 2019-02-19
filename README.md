@@ -6,6 +6,9 @@ Usage:
 
 ```
 docker build -t insolar-jepsen .
+# test the image, it should not throw any errors:
+# docker run --rm -it insolar-jepsen
+
 # ./gen-jepsen-pods.py > ./jepsen-pods.yml
 kubectl apply -f jepsen-pods.yml
 
