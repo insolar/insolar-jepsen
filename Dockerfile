@@ -26,8 +26,10 @@ RUN echo 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCrSwFcURYecjrYzqPRZrAl14v8fzfAlB
 RUN bash -c 'cd /home/gopher && wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz && tar -xvzf *.tar.gz && rm *.tar.gz && rm -r gocache && rm -r tmp && mkdir opt && mv go opt/go && mkdir -p go/bin && echo "export PATH=\"/home/gopher/go/bin:/home/gopher/opt/go/bin:\$PATH\"" > /home/gopher/.bash_profile'
 RUN bash -c 'cd /home/gopher && curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh'
 
-RUN bash -c 'cd /home/gopher && mkdir -p go/src/github.com/insolar && cd go/src/github.com/insolar && git clone https://github.com/insolar/insolar.git && cd insolar && make install-deps pre-build'
+RUN bash -c 'cd /home/gopher && mkdir -p go/src/github.com/insolar && cd go/src/github.com/insolar && git clone https://github.com/insolar/insolar.git && cd insolar && make install-deps pre-build && make clean build'
+
 # To build Insolar only two steps left: git pull (to update the source code) + make clean build
+# Also cached binaries available if necessary
 
 EXPOSE 22
 CMD ["/usr/bin/sudo", "/usr/sbin/sshd", "-D"]
