@@ -22,7 +22,7 @@ metadata:
 spec:
   containers:
     - name: jepsen-1
-      image: ubuntu-ssh:latest
+      image: insolar-jepsen:latest
       imagePullPolicy: Never
       securityContext:
         privileged: true

@@ -5,7 +5,7 @@ Jepsen-like tests for Insolar.
 Usage:
 
 ```
-docker build -t ubuntu-ssh .
+docker build -t insolar-jepsen .
 # ./gen-jepsen-pods.py > ./jepsen-pods.yml
 kubectl create -f jepsen-pods.yml
 

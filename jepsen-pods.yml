@@ -20,7 +20,7 @@ metadata:
 spec:
   containers:
     - name: jepsen-1
-      image: ubuntu-ssh:latest
+      image: insolar-jepsen:latest
       imagePullPolicy: Never
       securityContext:
         privileged: true
@@ -50,7 +50,7 @@ metadata:
 spec:
   containers:
     - name: jepsen-2
-      image: ubuntu-ssh:latest
+      image: insolar-jepsen:latest
       imagePullPolicy: Never
       securityContext:
         privileged: true
@@ -80,7 +80,7 @@ metadata:
 spec:
   containers:
     - name: jepsen-3
-      image: ubuntu-ssh:latest
+      image: insolar-jepsen:latest
       imagePullPolicy: Never
       securityContext:
         privileged: true
@@ -110,7 +110,7 @@ metadata:
 spec:
   containers:
     - name: jepsen-4
-      image: ubuntu-ssh:latest
+      image: insolar-jepsen:latest
       imagePullPolicy: Never
       securityContext:
         privileged: true
@@ -140,7 +140,7 @@ metadata:
 spec:
   containers:
     - name: jepsen-5
-      image: ubuntu-ssh:latest
+      image: insolar-jepsen:latest
       imagePullPolicy: Never
       securityContext:
         privileged: true
