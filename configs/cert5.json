@@ -1,0 +1,50 @@
+{
+  "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWto+QcM/jQ1sk0bmwxYdXOG6DJ7E\nUPjhT+ZuaF/7Hsrhe/63K97xF+LcV7ttq7bWqAuKikTbuRwBe8sBZT5jUA==\n-----END PUBLIC KEY-----\n",
+  "reference": "1tJDQL5jZ6qJaG1AejAk8tzRgEXrE3qGMydwCFVRGv.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ",
+  "role": "light_material",
+  "majority_rule": 0,
+  "min_roles": {
+    "virtual": 1,
+    "heavy_material": 1,
+    "light_material": 1
+  },
+  "pulsar_public_keys": null,
+  "root_domain_ref": "1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ",
+  "bootstrap_nodes": [
+    {
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEYbZ4Bu59gNPmAAyP36pjAVamBJSQ\nK09T/8tT+Y4696G+8zO9a20jCimRHiPAKXhM3vitsFd/UWXIw9LO8io/0w==\n-----END PUBLIC KEY-----\n",
+      "host": "127.0.0.1:13831",
+      "network_sign": "ICAz/g9BcNPqEvf9KnZdc9UO325GBC4bVnKcsMKBvkbIfPtGvpQtUJIQOpGQNRVr1LQVxLbA7kVzoGrZbWQ4EEgs",
+      "node_sign": "ICBd3vL7FFJBBRog2cvwfJvth8FBsTJslwJFFFV9v7UKuGXPqVLtfqfQllWKOr1WMMIpoT5tdCn1siZuqgzzRFuN",
+      "node_ref": "1tJCZvcnhLuLTQhFRx1PP6esruGLRuUwkuZ6fqzaXk.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ"
+    },
+    {
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERRkprkLHzJJlOeh/e9GOfTFm+v7v\nGJsGZfB6L1xS7lFYJOtMGeExqW8rReSYHJ8uTwNirFBRdbDIaxMcBqux7A==\n-----END PUBLIC KEY-----\n",
+      "host": "127.0.0.1:23832",
+      "network_sign": "ICD3+bBoELwY4EiKuYBw8A3gIA3kaBDJrb2LpOWHzij/HOmsR5Hs3YiUBR4MTKpw1idEsCnuExRQOXL76sr11nkD",
+      "node_sign": "ICCFPF1j+78rraw/Q1IDKjjpjy2FhbR1R02Rn8ZBcYzDZYuNAjZEf5qBj0VM3dOKfhbhP3oYAQSuRMIrbJXHmjEn",
+      "node_ref": "1tJCkh9Jzm7ijJGsTHuQsK2QMXsXvwdo9EwVUyzcDL.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ"
+    },
+    {
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE4gNBMMzrBzWpluR6DwlKoJbT/ROb\n7JypivN8HOLWkraJjTD+7Y3W9AAqsOxus70BIxPEKSVUmqmhbcTZtfF5hg==\n-----END PUBLIC KEY-----\n",
+      "host": "127.0.0.1:33833",
+      "network_sign": "ICBk/ynwWkTt5tYCjpzNhWkE2wnhMdrRbpfy8HrT6kWCzCubx8sc+Py7GCcxDK65rqbDFq3GCU0jqAKoPuqTf8AP",
+      "node_sign": "ICB5myNOQB7DpqMErlMPvnqn2XjmrbgBNMIsHv7oZ5V9xNFSo/LR5YoVxFflXpcsXy9sCOkVgkO4FJmX13ppLzlt",
+      "node_ref": "1tJC7vpkrUwa31uVH5FHxSX46koYcFYMkHZkcAzP4N.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ"
+    },
+    {
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpN4fjDqF3uKdwIKXpBmnXq1jsfIM\nLNitya3yaTUiphM1Oqymkn4lCdU4KM7i2dmZBFmINxkICEJTBNATc+RmwQ==\n-----END PUBLIC KEY-----\n",
+      "host": "127.0.0.1:43834",
+      "network_sign": "ICCvgsJGPMl4vW4X3Mp2H++82sjmMtpUT+thXWZQmJH457cDmVnuxTL2nQWsP6eiIBp76NnDPmB7IEXVvwD1RuZf",
+      "node_sign": "ICDvHFhr7W67VJCP98ezr5BGQs99lw/OR7sfZYLaTTvG9T95CakGn+hIcswOJ7f7p4K9B5KfGCANWbVQGqachVRv",
+      "node_ref": "1tJDpXx57VNzwCvDvjAxsGSfBUjM2GnJCNg3RtGNFf.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ"
+    },
+    {
+      "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWto+QcM/jQ1sk0bmwxYdXOG6DJ7E\nUPjhT+ZuaF/7Hsrhe/63K97xF+LcV7ttq7bWqAuKikTbuRwBe8sBZT5jUA==\n-----END PUBLIC KEY-----\n",
+      "host": "127.0.0.1:53835",
+      "network_sign": "ICAX/cYZBTZlRZbI+GqpunfUsJFV0MCm5i4zyLQWO8x+B0wYE+/nREce+oTYKqwwRSlzi0RR0vOElPt3nbXmYWFT",
+      "node_sign": "ICAXeHnD08JzqWOpG7a2Vx7kvpSw4S1LWI7qjvxQQ0Z/RPU9YEe+w/SeObspSgm6IZo4YyYh5rGcXV+sFHVcavs9",
+      "node_ref": "1tJDQL5jZ6qJaG1AejAk8tzRgEXrE3qGMydwCFVRGv.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ"
+    }
+  ]
+}
