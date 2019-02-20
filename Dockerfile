@@ -28,8 +28,8 @@ RUN bash -c 'cd /home/gopher && curl https://raw.githubusercontent.com/golang/de
 
 RUN bash -c 'cd /home/gopher && mkdir -p go/src/github.com/insolar && cd go/src/github.com/insolar && git clone https://github.com/insolar/insolar.git && cd insolar && make install-deps pre-build && make clean build'
 
-# To build Insolar only two steps left: git pull (to update the source code) + make clean build
-# Also cached binaries available if necessary
+ARG DISABLE_CACHE_HERE=1
+RUN bash -c 'cd /home/gopher/go/src/github.com/insolar/insolar && git pull && make clean build'
 
 EXPOSE 22
 CMD ["/usr/bin/sudo", "/usr/sbin/sshd", "-D"]

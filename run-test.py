@@ -12,13 +12,6 @@ INSPATH = "go/src/github.com/insolar/insolar"
 NPODS = 6
 VIRTUALS = [2, 4] # these pods require local insgorund
 
-# temporary dirty hack: giving all processes some time to start
-# otherwise the network doesn't start at all, see INS-1565
-# (turned out it doesn't help, but may be useful in the future)
-WAIT=10
-def wait():
-    time.sleep(WAIT)
-
 # Roles:
 # jepsen-1: heavy
 # jepsen-2: virtual
@@ -27,12 +20,14 @@ def wait():
 # jepsen-5: light
 # jepsen-6: pulsar
 
-# to make `sed` work properly
-# otherwise it failes with an error:
+# to make `sed` work properly, otherwise it failes with an error:
 # sed: RE error: illegal byte sequence
 os.environ["LC_ALL"] = "C"
 os.environ["LANG"] = "C"
 os.environ["LC_CTYPE"] = "C"
+
+def info(msg):
+    print("INFO: "+msg)
 
 def run(cmd):
     print("    "+cmd)
@@ -73,44 +68,46 @@ def k8s_get_pod_ips():
     return res
 
 def k8s_stop_pods_if_running():
-    print("INFO: stopping pods if they are running")
-    run("kubectl delete -f jepsen-pods.yml || true")
+    info("stopping pods if they are running")
+    run("kubectl delete -f jepsen-pods.yml 2>/dev/null || true")
     while True:
         data = get_output("kubectl get pods -l app=insolar-jepsen -o=json | "+\
             "jq -r '.items[].metadata.name' | wc -l")
-        print("INFO: running pods: "+data)
+        info("running pods: "+data)
         if data == "0":
             break
         time.sleep(1)
 
 def k8s_start_pods():
-    print("INFO: starting pods")
+    info("starting pods")
     run("kubectl apply -f jepsen-pods.yml")
     while True:
         data = get_output("kubectl get pods -l app=insolar-jepsen -o=json | "+\
             "jq -r '.items[].status.phase' | grep Running | wc -l")
-        print("INFO running pods: "+data)
+        info("running pods: "+data)
         if data == str(NPODS):
             break
         time.sleep(1)
 
 parser = argparse.ArgumentParser(description='Execute a simple "pod down/pod up" Jepsen test')
 parser.add_argument(
-    '-s', '--skip-build', action="store_true",
-    help='skip an expensice `build` step and use cached binaries')
+    '-b', '--rebuild', action="store_true",
+    help='rebuild the project inside all containers (expensive and error-prone operation!)')
 args = parser.parse_args()
 
 k8s_stop_pods_if_running()
 k8s_start_pods()
+# if pod is started it doesn't mean it's ready to accept connections
+time.sleep(3)
 
-if not args.skip_build:
-    print("INFO: building insolar from master on all pods")
-    # TODO: run in parallel, using tmux
+if args.rebuild:
+    info("building insolar from master on all pods")
+    info("hopefully no one will commit and the code on all pods will be the same")
     for pod in range(1, NPODS+1):
         ssh(pod, "cd "+INSPATH+" && "+\
             "git checkout master && git pull && make clean build")
 
-print("INFO: building configs based on provided templates")
+info("building configs based on provided templates")
 run("rm -r /tmp/insolar-jepsen-configs || true")
 run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
 pod_ips = k8s_get_pod_ips()
@@ -121,12 +118,12 @@ for k in pod_ips.keys():
     run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
         "| xargs sed -i.bak 's/"+rfrom+"/"+rto+"/g'")
 
-print("INFO: generating root member key on 1st pod and copying `data` directory")
+info("generating root member key on 1st pod and copying `data` directory")
 run("rm -r /tmp/insolar-jepsen-data || true")
 ssh(1, "cd "+INSPATH+" && bin/insolar -c gen_keys > scripts/insolard/configs/root_member_keys.json")
 scp_from(1, INSPATH+"/data", "/tmp/insolar-jepsen-data", flags='-r')
 
-print("INFO: copying keys, configs, certificates and `data` directory to all pods")
+info("copying keys, configs, certificates and `data` directory to all pods")
 for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
     path = INSPATH+"/scripts/insolard/discoverynodes/"+str(pod)
     ssh(pod, "mkdir -p "+path)
@@ -135,14 +132,13 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
     scp_to(pod, "/tmp/insolar-jepsen-configs/cert"+str(pod)+".json", path+"/cert.json")
     scp_to(pod, "/tmp/insolar-jepsen-data", path+"/data", flags='-r')
 
-print("INFO: starting pulsar (before anything else, otherwise consensus will not be reached)")
+info("starting pulsar (before anything else, otherwise consensus will not be reached)")
 ssh(NPODS, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
 scp_to(NPODS, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
 scp_to(NPODS, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
 ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
-wait()
 
-print("INFO: starting insolard's and insgorund's")
+info("starting insolard's and insgorund's")
 for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insolard " +\
         """\\"INSOLAR_LOG_LEVEL=Info ./bin/insolard --config """ +\
@@ -152,11 +148,7 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
         ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insgorund "+\
             """\\"./bin/insgorund -l jepsen-"""+str(pod)+":33305 --rpc jepsen-"+\
             str(pod)+""":33306 --log-level=debug; sh\\" """)
-    wait()
-
-
-# TODO: def check_insolar_is_ok, execute benchmark (probably from pod 1, which has root_member_keys.json)
 
 # Run benchmark (to jepsen-2):
 # while true; do time ___ ; done
-# ./bin/benchmark -c 3 -r 10 -u http://10.1.0.148:19102/api -k=scripts/insolard/configs/root_member_keys.json
+# ./bin/benchmark -c 3 -r 10 -u http://10.1.0.228:19102/api -k=scripts/insolard/configs/root_member_keys.json
