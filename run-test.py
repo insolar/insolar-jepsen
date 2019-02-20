@@ -42,6 +42,11 @@ def run(cmd):
               (cmd, code))
         sys.exit(1)
 
+def get_output(cmd):
+    data = subprocess.check_output(cmd, shell=True)
+    data = data.decode('utf-8').strip()
+    return data
+
 def ssh(pod, cmd):
 	run("ssh -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -p"+\
         str(START_PORT + pod)+""" gopher@localhost "bash -c 'source ./.bash_profile ; """+\
@@ -59,20 +64,44 @@ def k8s_get_pod_ips():
     """
     Returns a map PodName -> PodIP
     """
-    data = subprocess.check_output("kubectl get pods -l app=insolar-jepsen -o=json | "+\
-        """jq -r '.items[] | .metadata.name + " " + .status.podIP'""", shell=True)
-    data = data.decode('utf-8').strip()
+    data = get_output("kubectl get pods -l app=insolar-jepsen -o=json | "+\
+        """jq -r '.items[] | .metadata.name + " " + .status.podIP'""")
     res = {}
     for kv in data.split("\n"):
         [k, v] = kv.split(' ')
         res[k] = v
     return res
 
+def k8s_stop_pods_if_running():
+    print("INFO: stopping pods if they are running")
+    run("kubectl delete -f jepsen-pods.yml || true")
+    while True:
+        data = get_output("kubectl get pods -l app=insolar-jepsen -o=json | "+\
+            "jq -r '.items[].metadata.name' | wc -l")
+        print("INFO: running pods: "+data)
+        if data == "0":
+            break
+        time.sleep(1)
+
+def k8s_start_pods():
+    print("INFO: starting pods")
+    run("kubectl apply -f jepsen-pods.yml")
+    while True:
+        data = get_output("kubectl get pods -l app=insolar-jepsen -o=json | "+\
+            "jq -r '.items[].status.phase' | grep Running | wc -l")
+        print("INFO running pods: "+data)
+        if data == str(NPODS):
+            break
+        time.sleep(1)
+
 parser = argparse.ArgumentParser(description='Execute a simple "pod down/pod up" Jepsen test')
 parser.add_argument(
     '-s', '--skip-build', action="store_true",
     help='skip an expensice `build` step and use cached binaries')
 args = parser.parse_args()
+
+k8s_stop_pods_if_running()
+k8s_start_pods()
 
 if not args.skip_build:
     print("INFO: building insolar from master on all pods")
