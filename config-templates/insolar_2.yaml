@@ -1,7 +1,7 @@
 host:
   transport:
     protocol: TCP
-    address: 127.0.0.1:23832
+    address: JEPSEN-2:23832
     behindnat: false
   isrelay: false
   infinitybootstrap: false
@@ -36,19 +36,19 @@ log:
   adapter: logrus
   formatter: text
 metrics:
-  listenaddress: 127.0.0.1:8002
+  listenaddress: METRICS:8002
   namespace: insolar
   zpagesenabled: true
   reportingperiod: 0s
 logicrunner:
-  rpclisten: 127.0.0.1:33306
+  rpclisten: JEPSEN-2:33306
   rpcprotocol: tcp
   builtin: {}
   goplugin:
-    runnerlisten: 127.0.0.1:33305
+    runnerlisten: JEPSEN-2:33305
     runnerprotocol: tcp
 apirunner:
-  address: 127.0.0.1:19102
+  address: JEPSEN-2:19102
   call: /api/call
   rpc: /api/rpc
   timeout: 15
@@ -83,6 +83,6 @@ certificatepath: scripts/insolard/discoverynodes/2/cert.json
 tracer:
   jaeger:
     collectorendpoint: ""
-    agentendpoint: 127.0.0.1:6831
+    agentendpoint: JAEGER:6831
     probabilityrate: 1
   samplingrules: {}

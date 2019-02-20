@@ -1,7 +1,7 @@
 host:
   transport:
     protocol: TCP
-    address: 127.0.0.1:0
+    address: JEPSEN-6:0
     behindnat: false
   isrelay: false
   infinitybootstrap: false
@@ -12,49 +12,18 @@ host:
   handshakesessionttl: 5000
 service:
   skip: 10
-ledger:
-  storage:
-    datadirectory: ./data
-    txretriesonconflict: 3
-  pulsemanager:
-    heavysyncenabled: true
-    heavysyncmessagelimit: 1048576
-    heavybackoff:
-      factor: 2
-      jitter: true
-      min: 200ms
-      max: 2s
-    splitthreshold: 1000
-  recentstorage:
-    defaultttl: 10
-  lightchainlimit: 5
-  jetsizeshistorydepth: 10
-  exporter:
-    exportlag: 40
 log:
   level: Debug
   adapter: logrus
   formatter: text
 metrics:
-  listenaddress: 0.0.0.0:9090
+  listenaddress: METRICS:9090
   namespace: insolar
   zpagesenabled: true
   reportingperiod: 0s
-logicrunner:
-  rpclisten: 127.0.0.1:7778
-  rpcprotocol: tcp
-  builtin: {}
-  goplugin:
-    runnerlisten: 127.0.0.1:7777
-    runnerprotocol: tcp
-apirunner:
-  address: localhost:19101
-  call: /api/call
-  rpc: /api/rpc
-  timeout: 15
 pulsar:
   connectiontype: tcp
-  mainlisteneraddress: 127.0.0.1:58090
+  mainlisteneraddress: JEPSEN-6:58090
   storage:
     datadirectory: ./data_pulsar
     txretriesonconflict: 0
@@ -67,15 +36,15 @@ pulsar:
   numberdelta: 10
   distributiontransport:
     protocol: TCP
-    address: 127.0.0.1:58091
+    address: JEPSEN-6:58091
     behindnat: false
   pulsedistributor:
     bootstraphosts:
-    - 127.0.0.1:13831
-    - 127.0.0.1:23832
-    - 127.0.0.1:33833
-    - 127.0.0.1:43834
-    - 127.0.0.1:53835
+    - JEPSEN-1:13831
+    - JEPSEN-2:23832
+    - JEPSEN-3:33833
+    - JEPSEN-4:43834
+    - JEPSEN-5:53835
     pingrequesttimeout: 1000
     randomhostsrequesttimeout: 1000
     pulserequesttimeout: 1000
@@ -87,6 +56,6 @@ certificatepath: ""
 tracer:
   jaeger:
     collectorendpoint: ""
-    agentendpoint: 127.0.0.1:6831
+    agentendpoint: JAEGER:6831
     probabilityrate: 1
   samplingrules: {}
