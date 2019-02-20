@@ -28,7 +28,7 @@ After the test:
 # To login to `jepsen-1` pod:
 ssh -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -p 32001 gopher@localhost
 
-# To attach a process running in background in tmux:
+# To attach a process running in background:
 tmux ls
 tmux attach -t insolard
 
