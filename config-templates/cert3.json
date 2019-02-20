@@ -13,35 +13,35 @@
   "bootstrap_nodes": [
     {
       "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEYbZ4Bu59gNPmAAyP36pjAVamBJSQ\nK09T/8tT+Y4696G+8zO9a20jCimRHiPAKXhM3vitsFd/UWXIw9LO8io/0w==\n-----END PUBLIC KEY-----\n",
-      "host": "127.0.0.1:13831",
+      "host": "JEPSEN-1:13831",
       "network_sign": "ICBaw2q9OS4dxyFOYo7Gf/DjLh8hx0NBDiME4sW+TxKmSmQAoS7b6ZxgahR8CqAJ4ClVfaVMDtsVK/sgCgPIGPCp",
       "node_sign": "ICBA7nymOdGNQNgWoesqzZ8QtPZ5LOo/m25ATSX0m/qSSRn+Ol/3Okmv7dzH6SuAbCcJZS0QLe1j5BMhEAsZAqhb",
       "node_ref": "1tJCZvcnhLuLTQhFRx1PP6esruGLRuUwkuZ6fqzaXk.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ"
     },
     {
       "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAERRkprkLHzJJlOeh/e9GOfTFm+v7v\nGJsGZfB6L1xS7lFYJOtMGeExqW8rReSYHJ8uTwNirFBRdbDIaxMcBqux7A==\n-----END PUBLIC KEY-----\n",
-      "host": "127.0.0.1:23832",
+      "host": "JEPSEN-2:23832",
       "network_sign": "ICBYy9E0Ar2/Jg6x5c7xC4C0tEI/1/1IU9HB7CUmY2SiHQlCqLmAYsEPfBqe4aOGXTyJMVlUQ6qz0Bgio8l0E+e0",
       "node_sign": "ICA7um3nZH4/Q4fD0X+HHyqLCORGKuQSZjXj9fvmck1nxjADfd4zAOEFxugNAZQyGWnAZItceJ7itFEDjlU7YwrP",
       "node_ref": "1tJCkh9Jzm7ijJGsTHuQsK2QMXsXvwdo9EwVUyzcDL.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ"
     },
     {
       "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE4gNBMMzrBzWpluR6DwlKoJbT/ROb\n7JypivN8HOLWkraJjTD+7Y3W9AAqsOxus70BIxPEKSVUmqmhbcTZtfF5hg==\n-----END PUBLIC KEY-----\n",
-      "host": "127.0.0.1:33833",
+      "host": "JEPSEN-3:33833",
       "network_sign": "ICDKVdzASg2pqcwvRlGKxPHfI0ut+GQp0/JfZKW7Ya5UFX3Uw82Wv3Fz1A/dCfNKuTBHJmGvoYWY/rGLCDmCZiK1",
       "node_sign": "ICAj80Gz3KQngB6jj5iIE6phisOMGh0UXRSQXiaaGUhzLTzNWZLIQZEHaHFdtBWAcrRD0VAStQQ6PQ/o652/o25l",
       "node_ref": "1tJC7vpkrUwa31uVH5FHxSX46koYcFYMkHZkcAzP4N.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ"
     },
     {
       "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpN4fjDqF3uKdwIKXpBmnXq1jsfIM\nLNitya3yaTUiphM1Oqymkn4lCdU4KM7i2dmZBFmINxkICEJTBNATc+RmwQ==\n-----END PUBLIC KEY-----\n",
-      "host": "127.0.0.1:43834",
+      "host": "JEPSEN-4:43834",
       "network_sign": "ICDAI4Lyjfx9Grwzm3OHlXmYjK1y4SrzKoaVWM+oLHRvblUkjkGTAFadTedlgGoQesHOyWx9XOEk43PHXZkOb91/",
       "node_sign": "ICCiTbS1BlFXICwRUmFZUEtyQ0FR6HeA5KSo1XmbP0dyYUkkTQyEijBi9lcoSy/v6wA+MHuSbmz1bUhjQU3Zj/8+",
       "node_ref": "1tJDpXx57VNzwCvDvjAxsGSfBUjM2GnJCNg3RtGNFf.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ"
     },
     {
       "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWto+QcM/jQ1sk0bmwxYdXOG6DJ7E\nUPjhT+ZuaF/7Hsrhe/63K97xF+LcV7ttq7bWqAuKikTbuRwBe8sBZT5jUA==\n-----END PUBLIC KEY-----\n",
-      "host": "127.0.0.1:53835",
+      "host": "JEPSEN-5:53835",
       "network_sign": "ICBEJHSuKVBsNJE+WVc+nujsSkua0ulchcaHgjEKShq5U98pWxj6d1hDT7FjtEJ81qg4qOoxVBCQLfKI96weoh6e",
       "node_sign": "ICBczzeDHRCuiTLcjzF4s7lAgrjKkdb1jRTBpclbq8Ebvk5Tso0kbS0NYBmhU7oPHUhP/I2DMRmEeGIFugCyvnv4",
       "node_ref": "1tJDQL5jZ6qJaG1AejAk8tzRgEXrE3qGMydwCFVRGv.1tJEFpPb6FtJcLsU7NEfiehUMbfvRMnoKS46CWnZAJ"

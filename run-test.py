@@ -10,6 +10,13 @@ START_PORT = 32000
 INSPATH = "go/src/github.com/insolar/insolar"
 NPODS = 6
 
+# to make `sed` work properly
+# otherwise it failes with an error:
+# sed: RE error: illegal byte sequence
+os.environ["LC_ALL"] = "C"
+os.environ["LANG"] = "C"
+os.environ["LC_CTYPE"] = "C"
+
 def run(cmd):
     print("    "+cmd)
     code = subprocess.call(cmd, shell=True)
@@ -61,10 +68,12 @@ print("INFO: building configs based on provided templates")
 run("rm -r /tmp/insolar-jepsen-configs || true")
 run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
 pod_ips = k8s_get_pod_ips()
+
 for k in pod_ips.keys():
     rfrom = k.upper()
     rto = pod_ips[k]
-    run("find /tmp/insolar-jepsen-configs -type f -print | xargs sed -i.bak 's/"+rfrom+"/"+rto+"/g'")
+    run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
+        "| xargs sed -i.bak 's/"+rfrom+"/"+rto+"/g'")
 
 print("INFO: copying keys, configs, certificates and `data` directory to all pods")
 run("rm -r /tmp/insolar-jepsen-data || true")
