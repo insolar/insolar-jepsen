@@ -8,27 +8,28 @@ import argparse
 
 START_PORT = 32000
 INSPATH = "go/src/github.com/insolar/insolar"
+NPODS = 6
 
 def run(cmd):
-    print("RUNNING: "+cmd)
+    print("    "+cmd)
     code = subprocess.call(cmd, shell=True)
     if code != 0:
         print("Command `%s` returned non-zero status: %d" %
               (cmd, code))
         sys.exit(1)
 
-def ssh(node, cmd):
+def ssh(pod, cmd):
 	run("ssh -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -p"+\
-        str(START_PORT + node)+""" gopher@localhost "bash -c 'source ./.bash_profile ; """+\
+        str(START_PORT + pod)+""" gopher@localhost "bash -c 'source ./.bash_profile ; """+\
         cmd + """ '" 2>/dev/null""")
 
-def scp_to(node, lpath, rpath, flags=''):
+def scp_to(pod, lpath, rpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -P"+\
-        str(START_PORT + node)+" "+flags+" " + lpath + " gopher@localhost:"+rpath+" 2>/dev/null")
+        str(START_PORT + pod)+" "+flags+" " + lpath + " gopher@localhost:"+rpath+" 2>/dev/null")
 
-def scp_from(node, rpath, lpath, flags=''):
+def scp_from(pod, rpath, lpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -P"+\
-        str(START_PORT + node)+" " + flags + " gopher@localhost:"+rpath+" "+lpath+" 2>/dev/null")
+        str(START_PORT + pod)+" " + flags + " gopher@localhost:"+rpath+" "+lpath+" 2>/dev/null")
 
 def k8s_get_pod_ips():
     """
@@ -43,36 +44,44 @@ def k8s_get_pod_ips():
         res[k] = v
     return res
 
-parser = argparse.ArgumentParser(description='Execute a simple "node down/node up" Jepsen test')
+parser = argparse.ArgumentParser(description='Execute a simple "pod down/pod up" Jepsen test')
 parser.add_argument(
     '-s', '--skip-build', action="store_true",
     help='skip an expensice `build` step and use cached binaries')
 args = parser.parse_args()
 
 if not args.skip_build:
-    # building insolar from master on all nodes
+    print("INFO: building insolar from master on all pods")
     # TODO: run in parallel
-    for node in range(1, 5+1):
-        ssh(node, "cd "+INSPATH+" && "+\
+    for pod in range(1, NPODS+1):
+        ssh(pod, "cd "+INSPATH+" && "+\
             "git checkout master && git pull && make clean build")
 
-# copying `data` directory from node 1 to nodes 2...5
-run("rm -r /tmp/insolar-jepsen-data || true")
-scp_from(1, INSPATH+"/data", "/tmp/insolar-jepsen-data", flags='-r')
-for node in range(2, 5+1):
-    scp_to(node, "/tmp/insolar-jepsen-data", INSPATH+"/data", flags='-r')
-
+print("INFO: building configs based on provided templates")
 run("rm -r /tmp/insolar-jepsen-configs || true")
 run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
-
-print("INFO: Building configs based on provided templates")
 pod_ips = k8s_get_pod_ips()
 for k in pod_ips.keys():
     rfrom = k.upper()
     rto = pod_ips[k]
     run("find /tmp/insolar-jepsen-configs -type f -print | xargs sed -i.bak 's/"+rfrom+"/"+rto+"/g'")
 
-ssh(1, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
-scp_to(1, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
-scp_to(1, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
-# ssh(1, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
+print("INFO: copying keys, configs, certificates and `data` directory to all pods")
+run("rm -r /tmp/insolar-jepsen-data || true")
+scp_from(1, INSPATH+"/data", "/tmp/insolar-jepsen-data", flags='-r')
+for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
+    path = INSPATH+"/scripts/insolard/discoverynodes/"+str(pod)
+    ssh(pod, "mkdir -p "+path)
+    scp_to(pod, "/tmp/insolar-jepsen-configs/node_0"+str(pod-1)+".json", path)
+    scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", path)
+    scp_to(pod, "/tmp/insolar-jepsen-configs/cert"+str(pod)+".json", path+"/cert.json")
+    scp_to(pod, "/tmp/insolar-jepsen-data", path+"/data", flags='-r')
+
+# launch pulsard on the last pod
+ssh(6, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
+scp_to(6, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
+scp_to(6, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
+
+# ssh(6, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
+# TODO: run insgorund, run insolard on pods 1..5
+# TODO: check there are no errors, execute benchmark (probably from pod 6)
