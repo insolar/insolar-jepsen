@@ -22,7 +22,7 @@ docker build --no-cache -t insolar-jepsen .
 ./run-test
 ```
 
-Adter the test:
+After the test:
 
 ```
 # To login to `jepsen-1` pod:
