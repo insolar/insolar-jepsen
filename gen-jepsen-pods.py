@@ -32,7 +32,7 @@ spec:
 ---
 """
 
-for i in range(0, 5):
+for i in range(0, 5+1): # 5 nodes + pulsar
     node_name = "jepsen-"+str(i+1)
     port = str(32001 + i)
     descr = template.replace("jepsen-1", node_name)
