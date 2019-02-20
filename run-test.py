@@ -7,6 +7,10 @@ import subprocess
 import argparse
 import time
 
+# TODO: fix certs and keys generation. They shouldn't be taken from template configs.
+# Use the following command instead and copy node_*.json, cert*.json and `data` to all nodes
+# go run scripts/generate_insolar_configs.go -o scripts/insolard/configs/generated_configs -p scripts/insolard/configs/insgorund_ports.txt -g scripts/insolard/genesis.yaml -t scripts/insolard/pulsar_template.yaml
+
 START_PORT = 32000
 INSPATH = "go/src/github.com/insolar/insolar"
 NPODS = 6
