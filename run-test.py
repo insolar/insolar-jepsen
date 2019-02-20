@@ -5,6 +5,7 @@ import os
 import sys
 import subprocess
 import argparse
+import time
 
 START_PORT = 32000
 INSPATH = "go/src/github.com/insolar/insolar"
@@ -109,11 +110,15 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
             """\\"./bin/insgorund -l jepsen-"""+str(pod)+":33305 --rpc jepsen-"+\
             str(pod)+""":33306 --log-level=debug; sh\\" """)
 
-print("INFO: starting pulsar")
+print("INFO: giving insolard some time to start (10 seconds)")
+time.sleep(10)
+
+print("INFO: starting pulsar (before anything else, otherwise consensus will not be reached)")
 ssh(NPODS, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
 scp_to(NPODS, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
 scp_to(NPODS, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
 ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
+
 
 # TODO: def check_insolar_is_ok, execute benchmark (probably from pod 1, which has root_member_keys.json)
 
