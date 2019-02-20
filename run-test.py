@@ -9,6 +9,15 @@ import argparse
 START_PORT = 32000
 INSPATH = "go/src/github.com/insolar/insolar"
 NPODS = 6
+VIRTUALS = [2, 4] # these pods require local insgorund
+
+# Roles:
+# jepsen-1: heavy
+# jepsen-2: virtual
+# jepsen-3: light
+# jepsen-4: virtual
+# jepsen-5: light
+# jepsen-6: pulsar
 
 # to make `sed` work properly
 # otherwise it failes with an error:
@@ -94,3 +103,9 @@ scp_to(6, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/i
 # ssh(6, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
 # TODO: run insgorund, run insolard on pods 1..5
 # TODO: check there are no errors, execute benchmark (probably from pod 6)
+
+
+# Run benchmark (to jepsen-2):
+# bin/insolar -c gen_keys > scripts/insolard/configs/root_member_keys.json
+# while true; do time ./bin/benchmark -c=3 -r=10 -k=scripts/insolard/configs/root_member_keys.json; done
+# ./bin/benchmark -c 3 -r 10 -u http://10.1.0.148:19102/api -k=scripts/insolard/configs/root_member_keys.json
