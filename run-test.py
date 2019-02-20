@@ -12,6 +12,13 @@ INSPATH = "go/src/github.com/insolar/insolar"
 NPODS = 6
 VIRTUALS = [2, 4] # these pods require local insgorund
 
+# temporary dirty hack: giving all processes some time to start
+# otherwise the network doesn't start at all, see INS-1565
+# (turned out it doesn't help, but may be useful in the future)
+WAIT=10
+def wait():
+    time.sleep(WAIT)
+
 # Roles:
 # jepsen-1: heavy
 # jepsen-2: virtual
@@ -69,7 +76,7 @@ args = parser.parse_args()
 
 if not args.skip_build:
     print("INFO: building insolar from master on all pods")
-    # TODO: run in parallel
+    # TODO: run in parallel, using tmux
     for pod in range(1, NPODS+1):
         ssh(pod, "cd "+INSPATH+" && "+\
             "git checkout master && git pull && make clean build")
@@ -99,6 +106,13 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
     scp_to(pod, "/tmp/insolar-jepsen-configs/cert"+str(pod)+".json", path+"/cert.json")
     scp_to(pod, "/tmp/insolar-jepsen-data", path+"/data", flags='-r')
 
+print("INFO: starting pulsar (before anything else, otherwise consensus will not be reached)")
+ssh(NPODS, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
+scp_to(NPODS, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
+scp_to(NPODS, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
+ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
+wait()
+
 print("INFO: starting insolard's and insgorund's")
 for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insolard " +\
@@ -109,15 +123,7 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
         ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insgorund "+\
             """\\"./bin/insgorund -l jepsen-"""+str(pod)+":33305 --rpc jepsen-"+\
             str(pod)+""":33306 --log-level=debug; sh\\" """)
-
-print("INFO: giving insolard some time to start (10 seconds)")
-time.sleep(10)
-
-print("INFO: starting pulsar (before anything else, otherwise consensus will not be reached)")
-ssh(NPODS, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
-scp_to(NPODS, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
-scp_to(NPODS, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
-ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
+    wait()
 
 
 # TODO: def check_insolar_is_ok, execute benchmark (probably from pod 1, which has root_member_keys.json)
