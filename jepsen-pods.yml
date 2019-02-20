@@ -17,6 +17,7 @@ metadata:
   name: jepsen-1
   labels:
     name: jepsen-1
+    app: insolar-jepsen
 spec:
   containers:
     - name: jepsen-1
@@ -47,6 +48,7 @@ metadata:
   name: jepsen-2
   labels:
     name: jepsen-2
+    app: insolar-jepsen
 spec:
   containers:
     - name: jepsen-2
@@ -77,6 +79,7 @@ metadata:
   name: jepsen-3
   labels:
     name: jepsen-3
+    app: insolar-jepsen
 spec:
   containers:
     - name: jepsen-3
@@ -107,6 +110,7 @@ metadata:
   name: jepsen-4
   labels:
     name: jepsen-4
+    app: insolar-jepsen
 spec:
   containers:
     - name: jepsen-4
@@ -137,6 +141,7 @@ metadata:
   name: jepsen-5
   labels:
     name: jepsen-5
+    app: insolar-jepsen
 spec:
   containers:
     - name: jepsen-5

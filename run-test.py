@@ -30,6 +30,19 @@ def scp_from(node, rpath, lpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -P"+\
         str(START_PORT + node)+" " + flags + " gopher@localhost:"+rpath+" "+lpath+" 2>/dev/null")
 
+def k8s_get_pod_ips():
+    """
+    Returns a map PodName -> PodIP
+    """
+    data = subprocess.check_output("kubectl get pods -l app=insolar-jepsen -o=json | "+\
+        """jq -r '.items[] | .metadata.name + " " + .status.podIP'""", shell=True)
+    data = data.decode('utf-8').strip()
+    res = {}
+    for kv in data.split("\n"):
+        [k, v] = kv.split(' ')
+        res[k] = v
+    return res
+
 parser = argparse.ArgumentParser(description='Execute a simple "node down/node up" Jepsen test')
 parser.add_argument(
     '-s', '--skip-build', action="store_true",
@@ -51,9 +64,15 @@ for node in range(2, 5+1):
 
 run("rm -r /tmp/insolar-jepsen-configs || true")
 run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
-# TODO: replace IPs
+
+print("INFO: Building configs based on provided templates")
+pod_ips = k8s_get_pod_ips()
+for k in pod_ips.keys():
+    rfrom = k.upper()
+    rto = pod_ips[k]
+    run("find /tmp/insolar-jepsen-configs -type f -print | xargs sed -i.bak 's/"+rfrom+"/"+rto+"/g'")
 
 ssh(1, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
 scp_to(1, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
 scp_to(1, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
-ssh(1, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
+# ssh(1, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)

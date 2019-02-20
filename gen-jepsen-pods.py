@@ -19,6 +19,7 @@ metadata:
   name: jepsen-1
   labels:
     name: jepsen-1
+    app: insolar-jepsen
 spec:
   containers:
     - name: jepsen-1
