@@ -36,7 +36,7 @@ log:
   adapter: logrus
   formatter: text
 metrics:
-  listenaddress: METRICS:8004
+  listenaddress: JEPSEN-4:8004
   namespace: insolar
   zpagesenabled: true
   reportingperiod: 0s
