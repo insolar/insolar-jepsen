@@ -84,9 +84,12 @@ for k in pod_ips.keys():
     run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
         "| xargs sed -i.bak 's/"+rfrom+"/"+rto+"/g'")
 
-print("INFO: copying keys, configs, certificates and `data` directory to all pods")
+print("INFO: generating root member key on 1st pod and copying `data` directory")
 run("rm -r /tmp/insolar-jepsen-data || true")
+ssh(1, "cd "+INSPATH+" && bin/insolar -c gen_keys > scripts/insolard/configs/root_member_keys.json")
 scp_from(1, INSPATH+"/data", "/tmp/insolar-jepsen-data", flags='-r')
+
+print("INFO: copying keys, configs, certificates and `data` directory to all pods")
 for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
     path = INSPATH+"/scripts/insolard/discoverynodes/"+str(pod)
     ssh(pod, "mkdir -p "+path)
@@ -95,17 +98,25 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
     scp_to(pod, "/tmp/insolar-jepsen-configs/cert"+str(pod)+".json", path+"/cert.json")
     scp_to(pod, "/tmp/insolar-jepsen-data", path+"/data", flags='-r')
 
-# launch pulsard on the last pod
-ssh(6, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
-scp_to(6, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
-scp_to(6, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
+print("INFO: starting insolard's and insgorund's")
+for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
+    ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insolard " +\
+        """\\"INSOLAR_LOG_LEVEL=Info ./bin/insolard --config """ +\
+        "./scripts/insolard/discoverynodes/"+str(pod)+\
+        "/insolar_"+str(pod)+""".yaml; sh\\" """)
+    if pod in VIRTUALS: # also start insgorund
+        ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insgorund "+\
+            """\\"./bin/insgorund -l jepsen-"""+str(pod)+":33305 --rpc jepsen-"+\
+            str(pod)+""":33306 --log-level=debug; sh\\" """)
 
-# ssh(6, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
-# TODO: run insgorund, run insolard on pods 1..5
-# TODO: check there are no errors, execute benchmark (probably from pod 6)
+print("INFO: starting pulsar")
+ssh(NPODS, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
+scp_to(NPODS, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
+scp_to(NPODS, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
+ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
 
+# TODO: def check_insolar_is_ok, execute benchmark (probably from pod 1, which has root_member_keys.json)
 
 # Run benchmark (to jepsen-2):
-# bin/insolar -c gen_keys > scripts/insolard/configs/root_member_keys.json
-# while true; do time ./bin/benchmark -c=3 -r=10 -k=scripts/insolard/configs/root_member_keys.json; done
+# while true; do time ___ ; done
 # ./bin/benchmark -c 3 -r 10 -u http://10.1.0.148:19102/api -k=scripts/insolard/configs/root_member_keys.json
