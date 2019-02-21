@@ -19,7 +19,7 @@ docker build --no-cache -t insolar-jepsen .
 # Optional:
 # ./gen-jepsen-pods.py > ./jepsen-pods.yml
 
-./run-test
+./run-test.py
 ```
 
 After the test:
