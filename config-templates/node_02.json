@@ -1,4 +1,4 @@
 {
-    "private_key": "-----BEGIN PRIVATE KEY-----\nMHcCAQEEIAZvqVH+t/DvIBjyd2xT/YdrnrEhH9J0nwLXDgveFZoooAoGCCqGSM49\nAwEHoUQDQgAEfeSOZbv4q2EwaOuwlpgzNCgEJ+fUbZC1Gmkmc+AR5Hmzw2I21UZG\n4H2NyMVQso2hL2mWbE2F2GAcnonk8ud91g==\n-----END PRIVATE KEY-----\n",
-    "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEfeSOZbv4q2EwaOuwlpgzNCgEJ+fU\nbZC1Gmkmc+AR5Hmzw2I21UZG4H2NyMVQso2hL2mWbE2F2GAcnonk8ud91g==\n-----END PUBLIC KEY-----\n"
+    "private_key": "-----BEGIN PRIVATE KEY-----\nMHcCAQEEIPQ5cr/CPpE04xFsSWj7YhyEW+jhd79TBvz38kRXFMDmoAoGCCqGSM49\nAwEHoUQDQgAEVgjDwbR6VsYGzPrBrIpCBMi2BI3Q9UDORW5DvfWMunjnEAcauRrq\n99nj13uc0UoITlpiLEUNtxGwcBhHcTFq3g==\n-----END PRIVATE KEY-----\n",
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEVgjDwbR6VsYGzPrBrIpCBMi2BI3Q\n9UDORW5DvfWMunjnEAcauRrq99nj13uc0UoITlpiLEUNtxGwcBhHcTFq3g==\n-----END PUBLIC KEY-----\n"
 }

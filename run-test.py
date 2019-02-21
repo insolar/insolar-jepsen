@@ -147,11 +147,10 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
         "./scripts/insolard/discoverynodes/"+str(pod)+\
         "/insolar_"+str(pod)+""".yaml; sh\\" """)
     if pod in VIRTUALS: # also start insgorund
-        # TODO: use IPs to prevent DNS caching!
         ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insgorund "+\
-            """\\"./bin/insgorund -l jepsen-"""+str(pod)+":33305 --rpc jepsen-"+\
-            str(pod)+""":33306 --log-level=debug; sh\\" """)
+            """\\"./bin/insgorund -l """+pod_ips["jepsen-"+str(pod)]+":33305 --rpc "+\
+            pod_ips["jepsen-"+str(pod)]+""":33306 --log-level=debug; sh\\" """)
 
 # Run benchmark (to jepsen-2):
 # while true; do time ___ ; done
-# ./bin/benchmark -c 3 -r 10 -u http://10.1.0.240:19102/api -k=./root_member_keys.json
+# ./bin/benchmark -c 3 -r 10 -u http://10.1.1.1:19102/api -k=./root_member_keys.json
