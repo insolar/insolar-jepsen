@@ -7,10 +7,6 @@ import subprocess
 import argparse
 import time
 
-# TODO: fix certs and keys generation. They shouldn't be taken from template configs.
-# Use the following command instead and copy node_*.json, cert*.json and `data` to all nodes
-# go run scripts/generate_insolar_configs.go -o scripts/insolard/configs/generated_configs -p scripts/insolard/configs/insgorund_ports.txt -g scripts/insolard/genesis.yaml -t scripts/insolard/pulsar_template.yaml
-
 START_PORT = 32000
 INSPATH = "go/src/github.com/insolar/insolar"
 NPODS = 6
@@ -122,19 +118,21 @@ for k in pod_ips.keys():
     run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
         "| xargs sed -i.bak 's/"+rfrom+"/"+rto+"/g'")
 
-info("generating root member key on 1st pod and copying `data` directory")
+info("extracting `data` directory from .tar.xz file")
 run("rm -r /tmp/insolar-jepsen-data || true")
-ssh(1, "cd "+INSPATH+" && bin/insolar -c gen_keys > scripts/insolard/configs/root_member_keys.json")
-scp_from(1, INSPATH+"/data", "/tmp/insolar-jepsen-data", flags='-r')
+run("mkdir /tmp/insolar-jepsen-data")
+run("tar -xvf ./config-templates/data.tar.xz -C /tmp/insolar-jepsen-data")
 
 info("copying keys, configs, certificates and `data` directory to all pods")
 for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
     path = INSPATH+"/scripts/insolard/discoverynodes/"+str(pod)
     ssh(pod, "mkdir -p "+path)
     scp_to(pod, "/tmp/insolar-jepsen-configs/node_0"+str(pod-1)+".json", path)
-    scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", path)
     scp_to(pod, "/tmp/insolar-jepsen-configs/cert"+str(pod)+".json", path+"/cert.json")
-    scp_to(pod, "/tmp/insolar-jepsen-data", path+"/data", flags='-r')
+    scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", path)
+    ssh(pod, "rm -r " + path+"/data || true") # prevents creating data/data directory
+    scp_to(pod, "/tmp/insolar-jepsen-data/data", path+"/data", flags='-r')
+    scp_to(pod, "/tmp/insolar-jepsen-configs/root_member_keys.json", INSPATH)
 
 info("starting pulsar (before anything else, otherwise consensus will not be reached)")
 ssh(NPODS, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
@@ -149,10 +147,11 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
         "./scripts/insolard/discoverynodes/"+str(pod)+\
         "/insolar_"+str(pod)+""".yaml; sh\\" """)
     if pod in VIRTUALS: # also start insgorund
+        # TODO: use IPs to prevent DNS caching!
         ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insgorund "+\
             """\\"./bin/insgorund -l jepsen-"""+str(pod)+":33305 --rpc jepsen-"+\
             str(pod)+""":33306 --log-level=debug; sh\\" """)
 
 # Run benchmark (to jepsen-2):
 # while true; do time ___ ; done
-# ./bin/benchmark -c 3 -r 10 -u http://10.1.0.228:19102/api -k=scripts/insolard/configs/root_member_keys.json
+# ./bin/benchmark -c 3 -r 10 -u http://10.1.0.240:19102/api -k=./root_member_keys.json
