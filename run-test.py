@@ -142,6 +142,7 @@ ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/puls
 
 info("starting insolard's and insgorund's")
 for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
+    scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insolard " +\
         """\\"INSOLAR_LOG_LEVEL=Info ./bin/insolard --config """ +\
         "./scripts/insolard/discoverynodes/"+str(pod)+\

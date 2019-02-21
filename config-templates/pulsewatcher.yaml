@@ -1,0 +1,8 @@
+nodes:
+- JEPSEN-1:19101
+- JEPSEN-2:19102
+- JEPSEN-3:19103
+- JEPSEN-4:19104
+- JEPSEN-5:19105
+interval: 500ms
+timeout: 1s
