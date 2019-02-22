@@ -28,6 +28,10 @@ os.environ["LC_CTYPE"] = "C"
 def info(msg):
     print("INFO: "+msg)
 
+def wait(nsec):
+    info("waiting "+str(nsec)+" second"+("s" if nsec > 1 else "")+"...")
+    time.sleep(nsec)
+
 def run(cmd):
     print("    "+cmd)
     code = subprocess.call(cmd, shell=True)
@@ -81,7 +85,7 @@ def k8s_stop_pods_if_running():
         info("running pods: "+data)
         if data == "0":
             break
-        time.sleep(1)
+        wait(1)
 
 def k8s_start_pods():
     info("starting pods")
@@ -92,12 +96,11 @@ def k8s_start_pods():
         info("running pods: "+data)
         if data == str(NPODS):
             break
-        time.sleep(1)
+        wait(1)
 
-def insolar_is_alive(pod_ips):
-    # TODO: also check all processes are alive?
-    out = ssh_output(1, 'cd go/src/github.com/insolar/insolar && '+
-        './bin/benchmark -c 1 -r 5 -u http://'+pod_ips['jepsen-2']+':19102/api '+
+def insolar_is_alive(pod_ips, ssh_pod_num = 1, virtual_pod_name = 'jepsen-4', port = 19104):
+    out = ssh_output(ssh_pod_num, 'cd go/src/github.com/insolar/insolar && '+
+        './bin/benchmark -c 1 -r 5 -u http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/api '+
         '-k=./scripts/insolard/configs/root_member_keys.json | grep Success')
     if out == 'Successes: 5':
         return True
@@ -105,10 +108,25 @@ def insolar_is_alive(pod_ips):
         info('insolar_is_alive() is about to return false, out = "'+out+'"')
         return False
 
+def wait_until_insolar_is_alive(pod_ips, nattempts=10, pause_sec=10):
+    alive = False
+    for attempt in range(1, nattempts+1):
+        wait(pause_sec)
+        try:
+            alive = insolar_is_alive(pod_ips)
+        except Exception as e:
+            print(e)
+            info("Insolar is not alive yet (attampt "+str(attempt)+" of "+str(nattempts)+")" )
+        if alive:
+            break
+    return alive
+
+### DEPLOYMENT PART ###
+
 k8s_stop_pods_if_running()
 k8s_start_pods()
 # if pod is started it doesn't mean it's ready to accept connections
-time.sleep(3)
+wait(3)
 
 info("building configs based on provided templates")
 run("rm -r /tmp/insolar-jepsen-configs || true")
@@ -146,18 +164,24 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
             """\\"./bin/insgorund -l """+pod_ips["jepsen-"+str(pod)]+":33305 --rpc "+\
             pod_ips["jepsen-"+str(pod)]+""":33306 --log-level=debug; sh\\" """)
 
-alive = False
-nattempts = 10
-for attempt in range(1, nattempts+1):
-    info("waiting 10 seconds...")
-    time.sleep(10)
-    try:
-        alive = insolar_is_alive(pod_ips)
-    except Exception as e:
-        print(e)
-        info("Insolar is not alive yet (attampt "+str(attempt)+" of "+str(nattempts)+")" )
-    if alive:
-        break
-info("IS ALIVE: "+str(alive))
+alive = wait_until_insolar_is_alive(pod_ips)
+assert(alive)
+info("Insolar started!")
 
-# killall -s 9 ./bin/insolard
+### TESTING PART ###
+
+ntests = 10
+for test_num in range(0, ntests+1):
+    pod = 2
+    info("Killing insolard on "+str(pod)+"-nd pod (virtual)")
+    ssh(pod, "killall -s 9 insolard")
+    alive = wait_until_insolar_is_alive(pod_ips)
+    assert(alive)
+    info("Insolar is still alive. Re-launching insolard on "+str(pod)+"-nd pod")
+    ssh(pod, "cd " + INSPATH + " && tmux new-session -d " +\
+        """\\"INSOLAR_LOG_LEVEL=Info ./bin/insolard --config """ +\
+        "./scripts/insolard/discoverynodes/"+str(pod)+\
+        "/insolar_"+str(pod)+""".yaml; sh\\" """)
+    alive = wait_until_insolar_is_alive(pod_ips)
+    assert(alive)
+    info("TEST PASSED: "+str(test_num+1)+" of "+str(ntests))
