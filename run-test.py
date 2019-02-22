@@ -37,12 +37,18 @@ def run(cmd):
         sys.exit(1)
 
 def get_output(cmd):
+    print("    "+cmd)
     data = subprocess.check_output(cmd, shell=True)
     data = data.decode('utf-8').strip()
     return data
 
 def ssh(pod, cmd):
 	run("ssh -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -p"+\
+        str(START_PORT + pod)+""" gopher@localhost "bash -c 'source ./.bash_profile ; """+\
+        cmd + """ '" 2>/dev/null""")
+
+def ssh_output(pod, cmd):
+	return get_output("ssh -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -p"+\
         str(START_PORT + pod)+""" gopher@localhost "bash -c 'source ./.bash_profile ; """+\
         cmd + """ '" 2>/dev/null""")
 
@@ -88,6 +94,17 @@ def k8s_start_pods():
             break
         time.sleep(1)
 
+def insolar_is_alive(pod_ips):
+    # TODO: also check all processes are alive?
+    out = ssh_output(1, 'cd go/src/github.com/insolar/insolar && '+
+        './bin/benchmark -c 1 -r 5 -u http://'+pod_ips['jepsen-2']+':19102/api '+
+        '-k=./scripts/insolard/configs/root_member_keys.json | grep Success')
+    if out == 'Successes: 5':
+        return True
+    else:
+        info('insolar_is_alive() is about to return false, out = "'+out+'"')
+        return False
+
 k8s_stop_pods_if_running()
 k8s_start_pods()
 # if pod is started it doesn't mean it's ready to accept connections
@@ -129,6 +146,16 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
             """\\"./bin/insgorund -l """+pod_ips["jepsen-"+str(pod)]+":33305 --rpc "+\
             pod_ips["jepsen-"+str(pod)]+""":33306 --log-level=debug; sh\\" """)
 
-# Run benchmark (to jepsen-2):
-# while true; do time ___ ; done
-# ./bin/benchmark -c 3 -r 10 -u http://10.1.1.113:19102/api -k=./scripts/insolard/configs/root_member_keys.json
+alive = False
+nattempts = 10
+for attempt in range(1, nattempts+1):
+    info("waiting 10 seconds...")
+    time.sleep(10)
+    try:
+        alive = insolar_is_alive(pod_ips)
+    except Exception as e:
+        print(e)
+        info("Insolar is not alive yet (attampt "+str(attempt)+" of "+str(nattempts)+")" )
+    if alive:
+        break
+info("IS ALIVE: "+str(alive))
