@@ -159,3 +159,5 @@ for attempt in range(1, nattempts+1):
     if alive:
         break
 info("IS ALIVE: "+str(alive))
+
+# killall -s 9 ./bin/insolard
