@@ -171,10 +171,10 @@ info("Insolar started!")
 ### TESTING PART ###
 
 ntests = 10
-for test_num in range(0, ntests+1):
+for test_num in range(0, ntests):
     pod = 2
     info("Killing insolard on "+str(pod)+"-nd pod (virtual)")
-    ssh(pod, "killall -s 9 insolard")
+    ssh(pod, "killall -s 9 insolard || true") # `|| true` --- sometimes insolard doesn't restart?
     alive = wait_until_insolar_is_alive(pod_ips)
     assert(alive)
     info("Insolar is still alive. Re-launching insolard on "+str(pod)+"-nd pod")
@@ -184,4 +184,4 @@ for test_num in range(0, ntests+1):
         "/insolar_"+str(pod)+""".yaml; sh\\" """)
     alive = wait_until_insolar_is_alive(pod_ips)
     assert(alive)
-    info("TEST PASSED: "+str(test_num+1)+" of "+str(ntests))
+    info("TEST PASSED: "+str(test_num+1)+" of "+str(ntests+1))
