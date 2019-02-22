@@ -4,7 +4,6 @@
 import os
 import sys
 import subprocess
-import argparse
 import time
 
 START_PORT = 32000
@@ -89,23 +88,10 @@ def k8s_start_pods():
             break
         time.sleep(1)
 
-parser = argparse.ArgumentParser(description='Execute a simple "pod down/pod up" Jepsen test')
-parser.add_argument(
-    '-b', '--rebuild', action="store_true",
-    help='rebuild the project inside all containers (expensive and error-prone operation!)')
-args = parser.parse_args()
-
 k8s_stop_pods_if_running()
 k8s_start_pods()
 # if pod is started it doesn't mean it's ready to accept connections
 time.sleep(3)
-
-if args.rebuild:
-    info("building insolar from master on all pods")
-    info("hopefully no one will commit and the code on all pods will be the same")
-    for pod in range(1, NPODS+1):
-        ssh(pod, "cd "+INSPATH+" && "+\
-            "git checkout master && git pull && make clean build")
 
 info("building configs based on provided templates")
 run("rm -r /tmp/insolar-jepsen-configs || true")
@@ -113,31 +99,22 @@ run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
 pod_ips = k8s_get_pod_ips()
 
 for k in pod_ips.keys():
-    rfrom = k.upper()
-    rto = pod_ips[k]
     run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
-        "| xargs sed -i.bak 's/"+rfrom+"/"+rto+"/g'")
+        "| xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
 
-info("extracting `data` directory from .tar.xz file")
-run("rm -r /tmp/insolar-jepsen-data || true")
-run("mkdir /tmp/insolar-jepsen-data")
-run("tar -xvf ./config-templates/data.tar.xz -C /tmp/insolar-jepsen-data")
-
-info("copying keys, configs, certificates and `data` directory to all pods")
+info("copying configs and fixing certificates on all pods")
 for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
-    path = INSPATH+"/scripts/insolard/discoverynodes/"+str(pod)
-    ssh(pod, "mkdir -p "+path)
-    scp_to(pod, "/tmp/insolar-jepsen-configs/node_0"+str(pod-1)+".json", path)
-    scp_to(pod, "/tmp/insolar-jepsen-configs/cert"+str(pod)+".json", path+"/cert.json")
-    scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", path)
-    ssh(pod, "rm -r " + path+"/data || true") # prevents creating data/data directory
-    scp_to(pod, "/tmp/insolar-jepsen-data/data", path+"/data", flags='-r')
-    scp_to(pod, "/tmp/insolar-jepsen-configs/root_member_keys.json", INSPATH)
+    discovery_path = INSPATH+"/scripts/insolard/discoverynodes/"
+    pod_path = discovery_path+str(pod)
+    ssh(pod, "mkdir -p "+pod_path)
+    for k in pod_ips.keys():
+        ssh(pod, "find "+discovery_path+" -type f -print "+\
+            " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
+    scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
 
 info("starting pulsar (before anything else, otherwise consensus will not be reached)")
 ssh(NPODS, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
 scp_to(NPODS, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
-scp_to(NPODS, "/tmp/insolar-jepsen-configs/bootstrap_keys.json", INSPATH+"/scripts/insolard/configs/bootstrap_keys.json")
 ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
 
 info("starting insolard's and insgorund's")
@@ -154,4 +131,4 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
 
 # Run benchmark (to jepsen-2):
 # while true; do time ___ ; done
-# ./bin/benchmark -c 3 -r 10 -u http://10.1.1.1:19102/api -k=./root_member_keys.json
+# ./bin/benchmark -c 3 -r 10 -u http://10.1.1.113:19102/api -k=./scripts/insolard/configs/root_member_keys.json
