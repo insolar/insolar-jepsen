@@ -25,6 +25,9 @@ os.environ["LC_ALL"] = "C"
 os.environ["LANG"] = "C"
 os.environ["LC_CTYPE"] = "C"
 
+def logto(fname):
+    return "2>&1 | tee /dev/stdout | gzip --stdout > "+fname+".log.gz"
+
 def info(msg):
     print("INFO: "+msg)
 
@@ -147,10 +150,12 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
             " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
     scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
 
+
 info("starting pulsar (before anything else, otherwise consensus will not be reached)")
 ssh(NPODS, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
 scp_to(NPODS, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
-ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml; sh\\" """)
+ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml """+\
+    logto("pulsar") +"""; sh\\" """)
 
 info("starting insolard's and insgorund's")
 for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
@@ -158,11 +163,11 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insolard " +\
         """\\"INSOLAR_LOG_LEVEL=Info ./bin/insolard --config """ +\
         "./scripts/insolard/discoverynodes/"+str(pod)+\
-        "/insolar_"+str(pod)+""".yaml; sh\\" """)
+        "/insolar_"+str(pod)+".yaml "+logto("insolard")+"""; sh\\" """)
     if pod in VIRTUALS: # also start insgorund
         ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insgorund "+\
             """\\"./bin/insgorund -l """+pod_ips["jepsen-"+str(pod)]+":33305 --rpc "+\
-            pod_ips["jepsen-"+str(pod)]+""":33306 --log-level=debug; sh\\" """)
+            pod_ips["jepsen-"+str(pod)]+":33306 --log-level=debug "+logto("insgorund")+"""; sh\\" """)
 
 alive = wait_until_insolar_is_alive(pod_ips)
 assert(alive)
