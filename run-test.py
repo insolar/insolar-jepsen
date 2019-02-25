@@ -112,8 +112,7 @@ def insolar_is_alive(pod_ips, ssh_pod_num = 1, virtual_pod_name = 'jepsen-4', po
         info('insolar_is_alive() is about to return false, out = "'+out+'"')
         return False
 
-# TODO: two cases - started / continued
-def wait_until_insolar_is_alive(pod_ips, nattempts=10, pause_sec=10):
+def wait_until_insolar_is_alive(pod_ips, nattempts=10, pause_sec=10, step=""):
     alive = False
     for attempt in range(1, nattempts+1):
         wait(pause_sec)
@@ -121,7 +120,7 @@ def wait_until_insolar_is_alive(pod_ips, nattempts=10, pause_sec=10):
             alive = insolar_is_alive(pod_ips)
         except Exception as e:
             print(e)
-            info("Insolar is not alive yet (attampt "+str(attempt)+" of "+str(nattempts)+")" )
+            info("[Step: "+step+"] Insolar is not alive yet (attampt "+str(attempt)+" of "+str(nattempts)+")" )
         if alive:
             break
     return alive
@@ -171,7 +170,7 @@ for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
             """\\"./bin/insgorund -l """+pod_ips["jepsen-"+str(pod)]+":33305 --rpc "+\
             pod_ips["jepsen-"+str(pod)]+":33306 --log-level=debug "+logto("insgorund")+"""; bash\\" """)
 
-alive = wait_until_insolar_is_alive(pod_ips)
+alive = wait_until_insolar_is_alive(pod_ips, step="starting")
 assert(alive)
 info("Insolar started!")
 
@@ -182,7 +181,7 @@ for test_num in range(0, ntests):
     pod = 2
     info("Killing insolard on "+str(pod)+"-nd pod (virtual)")
     ssh(pod, "killall -s 9 insolard || true") # `|| true` --- sometimes insolard doesn't restart?
-    #alive = wait_until_insolar_is_alive(pod_ips)
+    #alive = wait_until_insolar_is_alive(pod_ips, step="test-node-down")
     #assert(alive)
     time.sleep(12)
     info("Insolar is still alive. Re-launching insolard on "+str(pod)+"-nd pod")
@@ -190,6 +189,6 @@ for test_num in range(0, ntests):
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
         "./scripts/insolard/discoverynodes/"+str(pod)+\
         "/insolar_"+str(pod)+""".yaml; sh\\" """)
-    alive = wait_until_insolar_is_alive(pod_ips)
+    alive = wait_until_insolar_is_alive(pod_ips, step="test-node-up")
     assert(alive)
     info("TEST PASSED: "+str(test_num+1)+" of "+str(ntests+1))
