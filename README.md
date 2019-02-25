@@ -8,10 +8,7 @@ Usage:
 
 ```
 # the complete build takes ~10 minutes
-docker build --no-cache -t insolar-jepsen .
-
-# this method is faster when rebuilding, but sometimes doesn't work well
-# docker build --build-arg DISABLE_CACHE_HERE=$(date +%s) -t insolar-jepsen .
+docker build --no-cache -t insolar-jepsen --build-arg BRANCH=master .
 
 # test the image, it should throw no errors:
 # docker run --rm -it insolar-jepsen
