@@ -16,6 +16,9 @@ docker build --no-cache -t insolar-jepsen --build-arg BRANCH=master .
 # Optional:
 # ./gen-jepsen-pods.py > ./jepsen-pods.yml
 
+# Make sure private key is readable only by current user
+chmod 600 ./ssh-keys/id_rsa
+
 ./run-test.py
 ```
 
