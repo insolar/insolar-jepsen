@@ -27,7 +27,7 @@ os.environ["LANG"] = "C"
 os.environ["LC_CTYPE"] = "C"
 
 def logto(fname):
-    return "2>&1 | tee /dev/tty | gzip --stdout > "+fname+".log.gz"
+    return "2>&1 | tee /dev/tty | gzip --stdout > "+fname+"-$(date +%s).log.gz"
 
 def info(msg):
     print("INFO: "+msg)
@@ -128,74 +128,92 @@ def wait_until_insolar_is_alive(pod_ips, nattempts=10, pause_sec=10, step=""):
             break
     return alive
 
-### DEPLOYMENT PART ###
-
-k8s_stop_pods_if_running()
-k8s_start_pods()
-# if pod is started it doesn't mean it's ready to accept connections
-wait(3)
-
-info("building configs based on provided templates")
-run("rm -r /tmp/insolar-jepsen-configs || true")
-run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
-pod_ips = k8s_get_pod_ips()
-
-for k in pod_ips.keys():
-    run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
-        "| xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
-
-info("copying configs and fixing certificates on all pods")
-for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
-    discovery_path = INSPATH+"/scripts/insolard/discoverynodes/"
-    pod_path = discovery_path+str(pod)
-    ssh(pod, "mkdir -p "+pod_path)
-    for k in pod_ips.keys():
-        ssh(pod, "find "+discovery_path+" -type f -print "+\
-            " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
-    scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
-
-
-info("starting pulsar (before anything else, otherwise consensus will not be reached)")
-ssh(NPODS, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
-scp_to(NPODS, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
-ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d -s pulsard \\"./bin/pulsard -c pulsar.yaml """+\
-    logto("pulsar") +"""; bash\\" """)
-
-info("starting insolard's and insgorund's")
-for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
-    scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
-    ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insolard " +\
+def start_insolard(pod, extra_args = ""):
+    ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +\
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
         "./scripts/insolard/discoverynodes/"+str(pod)+\
         "/insolar_"+str(pod)+".yaml "+logto("insolard")+"""; bash\\" """)
-    if pod in VIRTUALS: # also start insgorund
-        ssh(pod, "cd " + INSPATH + " && tmux new-session -d -s insgorund "+\
-            """\\"./bin/insgorund -l """+pod_ips["jepsen-"+str(pod)]+":33305 --rpc "+\
-            pod_ips["jepsen-"+str(pod)]+":33306 --log-level=debug "+logto("insgorund")+"""; bash\\" """)
 
-alive = wait_until_insolar_is_alive(pod_ips, step="starting")
-assert(alive)
-info("Insolar started!")
+def start_insgorund(pod, pod_ips, extra_args = ""):
+    ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" "+\
+        """\\"./bin/insgorund -l """+pod_ips["jepsen-"+str(pod)]+":33305 --rpc "+\
+        pod_ips["jepsen-"+str(pod)]+":33306 --log-level=debug "+logto("insgorund")+"""; bash\\" """)
 
-### TESTING PART ###
+def start_pulsard(extra_args = ""):
+    ssh(NPODS, "cd " + INSPATH + """ && tmux new-session -d """+\
+        extra_args+""" \\"./bin/pulsard -c pulsar.yaml """+\
+        logto("pulsar") +"""; bash\\" """)
 
-ntests = 10
-for test_num in range(0, ntests):
-    pod = 2
+def kill(pod, proc_name):
+    ssh(pod, "killall -s 9 "+proc_name+" || true")
+
+def deploy_insolar():
+    k8s_stop_pods_if_running()
+    k8s_start_pods()
+    # if pod is started it doesn't mean it's ready to accept connections
+    wait(3)
+
+    info("building configs based on provided templates")
+    run("rm -r /tmp/insolar-jepsen-configs || true")
+    run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
+    pod_ips = k8s_get_pod_ips()
+
+    for k in pod_ips.keys():
+        run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
+            "| xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
+
+    info("copying configs and fixing certificates on all pods")
+    for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
+        discovery_path = INSPATH+"/scripts/insolard/discoverynodes/"
+        pod_path = discovery_path+str(pod)
+        ssh(pod, "mkdir -p "+pod_path)
+        for k in pod_ips.keys():
+            ssh(pod, "find "+discovery_path+" -type f -print "+\
+                " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
+
+    info("starting pulsar (before anything else, otherwise consensus will not be reached)")
+    ssh(NPODS, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
+    scp_to(NPODS, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
+    start_pulsard(extra_args="-s pulsard")
+
+    info("starting insolard's and insgorund's")
+    for pod in range(1, (NPODS-1)+1): # exclude the last pod, pulsar
+        scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
+        start_insolard(pod, extra_args="-s insolard")
+        if pod in VIRTUALS: # also start insgorund
+            start_insgorund(pod, pod_ips, extra_args="-s insgorund")
+
+    alive = wait_until_insolar_is_alive(pod_ips, step="starting")
+    assert(alive)
+    info("Insolar started!")
+    return pod_ips
+
+def test_stop_start_virtual(pod, pod_ips):
     info("Killing insolard on "+str(pod)+"-nd pod (virtual)")
-    ssh(pod, "killall -s 9 insolard || true") # `|| true` --- sometimes insolard doesn't restart?
-    ### 
+    kill(pod, "insolard")
+    alive = wait_until_insolar_is_alive(pod_ips, step="stop-virtual")
+    assert(alive)
+    info("Insolar is still alive. Re-launching insolard on "+str(pod)+"-nd pod")
+    start_insolard(pod)
+    alive = wait_until_insolar_is_alive(pod_ips, step="start-virtual")
+    assert(alive)
+
+def test_stop_start_pulsar(pod_ips):
+    info("Killing pulsard")
+    kill(NPODS, "pulsard")
     alive = wait_until_insolar_is_alive(pod_ips, step="test-node-down")
     assert(alive)
-    ### 
-    time.sleep(12)
-    info("Insolar is still alive. Re-launching insolard on "+str(pod)+"-nd pod")
-    ssh(pod, "cd " + INSPATH + " && tmux new-session -d " +\
-        """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
-        "./scripts/insolard/discoverynodes/"+str(pod)+\
-        "/insolar_"+str(pod)+""".yaml; sh\\" """)
-    alive = wait_until_insolar_is_alive(pod_ips, step="test-node-up")
+    info("Insolar is still alive. Re-launching pulsard")
+    start_pulsard()
+    alive = wait_until_insolar_is_alive(pod_ips, step="test-node-down")
     assert(alive)
+
+pod_ips = deploy_insolar()
+ntests = 5
+for test_num in range(0, ntests):
+    test_stop_start_virtual(2, pod_ips)
+    test_stop_start_pulsar(pod_ips)
     info("TEST PASSED: "+str(test_num+1)+" of "+str(ntests))
 
 notify("Test completed!")
