@@ -196,6 +196,6 @@ for test_num in range(0, ntests):
         "/insolar_"+str(pod)+""".yaml; sh\\" """)
     alive = wait_until_insolar_is_alive(pod_ips, step="test-node-up")
     assert(alive)
-    info("TEST PASSED: "+str(test_num+1)+" of "+str(ntests+1))
+    info("TEST PASSED: "+str(test_num+1)+" of "+str(ntests))
 
 notify("Test completed!")
