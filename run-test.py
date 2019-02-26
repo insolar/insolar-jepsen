@@ -118,8 +118,10 @@ def insolar_is_alive(pod_ips, virtual_pod, ssh_pod = 1):
         info('insolar_is_alive() is about to return false, out = "'+out+'"')
         return False
 
-def wait_until_insolar_is_alive(pod_ips, virtual_pod = 4, nattempts=10, pause_sec=10, step=""):
+def wait_until_insolar_is_alive(pod_ips, virtual_pod=-1, nattempts=10, pause_sec=10, step=""):
     alive = False
+    if virtual_pod == -1:
+        virtual_pod = VIRTUALS[0]
     for attempt in range(1, nattempts+1):
         wait(pause_sec)
         try:
@@ -187,32 +189,37 @@ def deploy_insolar():
         if pod in VIRTUALS: # also start insgorund
             start_insgorund(pod, pod_ips, extra_args="-s insgorund")
 
-    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = 2, step="starting")
+    alive = wait_until_insolar_is_alive(pod_ips, step="starting")
     assert(alive)
-    info("Insolar started!")
+    info("==== Insolar started! ====")
     return pod_ips
 
 def test_stop_start_virtual(pod, pod_ips):
-    alive = wait_until_insolar_is_alive(pod_ips, step="test-node-down")
+    info("==== start/stop virtual at pod#"+str(pod)+" test started ====")
+    alive_pod = [ p for p in VIRTUALS if p != pod ][0]
+    alive = wait_until_insolar_is_alive(pod_ips, step="before-killing-virtual")
     assert(alive)
-    info("Killing insolard on "+str(pod)+"-nd pod (virtual)")
+    info("Killing virtual on pod #"+str(pod)+", testing from pod #"+str(alive_pod))
     kill(pod, "insolard")
-    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = 4, step="stop-virtual")
+    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="virtual-down")
     assert(alive)
     info("Insolar is still alive. Re-launching insolard on "+str(pod)+"-nd pod")
     start_insolard(pod)
-    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = 4, step="start-virtual")
+    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="virtual-up")
     assert(alive)
+    info("==== start/stop virtual at pod#"+str(pod)+" passed! ====")
 
 def test_stop_start_pulsar(pod_ips):
+    info("==== start/stop pulsar test started ====")
     info("Killing pulsard")
     kill(NPODS, "pulsard")
-    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = 4, step="test-node-down")
+    alive = wait_until_insolar_is_alive(pod_ips, step="pulsar-down")
     assert(alive)
     info("Insolar is still alive. Re-launching pulsard")
     start_pulsard()
-    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = 4, step="test-node-down")
+    alive = wait_until_insolar_is_alive(pod_ips, step="pulsar-up")
     assert(alive)
+    info("==== start/stop pulsar test passed! ====")
 
 if len(sys.argv) < 2:
     print("Usage: {} number-of-tests".format(sys.argv[0]))
@@ -222,8 +229,9 @@ ntests = int(sys.argv[1])
 pod_ips = deploy_insolar()
 
 for test_num in range(0, ntests):
-    test_stop_start_virtual(2, pod_ips)
+    test_stop_start_virtual(VIRTUALS[0], pod_ips)
+    # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO make this test pass!
     test_stop_start_pulsar(pod_ips)
-    info("TEST PASSED: "+str(test_num+1)+" of "+str(ntests))
+    info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(ntests))
 
 notify("Test completed!")
