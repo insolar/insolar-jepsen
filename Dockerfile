@@ -1,9 +1,5 @@
 FROM ubuntu:16.04
 
-ARG BRANCH
-ENV BRANCH ${BRANCH:-master}
-RUN echo "Going to use branch $BRANCH" && sleep 5
-
 RUN apt-get update && \
     apt-get install -y openssh-server iptables net-tools iputils-ping vim sudo git make lsof gcc curl tmux psmisc
 RUN mkdir /var/run/sshd
@@ -31,6 +27,7 @@ RUN echo 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCrSwFcURYecjrYzqPRZrAl14v8fzfAlB
 RUN bash -c 'cd /home/gopher && wget https://dl.google.com/go/go1.11.5.linux-amd64.tar.gz && tar -xvzf *.tar.gz && rm *.tar.gz && rm -r gocache && rm -r tmp && mkdir opt && mv go opt/go && mkdir -p go/bin && echo "export PATH=\"/home/gopher/go/bin:/home/gopher/opt/go/bin:\$PATH\"" > /home/gopher/.bash_profile'
 RUN bash -c 'cd /home/gopher && curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh'
 
+ARG CACHE=1
 ARG BRANCH
 ENV BRANCH ${BRANCH:-master}
 RUN bash -c "cd /home/gopher && mkdir -p go/src/github.com/insolar && cd go/src/github.com/insolar && git clone https://github.com/insolar/insolar.git && cd insolar && git checkout $BRANCH && make install-deps pre-build"

@@ -7,18 +7,13 @@ Requirements: docker, kubectl, jq. If you are using Docker Desktop, please note,
 Usage:
 
 ```
-# the complete build takes ~10 minutes
-docker build --no-cache -t insolar-jepsen --build-arg BRANCH=master .
-
-# test the image, it should throw no errors:
-# docker run --rm -it insolar-jepsen
-
-# Optional:
-# ./gen-jepsen-pods.py > ./jepsen-pods.yml
-
 # Make sure private key is readable only by current user
 chmod 600 ./ssh-keys/id_rsa
 
+# first build takes ~8 minutes
+./build-docker.py branch-name
+
+# run tests
 ./run-test.py
 ```
 

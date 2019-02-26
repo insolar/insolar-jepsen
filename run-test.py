@@ -36,6 +36,9 @@ def wait(nsec):
     info("waiting "+str(nsec)+" second"+("s" if nsec > 1 else "")+"...")
     time.sleep(nsec)
 
+def notify(message):
+    run("""which osascript && osascript -e 'display notification " """ + message + """ " with title "Jepsen"'""")
+
 def run(cmd):
     print("    "+cmd)
     code = subprocess.call(cmd, shell=True)
@@ -181,8 +184,10 @@ for test_num in range(0, ntests):
     pod = 2
     info("Killing insolard on "+str(pod)+"-nd pod (virtual)")
     ssh(pod, "killall -s 9 insolard || true") # `|| true` --- sometimes insolard doesn't restart?
-    #alive = wait_until_insolar_is_alive(pod_ips, step="test-node-down")
-    #assert(alive)
+    ### 
+    alive = wait_until_insolar_is_alive(pod_ips, step="test-node-down")
+    assert(alive)
+    ### 
     time.sleep(12)
     info("Insolar is still alive. Re-launching insolard on "+str(pod)+"-nd pod")
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d " +\
@@ -192,3 +197,5 @@ for test_num in range(0, ntests):
     alive = wait_until_insolar_is_alive(pod_ips, step="test-node-up")
     assert(alive)
     info("TEST PASSED: "+str(test_num+1)+" of "+str(ntests+1))
+
+notify("Test completed!")
