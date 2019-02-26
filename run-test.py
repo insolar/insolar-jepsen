@@ -7,6 +7,7 @@ import subprocess
 import time
 
 START_PORT = 32000
+VIRTUAL_START_PORT = 19100
 INSPATH = "go/src/github.com/insolar/insolar"
 NPODS = 6
 VIRTUALS = [2, 4] # these pods require local insgorund
@@ -105,8 +106,10 @@ def k8s_start_pods():
             break
         wait(1)
 
-def insolar_is_alive(pod_ips, ssh_pod_num = 1, virtual_pod_name = 'jepsen-4', port = 19104):
-    out = ssh_output(ssh_pod_num, 'cd go/src/github.com/insolar/insolar && '+
+def insolar_is_alive(pod_ips, virtual_pod, ssh_pod = 1):
+    virtual_pod_name = 'jepsen-'+str(virtual_pod)
+    port = VIRTUAL_START_PORT + virtual_pod
+    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
         './bin/benchmark -c 1 -r 5 -u http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/api '+
         '-k=./scripts/insolard/configs/root_member_keys.json | grep Success')
     if out == 'Successes: 5':
@@ -115,12 +118,12 @@ def insolar_is_alive(pod_ips, ssh_pod_num = 1, virtual_pod_name = 'jepsen-4', po
         info('insolar_is_alive() is about to return false, out = "'+out+'"')
         return False
 
-def wait_until_insolar_is_alive(pod_ips, nattempts=10, pause_sec=10, step=""):
+def wait_until_insolar_is_alive(pod_ips, virtual_pod = 4, nattempts=10, pause_sec=10, step=""):
     alive = False
     for attempt in range(1, nattempts+1):
         wait(pause_sec)
         try:
-            alive = insolar_is_alive(pod_ips)
+            alive = insolar_is_alive(pod_ips, virtual_pod)
         except Exception as e:
             print(e)
             info("[Step: "+step+"] Insolar is not alive yet (attampt "+str(attempt)+" of "+str(nattempts)+")" )
@@ -184,33 +187,40 @@ def deploy_insolar():
         if pod in VIRTUALS: # also start insgorund
             start_insgorund(pod, pod_ips, extra_args="-s insgorund")
 
-    alive = wait_until_insolar_is_alive(pod_ips, step="starting")
+    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = 2, step="starting")
     assert(alive)
     info("Insolar started!")
     return pod_ips
 
 def test_stop_start_virtual(pod, pod_ips):
+    alive = wait_until_insolar_is_alive(pod_ips, step="test-node-down")
+    assert(alive)
     info("Killing insolard on "+str(pod)+"-nd pod (virtual)")
     kill(pod, "insolard")
-    alive = wait_until_insolar_is_alive(pod_ips, step="stop-virtual")
+    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = 4, step="stop-virtual")
     assert(alive)
     info("Insolar is still alive. Re-launching insolard on "+str(pod)+"-nd pod")
     start_insolard(pod)
-    alive = wait_until_insolar_is_alive(pod_ips, step="start-virtual")
+    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = 4, step="start-virtual")
     assert(alive)
 
 def test_stop_start_pulsar(pod_ips):
     info("Killing pulsard")
     kill(NPODS, "pulsard")
-    alive = wait_until_insolar_is_alive(pod_ips, step="test-node-down")
+    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = 4, step="test-node-down")
     assert(alive)
     info("Insolar is still alive. Re-launching pulsard")
     start_pulsard()
-    alive = wait_until_insolar_is_alive(pod_ips, step="test-node-down")
+    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = 4, step="test-node-down")
     assert(alive)
 
+if len(sys.argv) < 2:
+    print("Usage: {} number-of-tests".format(sys.argv[0]))
+    sys.exit(1)
+
+ntests = int(sys.argv[1])
 pod_ips = deploy_insolar()
-ntests = 5
+
 for test_num in range(0, ntests):
     test_stop_start_virtual(2, pod_ips)
     test_stop_start_pulsar(pod_ips)
