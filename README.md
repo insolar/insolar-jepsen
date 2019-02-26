@@ -10,7 +10,7 @@ Usage:
 # Make sure private key is readable only by current user
 chmod 600 ./ssh-keys/id_rsa
 
-# first build takes ~8 minutes
+# first build takes 11 min, second build - 2 min 40 sec
 ./build-docker.py branch-name
 
 # run tests
