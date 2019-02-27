@@ -167,7 +167,7 @@ def deploy_insolar():
     k8s_stop_pods_if_running()
     k8s_start_pods()
     # if pod is started it doesn't mean it's ready to accept connections
-    wait(3)
+    wait(5)
 
     info("building configs based on provided templates")
     run("rm -r /tmp/insolar-jepsen-configs || true")
