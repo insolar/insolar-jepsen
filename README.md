@@ -16,8 +16,8 @@ kubectl label node docker-for-desktop jepsen=true
 # first build takes 11 min, second build - 2 min 40 sec
 ./build-docker.py branch-name
 
-# run tests
-./run-test.py 1
+# run tests (use --help flag to see all arguments)
+./run-test.py
 ```
 
 After the test:

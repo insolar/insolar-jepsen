@@ -4,6 +4,7 @@
 import os
 import sys
 import subprocess
+import argparse
 import time
 
 START_PORT = 32000
@@ -221,17 +222,20 @@ def test_stop_start_pulsar(pod_ips):
     assert(alive)
     info("==== start/stop pulsar test passed! ====")
 
-if len(sys.argv) < 2:
-    print("Usage: {} number-of-tests".format(sys.argv[0]))
-    sys.exit(1)
+parser = argparse.ArgumentParser(description='Test Insolar using Jepsen-like tests')
+parser.add_argument(
+    '-r', '--repeat', metavar='N', type=int, default=1,
+    help='Number of times to repeat tests')
+parser.add_argument(
+    '-n', '--namespace', metavar='X', type=str,
+    help='Exact k8s namespace to use')
+args = parser.parse_args()
 
-ntests = int(sys.argv[1])
 pod_ips = deploy_insolar()
-
-for test_num in range(0, ntests):
+for test_num in range(0, args.repeat):
     test_stop_start_virtual(VIRTUALS[0], pod_ips)
     # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO make this test pass!
     test_stop_start_pulsar(pod_ips)
-    info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(ntests))
+    info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
 notify("Test completed!")

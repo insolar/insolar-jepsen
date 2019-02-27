@@ -26,9 +26,14 @@ spec:
       image: insolar-jepsen:latest
       imagePullPolicy: Never
       securityContext:
-        privileged: true
+        capabilities:
+          add:
+            - NET_ADMIN
+#        privileged: true
       ports:
         - containerPort: 22
+#    nodeSelector:
+#      jepsen: "true"
 ---
 """
 
