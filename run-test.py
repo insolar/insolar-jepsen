@@ -13,6 +13,7 @@ INSPATH = "go/src/github.com/insolar/insolar"
 NPODS = 6
 VIRTUALS = [2, 4] # these pods require local insgorund
 LOG_LEVEL = "Debug" # Info
+NAMESPACE = "default"
 
 # Roles:
 # jepsen-1: heavy
@@ -73,11 +74,14 @@ def scp_from(pod, rpath, lpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -P"+\
         str(START_PORT + pod)+" " + flags + " gopher@localhost:"+rpath+" "+lpath+" 2>/dev/null")
 
+def k8s():
+    return "kubectl --namespace "+NAMESPACE+" "
+
 def k8s_get_pod_ips():
     """
     Returns a map PodName -> PodIP
     """
-    data = get_output("kubectl get pods -l app=insolar-jepsen -o=json | "+\
+    data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | "+\
         """jq -r '.items[] | .metadata.name + " " + .status.podIP'""")
     res = {}
     for kv in data.split("\n"):
@@ -87,9 +91,9 @@ def k8s_get_pod_ips():
 
 def k8s_stop_pods_if_running():
     info("stopping pods if they are running")
-    run("kubectl delete -f jepsen-pods.yml 2>/dev/null || true")
+    run(k8s()+"delete -f jepsen-pods.yml 2>/dev/null || true")
     while True:
-        data = get_output("kubectl get pods -l app=insolar-jepsen -o=json | "+\
+        data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | "+\
             "jq -r '.items[].metadata.name' | wc -l")
         info("running pods: "+data)
         if data == "0":
@@ -98,9 +102,9 @@ def k8s_stop_pods_if_running():
 
 def k8s_start_pods():
     info("starting pods")
-    run("kubectl apply -f jepsen-pods.yml")
+    run(k8s()+"apply -f jepsen-pods.yml")
     while True:
-        data = get_output("kubectl get pods -l app=insolar-jepsen -o=json | "+\
+        data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | "+\
             "jq -r '.items[].status.phase' | grep Running | wc -l")
         info("running pods: "+data)
         if data == str(NPODS):
@@ -227,10 +231,11 @@ parser.add_argument(
     '-r', '--repeat', metavar='N', type=int, default=1,
     help='Number of times to repeat tests')
 parser.add_argument(
-    '-n', '--namespace', metavar='X', type=str,
+    '-n', '--namespace', metavar='X', type=str, default="default",
     help='Exact k8s namespace to use')
 args = parser.parse_args()
 
+NAMESPACE = args.namespace
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
     test_stop_start_virtual(VIRTUALS[0], pod_ips)
