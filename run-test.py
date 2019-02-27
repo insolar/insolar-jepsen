@@ -14,6 +14,7 @@ NPODS = 6
 VIRTUALS = [2, 4] # these pods require local insgorund
 LOG_LEVEL = "Debug" # Info
 NAMESPACE = "default"
+DEBUG = False
 
 # Roles:
 # jepsen-1: heavy
@@ -42,8 +43,13 @@ def wait(nsec):
 def notify(message):
     run("""which osascript && osascript -e 'display notification " """ + message + """ " with title "Jepsen"'""")
 
+def debug(msg):
+    if not DEBUG:
+        return
+    print("    "+msg)
+
 def run(cmd):
-    print("    "+cmd)
+    debug(cmd)
     code = subprocess.call(cmd, shell=True)
     if code != 0:
         print("Command `%s` returned non-zero status: %d" %
@@ -51,7 +57,7 @@ def run(cmd):
         sys.exit(1)
 
 def get_output(cmd):
-    print("    "+cmd)
+    debug(cmd)
     data = subprocess.check_output(cmd, shell=True)
     data = data.decode('utf-8').strip()
     return data
@@ -228,14 +234,18 @@ def test_stop_start_pulsar(pod_ips):
 
 parser = argparse.ArgumentParser(description='Test Insolar using Jepsen-like tests')
 parser.add_argument(
+    '-d', '--debug', action="store_true",
+    help='enable debug output')
+parser.add_argument(
     '-r', '--repeat', metavar='N', type=int, default=1,
-    help='Number of times to repeat tests')
+    help='number of times to repeat tests')
 parser.add_argument(
     '-n', '--namespace', metavar='X', type=str, default="default",
-    help='Exact k8s namespace to use')
+    help='exact k8s namespace to use')
 args = parser.parse_args()
 
 NAMESPACE = args.namespace
+DEBUG = args.debug
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
     test_stop_start_virtual(VIRTUALS[0], pod_ips)
