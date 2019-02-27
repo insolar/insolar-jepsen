@@ -10,6 +10,9 @@ Usage:
 # Make sure private key is readable only by current user
 chmod 600 ./ssh-keys/id_rsa
 
+# Label current node: jepsen=true
+kubectl label node docker-for-desktop jepsen=true
+
 # first build takes 11 min, second build - 2 min 40 sec
 ./build-docker.py branch-name
 
