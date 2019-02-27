@@ -14,7 +14,7 @@ chmod 600 ./ssh-keys/id_rsa
 ./build-docker.py branch-name
 
 # run tests
-./run-test.py
+./run-test.py 1
 ```
 
 After the test:
