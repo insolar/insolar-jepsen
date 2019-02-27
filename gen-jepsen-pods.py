@@ -29,11 +29,10 @@ spec:
         capabilities:
           add:
             - NET_ADMIN
-#        privileged: true
       ports:
         - containerPort: 22
-#    nodeSelector:
-#      jepsen: "true"
+  nodeSelector:
+    jepsen: "true"
 ---
 """
 
