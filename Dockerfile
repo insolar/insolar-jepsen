@@ -7,6 +7,7 @@ ARG BRANCH
 ENV BRANCH ${BRANCH:-master}
 RUN git pull
 RUN git checkout $BRANCH
+RUN rm -rf ./.dockerignore
 RUN make install-deps pre-build
 COPY config-templates/genesis.yaml ./scripts/insolard/genesis.yaml
 COPY config-templates/pulsar_template.yaml ./scripts/insolard/pulsar_template.yaml
