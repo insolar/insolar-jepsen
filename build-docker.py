@@ -39,4 +39,4 @@ stop = int(time.time())
 diff = stop - start
 
 print("Build took {} min {} sec".format(int(diff/60), diff % 60))
-notify("Docker build completed!")
+# notify("Docker build completed!")
