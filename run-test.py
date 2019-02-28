@@ -41,7 +41,7 @@ def wait(nsec):
     time.sleep(nsec)
 
 def notify(message):
-    run("""which osascript && osascript -e 'display notification " """ + message + """ " with title "Jepsen"'""")
+    run("""which osascript && osascript -e 'display notification " """ + message + """ " with title "Jepsen"' || true""")
 
 def debug(msg):
     if not DEBUG:
