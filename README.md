@@ -8,12 +8,14 @@ Usage:
 
 ```
 # Make sure private key is readable only by current user
-chmod 600 ./ssh-keys/id_rsa
+chmod 600 ./base-image/id_rsa
 
 # Label current node: jepsen=true
 kubectl label node docker-for-desktop jepsen=true
 
-# first build takes 11 min, second build - 2 min 40 sec
+# to build the base image as well:
+# cd base-image
+# docker build -t tsovak/insolar-jepsen-base .
 ./build-docker.py branch-name
 
 # run tests (use --help flag to see all arguments)
@@ -24,12 +26,12 @@ After the test:
 
 ```
 # To login to `jepsen-1` pod:
-ssh -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -p 32001 gopher@localhost
+ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p 32001 gopher@localhost
 
 # To attach a process running in background:
 tmux ls
 tmux attach -t insolard
 
 # To copy a file from `jepsen-1` pod:
-scp -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -P 32001 gopher@localhost:.bash_profile ./
+scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P 32001 gopher@localhost:.bash_profile ./
 ```

@@ -43,6 +43,11 @@ def wait(nsec):
 def notify(message):
     run("""which osascript && osascript -e 'display notification " """ + message + """ " with title "Jepsen"' || true""")
 
+def check(condition):
+    if not condition:
+        notify("Test failed")
+    assert(condition)
+
 def debug(msg):
     if not DEBUG:
         return
@@ -63,21 +68,21 @@ def get_output(cmd):
     return data
 
 def ssh(pod, cmd):
-	run("ssh -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -p"+\
+	run("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
         str(START_PORT + pod)+""" gopher@localhost "bash -c 'source ./.bash_profile ; """+\
         cmd + """ '" 2>/dev/null""")
 
 def ssh_output(pod, cmd):
-	return get_output("ssh -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -p"+\
+	return get_output("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
         str(START_PORT + pod)+""" gopher@localhost "bash -c 'source ./.bash_profile ; """+\
         cmd + """ '" 2>/dev/null""")
 
 def scp_to(pod, lpath, rpath, flags=''):
-    run("scp -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -P"+\
+    run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P"+\
         str(START_PORT + pod)+" "+flags+" " + lpath + " gopher@localhost:"+rpath+" 2>/dev/null")
 
 def scp_from(pod, rpath, lpath, flags=''):
-    run("scp -o 'StrictHostKeyChecking no' -i ./ssh-keys/id_rsa -P"+\
+    run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P"+\
         str(START_PORT + pod)+" " + flags + " gopher@localhost:"+rpath+" "+lpath+" 2>/dev/null")
 
 def k8s():
@@ -121,6 +126,7 @@ def insolar_is_alive(pod_ips, virtual_pod, ssh_pod = 1):
     virtual_pod_name = 'jepsen-'+str(virtual_pod)
     port = VIRTUAL_START_PORT + virtual_pod
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
+        'timelimit -s9 -t10 '+ # timeout: 10 seconds
         './bin/benchmark -c 1 -r 5 -u http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/api '+
         '-k=./scripts/insolard/configs/root_member_keys.json | grep Success')
     if out == 'Successes: 5':
@@ -201,7 +207,7 @@ def deploy_insolar():
             start_insgorund(pod, pod_ips, extra_args="-s insgorund")
 
     alive = wait_until_insolar_is_alive(pod_ips, step="starting")
-    assert(alive)
+    check(alive)
     info("==== Insolar started! ====")
     return pod_ips
 
@@ -209,15 +215,15 @@ def test_stop_start_virtual(pod, pod_ips):
     info("==== start/stop virtual at pod#"+str(pod)+" test started ====")
     alive_pod = [ p for p in VIRTUALS if p != pod ][0]
     alive = wait_until_insolar_is_alive(pod_ips, step="before-killing-virtual")
-    assert(alive)
+    check(alive)
     info("Killing virtual on pod #"+str(pod)+", testing from pod #"+str(alive_pod))
     kill(pod, "insolard")
     alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="virtual-down")
-    assert(alive)
+    check(alive)
     info("Insolar is still alive. Re-launching insolard on "+str(pod)+"-nd pod")
     start_insolard(pod)
     alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="virtual-up")
-    assert(alive)
+    check(alive)
     info("==== start/stop virtual at pod#"+str(pod)+" passed! ====")
 
 def test_stop_start_pulsar(pod_ips):
@@ -225,13 +231,13 @@ def test_stop_start_pulsar(pod_ips):
     info("Killing pulsard")
     kill(NPODS, "pulsard")
     # alive = wait_until_insolar_is_alive(pod_ips, step="pulsar-down")
-    # assert(alive)
+    # check(alive)
     # info("Insolar is still alive. Re-launching pulsard")
     wait(10)
     info("Starting pulsar")
     start_pulsard()
     alive = wait_until_insolar_is_alive(pod_ips, step="pulsar-up")
-    assert(alive)
+    check(alive)
     info("==== start/stop pulsar test passed! ====")
 
 parser = argparse.ArgumentParser(description='Test Insolar using Jepsen-like tests')

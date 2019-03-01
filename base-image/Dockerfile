@@ -6,7 +6,8 @@ MAINTAINER Tsovak Sahakyan
 
 RUN apt-get update
 RUN apt-get install -y openssh-server iptables net-tools \
-    iputils-ping vim sudo git make lsof gcc curl tmux psmisc
+    iputils-ping vim sudo git make lsof gcc curl tmux psmisc \
+    timelimit
 RUN apt-get clean
 
 RUN mkdir /var/run/sshd
@@ -31,7 +32,7 @@ USER gopher
 WORKDIR /home/gopher
 ENV PATH="/home/gopher/go/bin:/home/gopher/opt/go/bin:${PATH}"
 RUN mkdir .ssh
-COPY ssh-keys/id_rsa.pub ./.ssh/authorized_keys
+COPY id_rsa.pub ./.ssh/authorized_keys
 RUN wget https://dl.google.com/go/go1.12.linux-amd64.tar.gz
 RUN tar -xvzf *.tar.gz
 RUN rm *.tar.gz
