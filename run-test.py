@@ -14,6 +14,7 @@ NPODS = 6
 VIRTUALS = [2, 4] # these pods require local insgorund
 LOG_LEVEL = "Debug" # Info
 NAMESPACE = "default"
+SLOW_NET_SPEED = '4mbps'
 DEBUG = False
 
 # Roles:
@@ -122,6 +123,14 @@ def k8s_start_pods():
             break
         wait(1)
 
+def set_network_speed(pod, speed):
+    ssh(pod, 'sudo tc qdisc del dev eth0 root || true')
+    ssh(pod, 'sudo tc qdisc add dev eth0 root handle 1: tbf rate '+speed+' latency 1ms burst 1540')
+    ssh(pod, 'sudo tc qdisc del dev eth0 ingress || true')
+    ssh(pod, 'sudo tc qdisc add dev eth0 ingress')
+    ssh(pod, 'sudo tc filter add dev eth0 root protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
+    ssh(pod, 'sudo tc filter add dev eth0 parent ffff: protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
+
 def insolar_is_alive(pod_ips, virtual_pod, ssh_pod = 1):
     virtual_pod_name = 'jepsen-'+str(virtual_pod)
     port = VIRTUAL_START_PORT + virtual_pod
@@ -226,6 +235,18 @@ def test_stop_start_virtual(pod, pod_ips):
     check(alive)
     info("==== start/stop virtual at pod#"+str(pod)+" passed! ====")
 
+def test_slow_down_speed_up():
+    info("==== slow down / speed up network test started ====")
+    for pod in range(1, NPODS+1):
+        set_network_speed(pod, SLOW_NET_SPEED)
+    alive = wait_until_insolar_is_alive(pod_ips, step="slow-network")
+    check(alive)
+    for pod in range(1, NPODS+1):
+        set_network_speed(pod, '1000mbps')
+    alive = wait_until_insolar_is_alive(pod_ips, step="fast-network")
+    check(alive)
+    info("==== slow down / speed up network test passed! ====")
+
 def test_stop_start_pulsar(pod_ips):
     info("==== start/stop pulsar test started ====")
     info("Killing pulsard")
@@ -256,9 +277,10 @@ NAMESPACE = args.namespace
 DEBUG = args.debug
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
+    test_slow_down_speed_up()
     test_stop_start_virtual(VIRTUALS[0], pod_ips)
-    # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO make this test pass!
     test_stop_start_pulsar(pod_ips)
+    # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO make this test pass!
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
 notify("Test completed!")
