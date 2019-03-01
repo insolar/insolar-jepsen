@@ -13,7 +13,7 @@ import time
 # docker run --rm -it insolar-jepsen
 
 def notify(message):
-    run("""which osascript && osascript -e 'display notification " """ + message + """ " with title "Jepsen"'""")
+    run("""which osascript && osascript -e 'display notification " """ + message + """ " with title "Jepsen"' || true""")
 
 def run(cmd):
     print("    "+cmd)
@@ -39,4 +39,4 @@ stop = int(time.time())
 diff = stop - start
 
 print("Build took {} min {} sec".format(int(diff/60), diff % 60))
-# notify("Docker build completed!")
+notify("Docker build completed!")
