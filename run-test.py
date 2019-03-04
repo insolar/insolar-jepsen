@@ -7,6 +7,14 @@ import subprocess
 import argparse
 import time
 
+# Roles:
+# jepsen-1: heavy
+# jepsen-2: virtual
+# jepsen-3: light
+# jepsen-4: virtual
+# jepsen-5: light
+# jepsen-6: pulsar
+
 START_PORT = 32000
 VIRTUAL_START_PORT = 19100
 INSPATH = "go/src/github.com/insolar/insolar"
@@ -17,13 +25,41 @@ NAMESPACE = "default"
 SLOW_NET_SPEED = '4mbps'
 DEBUG = False
 
-# Roles:
-# jepsen-1: heavy
-# jepsen-2: virtual
-# jepsen-3: light
-# jepsen-4: virtual
-# jepsen-5: light
-# jepsen-6: pulsar
+K8S_YAML_TEMPLATE = """
+kind: Service
+apiVersion: v1
+metadata:
+  name: {pod_name}
+spec:
+  type: NodePort
+  ports:
+    - port: 22
+      nodePort: {ssh_port}
+  selector:
+    name: {pod_name}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {pod_name}
+  labels:
+    name: {pod_name}
+    app: insolar-jepsen
+spec:
+  containers:
+    - name: {pod_name}
+      image: {image_name}
+      imagePullPolicy: {pull_policy}
+      securityContext:
+        capabilities:
+          add:
+            - NET_ADMIN
+      ports:
+        - containerPort: 22
+  nodeSelector:
+    jepsen: "true"
+---
+"""
 
 # to make `sed` work properly, otherwise it failes with an error:
 # sed: RE error: illegal byte sequence
@@ -86,56 +122,18 @@ def scp_from(pod, rpath, lpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P"+\
         str(START_PORT + pod)+" " + flags + " gopher@localhost:"+rpath+" "+lpath+" 2>/dev/null")
 
-# TODO: move all k8s* procedures to the k8s.py module
-
-k8s_yaml_template = """
-kind: Service
-apiVersion: v1
-metadata:
-  name: {pod_name}
-spec:
-  type: NodePort
-  ports:
-    - port: 22
-      nodePort: {ssh_port}
-  selector:
-    name: {pod_name}
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: {pod_name}
-  labels:
-    name: {pod_name}
-    app: insolar-jepsen
-spec:
-  containers:
-    - name: {pod_name}
-      image: {image_name}
-      imagePullPolicy: {pull_policy}
-      securityContext:
-        capabilities:
-          add:
-            - NET_ADMIN
-      ports:
-        - containerPort: 22
-  nodeSelector:
-    jepsen: "true"
----
-"""
+def k8s():
+    return "kubectl --namespace "+NAMESPACE+" "
 
 def k8s_gen_yaml(fname, image_name, pull_policy):
 	with open(fname, "w") as f:
 		for i in range(0, 5+1): # 5 nodes + pulsar
 			pod_name = "jepsen-"+str(i+1)
 			ssh_port = str(32001 + i)
-			descr = k8s_yaml_template.format(
+			descr = K8S_YAML_TEMPLATE.format(
 				pod_name = pod_name, ssh_port = ssh_port,
 				image_name = image_name, pull_policy = pull_policy)
 			f.write(descr)
-
-def k8s():
-    return "kubectl --namespace "+NAMESPACE+" "
 
 def k8s_get_pod_ips():
     """
@@ -149,9 +147,9 @@ def k8s_get_pod_ips():
         res[k] = v
     return res
 
-def k8s_stop_pods_if_running():
+def k8s_stop_pods_if_running(fname):
     info("stopping pods if they are running")
-    run(k8s()+"delete -f jepsen-pods.yml 2>/dev/null || true")
+    run(k8s()+"delete -f "+fname+" 2>/dev/null || true")
     while True:
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | "+\
             "jq -r '.items[].metadata.name' | wc -l")
@@ -160,9 +158,9 @@ def k8s_stop_pods_if_running():
             break
         wait(1)
 
-def k8s_start_pods():
+def k8s_start_pods(fname):
     info("starting pods")
-    run(k8s()+"apply -f jepsen-pods.yml")
+    run(k8s()+"apply -f "+fname)
     while True:
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | "+\
             "jq -r '.items[].status.phase' | grep Running | wc -l")
@@ -227,11 +225,6 @@ def kill(pod, proc_name):
     ssh(pod, "killall -s 9 "+proc_name+" || true")
 
 def deploy_insolar():
-    k8s_stop_pods_if_running()
-    k8s_start_pods()
-    # if pod is started it doesn't mean it's ready to accept connections
-    wait(5)
-
     info("building configs based on provided templates")
     run("rm -r /tmp/insolar-jepsen-configs || true")
     run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
@@ -331,9 +324,12 @@ args = parser.parse_args()
 NAMESPACE = args.namespace
 DEBUG = args.debug
 
-info("Generating jepsen-pods.yml")
-k8s_gen_yaml("jepsen-pods.yml", args.image,
-    "IfNotPresent" if args.ci else "Never")
+k8s_yaml = "jepsen-pods.yaml"
+info("Generating "+k8s_yaml)
+k8s_gen_yaml(k8s_yaml, args.image, "IfNotPresent" if args.ci else "Never")
+k8s_stop_pods_if_running(k8s_yaml)
+k8s_start_pods(k8s_yaml)
+wait(5) # if pod is started it doesn't mean it's ready to accept connections
 
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
