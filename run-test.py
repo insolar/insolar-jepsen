@@ -24,6 +24,7 @@ LOG_LEVEL = "Debug" # Info
 NAMESPACE = "default"
 SLOW_NET_SPEED = '4mbps'
 DEBUG = False
+POD_NODES = dict() # is filled below
 
 K8S_YAML_TEMPLATE = """
 kind: Service
@@ -104,23 +105,30 @@ def get_output(cmd):
     data = data.decode('utf-8').strip()
     return data
 
+def ssh_user_host(pod):
+    return "gopher@"+POD_NODES['jepsen-'+str(pod)]
+
 def ssh(pod, cmd):
 	run("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
-        str(START_PORT + pod)+""" gopher@localhost "bash -c 'source ./.bash_profile ; """+\
+        str(START_PORT + pod)+" "+ssh_user_host(pod)+\
+        """ "bash -c 'source ./.bash_profile ; """+\
         cmd + """ '" 2>/dev/null""")
 
 def ssh_output(pod, cmd):
 	return get_output("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
-        str(START_PORT + pod)+""" gopher@localhost "bash -c 'source ./.bash_profile ; """+\
+        str(START_PORT + pod)+" "+ssh_user_host(pod)+\
+        """ "bash -c 'source ./.bash_profile ; """+\
         cmd + """ '" 2>/dev/null""")
 
 def scp_to(pod, lpath, rpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P"+\
-        str(START_PORT + pod)+" "+flags+" " + lpath + " gopher@localhost:"+rpath+" 2>/dev/null")
+        str(START_PORT + pod)+" "+flags+" " + lpath + " "+ssh_user_host(pod)+\
+        ":"+rpath+" 2>/dev/null")
 
 def scp_from(pod, rpath, lpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P"+\
-        str(START_PORT + pod)+" " + flags + " gopher@localhost:"+rpath+" "+lpath+" 2>/dev/null")
+        str(START_PORT + pod)+" " + flags + " "+ssh_user_host(pod)+\
+        ":"+rpath+" "+lpath+" 2>/dev/null")
 
 def k8s():
     return "kubectl --namespace "+NAMESPACE+" "
@@ -144,6 +152,20 @@ def k8s_get_pod_ips():
     res = {}
     for kv in data.split("\n"):
         [k, v] = kv.split(' ')
+        res[k] = v
+    return res
+
+def k8s_get_pod_nodes():
+    """
+    Returns a map PodName -> NodeName
+    """
+    data = get_output(k8s() +"get pods -l app=insolar-jepsen -o=json | "+\
+        """jq -r '.items[] | .metadata.name + " " + .spec.nodeName'""")
+    res = {}
+    for kv in data.split("\n"):
+        [k, v] = kv.split(' ')
+        if v == "docker-for-desktop":
+            v = "localhost"
         res[k] = v
     return res
 
@@ -329,6 +351,7 @@ info("Generating "+k8s_yaml)
 k8s_gen_yaml(k8s_yaml, args.image, "IfNotPresent" if args.ci else "Never")
 k8s_stop_pods_if_running(k8s_yaml)
 k8s_start_pods(k8s_yaml)
+POD_NODES = k8s_get_pod_nodes()
 wait(5) # if pod is started it doesn't mean it's ready to accept connections
 
 pod_ips = deploy_insolar()
