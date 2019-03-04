@@ -86,6 +86,54 @@ def scp_from(pod, rpath, lpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P"+\
         str(START_PORT + pod)+" " + flags + " gopher@localhost:"+rpath+" "+lpath+" 2>/dev/null")
 
+# TODO: move all k8s* procedures to the k8s.py module
+
+k8s_yaml_template = """
+kind: Service
+apiVersion: v1
+metadata:
+  name: {pod_name}
+spec:
+  type: NodePort
+  ports:
+    - port: 22
+      nodePort: {ssh_port}
+  selector:
+    name: {pod_name}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {pod_name}
+  labels:
+    name: {pod_name}
+    app: insolar-jepsen
+spec:
+  containers:
+    - name: {pod_name}
+      image: {image_name}
+      imagePullPolicy: {pull_policy}
+      securityContext:
+        capabilities:
+          add:
+            - NET_ADMIN
+      ports:
+        - containerPort: 22
+  nodeSelector:
+    jepsen: "true"
+---
+"""
+
+def k8s_gen_yaml(fname, image_name, pull_policy):
+	with open(fname, "w") as f:
+		for i in range(0, 5+1): # 5 nodes + pulsar
+			pod_name = "jepsen-"+str(i+1)
+			ssh_port = str(32001 + i)
+			descr = k8s_yaml_template.format(
+				pod_name = pod_name, ssh_port = ssh_port,
+				image_name = image_name, pull_policy = pull_policy)
+			f.write(descr)
+
 def k8s():
     return "kubectl --namespace "+NAMESPACE+" "
 
@@ -271,10 +319,22 @@ parser.add_argument(
 parser.add_argument(
     '-n', '--namespace', metavar='X', type=str, default="default",
     help='exact k8s namespace to use')
+parser.add_argument(
+    '-c', '--ci', action="store_true",
+    help='use CI-friendly configuration')
+parser.add_argument(
+    '-i', '--image', metavar='IMG', type=str, required=True,
+    help='Docker image to test')
+
 args = parser.parse_args()
 
 NAMESPACE = args.namespace
 DEBUG = args.debug
+
+info("Generating jepsen-pods.yml")
+k8s_gen_yaml("jepsen-pods.yml", args.image,
+    "IfNotPresent" if args.ci else "Never")
+
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
     test_slow_down_speed_up()

@@ -19,7 +19,7 @@ kubectl label node docker-for-desktop jepsen=true
 ./build-docker.py branch-name
 
 # run tests (use --help flag to see all arguments)
-./run-test.py
+./run-test.py -i insolar-jepsen:latest
 ```
 
 After the test:
