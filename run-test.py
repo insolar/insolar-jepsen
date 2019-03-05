@@ -22,7 +22,8 @@ NPODS = 6
 VIRTUALS = [2, 4] # these pods require local insgorund
 LOG_LEVEL = "Debug" # Info
 NAMESPACE = "default"
-SLOW_NET_SPEED = '4mbps'
+SLOW_NETWORK_SPEED = '4mbps'
+FAST_NETWORK_SPEED = '1000mbps'
 DEBUG = False
 POD_NODES = dict() # is filled below
 
@@ -299,17 +300,29 @@ def test_stop_start_virtual(pod, pod_ips):
     check(alive)
     info("==== start/stop virtual at pod#"+str(pod)+" passed! ====")
 
-def test_slow_down_speed_up():
+def test_network_slow_down_speed_up():
     info("==== slow down / speed up network test started ====")
     for pod in range(1, NPODS+1):
-        set_network_speed(pod, SLOW_NET_SPEED)
+        set_network_speed(pod, SLOW_NETWORK_SPEED)
     alive = wait_until_insolar_is_alive(pod_ips, step="slow-network")
     check(alive)
     for pod in range(1, NPODS+1):
-        set_network_speed(pod, '1000mbps')
+        set_network_speed(pod, FAST_NETWORK_SPEED)
     alive = wait_until_insolar_is_alive(pod_ips, step="fast-network")
     check(alive)
     info("==== slow down / speed up network test passed! ====")
+
+def test_virtuals_slow_down_speed_up():
+    info("==== slow down / speed up virtuals test started ====")
+    for pod in VIRTUALS:
+        set_network_speed(pod, SLOW_NETWORK_SPEED)
+    alive = wait_until_insolar_is_alive(pod_ips, step="slow-virtuals")
+    check(alive)
+    for pod in VIRTUALS:
+        set_network_speed(pod, FAST_NETWORK_SPEED)
+    alive = wait_until_insolar_is_alive(pod_ips, step="fast-virtuals")
+    check(alive)
+    info("==== slow down / speed up virtuals test passed! ====")
 
 def test_stop_start_pulsar(pod_ips):
     info("==== start/stop pulsar test started ====")
@@ -357,7 +370,8 @@ wait(5) # if pod is started it doesn't mean it's ready to accept connections
 
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
-    test_slow_down_speed_up()
+    test_network_slow_down_speed_up()
+    test_virtuals_slow_down_speed_up()
     test_stop_start_virtual(VIRTUALS[0], pod_ips)
     test_stop_start_pulsar(pod_ips)
     # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO make this test pass!
