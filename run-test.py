@@ -179,6 +179,7 @@ def k8s_stop_pods_if_running(fname):
         if data == "0":
             break
         wait(1)
+    wait(10) # make sure services and everything else are gone as well
 
 def k8s_start_pods(fname):
     info("starting pods")
