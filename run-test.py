@@ -201,6 +201,30 @@ def set_network_speed(pod, speed):
     ssh(pod, 'sudo tc filter add dev eth0 root protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
     ssh(pod, 'sudo tc filter add dev eth0 parent ffff: protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
 
+def create_simple_netsplit(pod_ips, pod):
+    """
+    Simulates simplest netsplit: one node is cut-off from the rest of the network
+    """
+    pod_name = 'jepsen-'+str(pod)
+    for current_pod in range(1, NPODS+1):
+        if current_pod == pod:
+            continue
+        current_ip = pod_ips['jepsen-'+str(current_pod)]
+        ssh(pod, 'sudo iptables -A INPUT -s '+current_ip+' -j DROP && '+
+            'sudo iptables -A OUTPUT -d '+current_ip+' -j DROP')
+
+def fix_simple_netsplit(pod_ips, pod):
+    """
+    Rolls back an effect of create_simple_netsplit()
+    """
+    pod_name = 'jepsen-'+str(pod)
+    for current_pod in range(1, NPODS+1):
+        if current_pod == pod:
+            continue
+        current_ip = pod_ips['jepsen-'+str(current_pod)]
+        ssh(pod, 'sudo iptables -D INPUT -s '+current_ip+' -j DROP && '+
+            'sudo iptables -D OUTPUT -d '+current_ip+' -j DROP')
+
 def insolar_is_alive(pod_ips, virtual_pod, ssh_pod = 1):
     virtual_pod_name = 'jepsen-'+str(virtual_pod)
     port = VIRTUAL_START_PORT + virtual_pod
@@ -338,6 +362,21 @@ def test_stop_start_pulsar(pod_ips):
     check(alive)
     info("==== start/stop pulsar test passed! ====")
 
+def test_netsplit_single_virtual(pod, pod_ips):
+    info("==== netsplit of single virtual at pod#"+str(pod)+" test started ====")
+    alive_pod = [ p for p in VIRTUALS if p != pod ][0]
+    alive = wait_until_insolar_is_alive(pod_ips, step="before-netsplit-virtual")
+    check(alive)
+    info("Emulating netsplit that affects single pod #"+str(pod)+", testing from pod #"+str(alive_pod))
+    create_simple_netsplit(pod_ips, pod)
+    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="netsplit-virtual")
+    check(alive)
+    info("Insolar is still alive. Fixing netsplit")
+    fix_simple_netsplit(pod_ips, pod)
+    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="netsplit-virtual-fixed")
+    check(alive)
+    info("==== netsplit of single virtual at pod#"+str(pod)+" test passed! ====")
+
 parser = argparse.ArgumentParser(description='Test Insolar using Jepsen-like tests')
 parser.add_argument(
     '-d', '--debug', action="store_true",
@@ -374,7 +413,8 @@ for test_num in range(0, args.repeat):
     test_network_slow_down_speed_up()
     test_virtuals_slow_down_speed_up()
     test_stop_start_pulsar(pod_ips)
-    test_stop_start_virtual(VIRTUALS[0], pod_ips) # this test breaks following tests
+    test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: check the status of the virtual after the test
+    # test_stop_start_virtual(VIRTUALS[0], pod_ips) # this test breaks following tests
     # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO make this test pass!
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
