@@ -248,7 +248,7 @@ def wait_until_insolar_is_alive(pod_ips, virtual_pod=-1, nattempts=10, pause_sec
             alive = insolar_is_alive(pod_ips, virtual_pod)
         except Exception as e:
             print(e)
-            info("[Step: "+step+"] Insolar is not alive yet (attampt "+str(attempt)+" of "+str(nattempts)+")" )
+            info("[Step: "+step+"] Insolar is not alive yet (attempt "+str(attempt)+" of "+str(nattempts)+")" )
         if alive:
             break
     return alive
