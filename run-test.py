@@ -424,11 +424,11 @@ wait(5) # if pod is started it doesn't mean it's ready to accept connections
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
     # TODO: run tests in random order. Spoiler: it will break things
-    #test_network_slow_down_speed_up()
-    #test_virtuals_slow_down_speed_up()
-    #test_stop_start_pulsar(pod_ips)
-    test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: check the status of the virtual after the test
-    # test_stop_start_virtual(VIRTUALS[0], pod_ips) # this test breaks following tests
+    test_network_slow_down_speed_up()
+    test_virtuals_slow_down_speed_up()
+    test_stop_start_pulsar(pod_ips)
+    # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
+    test_stop_start_virtual(VIRTUALS[0], pod_ips) # this test breaks following tests
     # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO make this test pass!
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
