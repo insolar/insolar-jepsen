@@ -201,7 +201,7 @@ def set_network_speed(pod, speed):
     ssh(pod, 'sudo tc filter add dev eth0 root protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
     ssh(pod, 'sudo tc filter add dev eth0 parent ffff: protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
 
-def create_simple_netsplit(pod_ips, pod):
+def create_simple_netsplit(pod, pod_ips):
     """
     Simulates simplest netsplit: one node is cut-off from the rest of the network
     """
@@ -213,7 +213,7 @@ def create_simple_netsplit(pod_ips, pod):
         ssh(pod, 'sudo iptables -A INPUT -s '+current_ip+' -j DROP && '+
             'sudo iptables -A OUTPUT -d '+current_ip+' -j DROP')
 
-def fix_simple_netsplit(pod_ips, pod):
+def fix_simple_netsplit(pod, pod_ips):
     """
     Rolls back an effect of create_simple_netsplit()
     """
@@ -237,6 +237,10 @@ def insolar_is_alive(pod_ips, virtual_pod, ssh_pod = 1):
     else:
         info('insolar_is_alive() is about to return false, out = "'+out+'"')
         return False
+
+def insolar_is_alive_on_pod(pod):
+    out = ssh_output(pod, 'pidof insolard || true')
+    return (out != '')
 
 def wait_until_insolar_is_alive(pod_ips, virtual_pod=-1, nattempts=10, pause_sec=10, step=""):
     alive = False
@@ -368,12 +372,22 @@ def test_netsplit_single_virtual(pod, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, step="before-netsplit-virtual")
     check(alive)
     info("Emulating netsplit that affects single pod #"+str(pod)+", testing from pod #"+str(alive_pod))
-    create_simple_netsplit(pod_ips, pod)
+    create_simple_netsplit(pod, pod_ips)
     alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="netsplit-virtual")
     check(alive)
-    info("Insolar is still alive. Fixing netsplit")
-    fix_simple_netsplit(pod_ips, pod)
-    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="netsplit-virtual-fixed")
+    info("Insolar is alive during netsplit")
+    # insolard suppose to die in case of netsplit
+    for i in range(0,10):
+        if not insolar_is_alive_on_pod(pod):
+            break
+        info('Insolard is not terminated yet at pod#'+str(pod))
+        wait(10)
+    check(not insolar_is_alive_on_pod(pod))
+    info('Fixing netsplit')
+    fix_simple_netsplit(pod, pod_ips)
+    info('Restarting insolard at pod#'+str(pod))
+    start_insolard(pod)
+    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="netsplit-virtual-relaunched")
     check(alive)
     info("==== netsplit of single virtual at pod#"+str(pod)+" test passed! ====")
 
@@ -410,9 +424,9 @@ wait(5) # if pod is started it doesn't mean it's ready to accept connections
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
     # TODO: run tests in random order. Spoiler: it will break things
-    test_network_slow_down_speed_up()
-    test_virtuals_slow_down_speed_up()
-    test_stop_start_pulsar(pod_ips)
+    #test_network_slow_down_speed_up()
+    #test_virtuals_slow_down_speed_up()
+    #test_stop_start_pulsar(pod_ips)
     test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: check the status of the virtual after the test
     # test_stop_start_virtual(VIRTUALS[0], pod_ips) # this test breaks following tests
     # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO make this test pass!
