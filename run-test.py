@@ -320,10 +320,12 @@ def test_stop_start_virtual(pod, pod_ips):
     check(alive)
     info("Killing virtual on pod #"+str(pod)+", testing from pod #"+str(alive_pod))
     kill(pod, "insolard")
+    kill(pod, "insgorund") # currently we also have to kill insgorund. It will be fixed in contract compiler.
     alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="virtual-down")
     check(alive)
-    info("Insolar is still alive. Re-launching insolard on "+str(pod)+"-nd pod")
+    info("Insolar is still alive. Re-launching insolard on pod #"+str(pod))
     start_insolard(pod)
+    start_insgorund(pod, pod_ips)
     alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="virtual-up")
     check(alive)
     info("==== start/stop virtual at pod#"+str(pod)+" passed! ====")
@@ -428,8 +430,8 @@ for test_num in range(0, args.repeat):
     test_virtuals_slow_down_speed_up()
     test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
-    test_stop_start_virtual(VIRTUALS[0], pod_ips) # this test breaks following tests
-    # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO make this test pass!
+    test_stop_start_virtual(VIRTUALS[0], pod_ips)
+    test_stop_start_virtual(VIRTUALS[1], pod_ips)
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
 notify("Test completed!")
