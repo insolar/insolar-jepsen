@@ -5,6 +5,7 @@ import os
 import sys
 import subprocess
 import argparse
+import json
 import time
 
 # Roles:
@@ -225,9 +226,44 @@ def fix_simple_netsplit(pod, pod_ips):
         ssh(pod, 'sudo iptables -D INPUT -s '+current_ip+' -j DROP && '+
             'sudo iptables -D OUTPUT -d '+current_ip+' -j DROP')
 
+def node_status_is_ok(status):
+    # TODO use an argument instead of (NPODS-1)/2
+    return status['NetworkState'] == 'CompleteNetworkState' and \
+        status['NodeState'] == 'NodeReady' and \
+        status['ActiveListSize'] > (NPODS-1)/2 and \
+        status['WorkingListSize'] > (NPODS-1)/2 and \
+        status['Error'] == ''
+
+def network_status_is_ok(network_status):
+    if len(network_status) <= (NPODS-1)/2: # TODO use an argument
+        info("[NetworkStatus] Half of all nodes are dead")
+        return False
+
+    # make sure all PulseNumber's are equal
+    # TODO: make this check pass during 'start/stop virtual at pod#2 test started'
+    #if len(set([ s['PulseNumber'] for s in network_status])) != 1:
+    #    info("[NetworkStatus] PulseNumber's differ: " + str(network_status))
+    #    return False
+
+    # TODO: make this check pass during 'Killing virtual on pod #2, testing from pod #4'
+    #for node_status in network_status:
+    #    if not node_status_is_ok(node_status):
+    #        info("[NetworkStatus] Node status is not OK: "+str(node_status))
+    #        return False
+
+    info("[NetworkStatus] Everything is OK")
+    return True
+
 def insolar_is_alive(pod_ips, virtual_pod, ssh_pod = 1):
     virtual_pod_name = 'jepsen-'+str(virtual_pod)
     port = VIRTUAL_START_PORT + virtual_pod
+    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
+        'timelimit -s9 -t10 '+ # timeout: 10 seconds
+        './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
+    network_status = json.loads(out)
+    if not network_status_is_ok(network_status):
+        return False
+
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
         'timelimit -s9 -t10 '+ # timeout: 10 seconds
         './bin/benchmark -c 1 -r 5 -u http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/api '+
