@@ -229,43 +229,44 @@ def fix_simple_netsplit(pod, pod_ips):
 def node_is_down(status):
     return status['Error'] != '' and status['PulseNumber'] == -1
 
-def node_status_is_ok(status):
-    # TODO use an argument instead of (NPODS-1)/2
+def node_status_is_ok(status, nodes_online):
     return status['NetworkState'] == 'CompleteNetworkState' and \
         status['NodeState'] == 'NodeReady' and \
-        status['ActiveListSize'] > (NPODS-1)/2 and \
-        status['WorkingListSize'] > (NPODS-1)/2 and \
+        status['ActiveListSize'] == nodes_online and \
+        status['WorkingListSize'] == nodes_online and \
         status['Error'] == ''
 
-def network_status_is_ok(network_status):
-    if len(network_status) <= (NPODS-1)/2: # TODO use an argument
-        info("[NetworkStatus] Half of all nodes are dead")
+def network_status_is_ok(network_status, nodes_online):
+    online_list = [ s for s in network_status if not node_is_down(s)]
+    # make sure an expected number of nodes is online
+    if len(online_list) != nodes_online:
+        info("[NetworkStatus] error - {} nodes online, {} expected".format(len(online_list), nodes_online))
         return False
 
-    # make sure all PulseNumber's are equal (expect for nodes that are down)
-    if len(set([ s['PulseNumber'] for s in network_status if not node_is_down(s)])) != 1:
+    # make sure all PulseNumber's are equal
+    if len(set([ s['PulseNumber'] for s in online_list])) != 1:
         info("[NetworkStatus] PulseNumber's differ: " + str(network_status))
         return False
 
-    # check node statuses (except for nodes that are down)
+    # check node statuses
     for node_status in network_status:
         if node_is_down(node_status):
             continue
-        if not node_status_is_ok(node_status):
+        if not node_status_is_ok(node_status, nodes_online):
             info("[NetworkStatus] Node status is not OK: "+str(node_status))
             return False
 
     info("[NetworkStatus] Everything is OK")
     return True
 
-def insolar_is_alive(pod_ips, virtual_pod, ssh_pod = 1):
+def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod = 1):
     virtual_pod_name = 'jepsen-'+str(virtual_pod)
     port = VIRTUAL_START_PORT + virtual_pod
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
         'timelimit -s9 -t10 '+ # timeout: 10 seconds
         './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
     network_status = json.loads(out)
-    if not network_status_is_ok(network_status):
+    if not network_status_is_ok(network_status, nodes_online):
         return False
 
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
@@ -282,14 +283,14 @@ def insolar_is_alive_on_pod(pod):
     out = ssh_output(pod, 'pidof insolard || true')
     return (out != '')
 
-def wait_until_insolar_is_alive(pod_ips, virtual_pod=-1, nattempts=10, pause_sec=10, step=""):
+def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=10, pause_sec=10, step=""):
     alive = False
     if virtual_pod == -1:
         virtual_pod = VIRTUALS[0]
     for attempt in range(1, nattempts+1):
         wait(pause_sec)
         try:
-            alive = insolar_is_alive(pod_ips, virtual_pod)
+            alive = insolar_is_alive(pod_ips, virtual_pod, nodes_online)
         except Exception as e:
             print(e)
             info("[Step: "+step+"] Insolar is not alive yet (attempt "+str(attempt)+" of "+str(nattempts)+")" )
@@ -348,7 +349,7 @@ def deploy_insolar():
         if pod in VIRTUALS: # also start insgorund
             start_insgorund(pod, pod_ips, extra_args="-s insgorund")
 
-    alive = wait_until_insolar_is_alive(pod_ips, step="starting")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="starting")
     check(alive)
     info("==== Insolar started! ====")
     return pod_ips
@@ -356,17 +357,17 @@ def deploy_insolar():
 def test_stop_start_virtual(pod, pod_ips):
     info("==== start/stop virtual at pod#"+str(pod)+" test started ====")
     alive_pod = [ p for p in VIRTUALS if p != pod ][0]
-    alive = wait_until_insolar_is_alive(pod_ips, step="before-killing-virtual")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="before-killing-virtual")
     check(alive)
     info("Killing virtual on pod #"+str(pod)+", testing from pod #"+str(alive_pod))
     kill(pod, "insolard")
     kill(pod, "insgorund") # currently we also have to kill insgorund. It will be fixed in contract compiler.
-    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="virtual-down")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-2, virtual_pod = alive_pod, step="virtual-down")
     check(alive)
     info("Insolar is still alive. Re-launching insolard on pod #"+str(pod))
     start_insolard(pod)
     start_insgorund(pod, pod_ips)
-    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="virtual-up")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, virtual_pod = alive_pod, step="virtual-up")
     check(alive)
     info("==== start/stop virtual at pod#"+str(pod)+" passed! ====")
 
@@ -374,11 +375,11 @@ def test_network_slow_down_speed_up():
     info("==== slow down / speed up network test started ====")
     for pod in range(1, NPODS+1):
         set_network_speed(pod, SLOW_NETWORK_SPEED)
-    alive = wait_until_insolar_is_alive(pod_ips, step="slow-network")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="slow-network")
     check(alive)
     for pod in range(1, NPODS+1):
         set_network_speed(pod, FAST_NETWORK_SPEED)
-    alive = wait_until_insolar_is_alive(pod_ips, step="fast-network")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="fast-network")
     check(alive)
     info("==== slow down / speed up network test passed! ====")
 
@@ -386,11 +387,11 @@ def test_virtuals_slow_down_speed_up():
     info("==== slow down / speed up virtuals test started ====")
     for pod in VIRTUALS:
         set_network_speed(pod, SLOW_NETWORK_SPEED)
-    alive = wait_until_insolar_is_alive(pod_ips, step="slow-virtuals")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="slow-virtuals")
     check(alive)
     for pod in VIRTUALS:
         set_network_speed(pod, FAST_NETWORK_SPEED)
-    alive = wait_until_insolar_is_alive(pod_ips, step="fast-virtuals")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="fast-virtuals")
     check(alive)
     info("==== slow down / speed up virtuals test passed! ====")
 
@@ -398,24 +399,24 @@ def test_stop_start_pulsar(pod_ips):
     info("==== start/stop pulsar test started ====")
     info("Killing pulsard")
     kill(NPODS, "pulsard")
-    # alive = wait_until_insolar_is_alive(pod_ips, step="pulsar-down")
+    # alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="pulsar-down")
     # check(alive)
     # info("Insolar is still alive. Re-launching pulsard")
     wait(10)
     info("Starting pulsar")
     start_pulsard()
-    alive = wait_until_insolar_is_alive(pod_ips, step="pulsar-up")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="pulsar-up")
     check(alive)
     info("==== start/stop pulsar test passed! ====")
 
 def test_netsplit_single_virtual(pod, pod_ips):
     info("==== netsplit of single virtual at pod#"+str(pod)+" test started ====")
     alive_pod = [ p for p in VIRTUALS if p != pod ][0]
-    alive = wait_until_insolar_is_alive(pod_ips, step="before-netsplit-virtual")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="before-netsplit-virtual")
     check(alive)
     info("Emulating netsplit that affects single pod #"+str(pod)+", testing from pod #"+str(alive_pod))
     create_simple_netsplit(pod, pod_ips)
-    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="netsplit-virtual")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-2, virtual_pod = alive_pod, step="netsplit-virtual")
     check(alive)
     info("Insolar is alive during netsplit")
     # insolard suppose to die in case of netsplit
@@ -429,7 +430,7 @@ def test_netsplit_single_virtual(pod, pod_ips):
     fix_simple_netsplit(pod, pod_ips)
     info('Restarting insolard at pod#'+str(pod))
     start_insolard(pod)
-    alive = wait_until_insolar_is_alive(pod_ips, virtual_pod = alive_pod, step="netsplit-virtual-relaunched")
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, virtual_pod = alive_pod, step="netsplit-virtual-relaunched")
     check(alive)
     info("==== netsplit of single virtual at pod#"+str(pod)+" test passed! ====")
 
@@ -465,7 +466,7 @@ wait(5) # if pod is started it doesn't mean it's ready to accept connections
 
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
-    # TODO: run tests in random order. Spoiler: it will break things
+    # TODO: run tests in random order
     test_network_slow_down_speed_up()
     test_virtuals_slow_down_speed_up()
     test_stop_start_pulsar(pod_ips)
