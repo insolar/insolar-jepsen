@@ -247,14 +247,13 @@ def network_status_is_ok(network_status):
         info("[NetworkStatus] PulseNumber's differ: " + str(network_status))
         return False
 
-    # TODO: make this check pass during 'Killing virtual on pod #2, testing from pod #4'
     # check node statuses (except for nodes that are down)
-    #for node_status in network_status:
-    #    if node_is_down(node_status):
-    #        continue
-    #    if not node_status_is_ok(node_status):
-    #        info("[NetworkStatus] Node status is not OK: "+str(node_status))
-    #        return False
+    for node_status in network_status:
+        if node_is_down(node_status):
+            continue
+        if not node_status_is_ok(node_status):
+            info("[NetworkStatus] Node status is not OK: "+str(node_status))
+            return False
 
     info("[NetworkStatus] Everything is OK")
     return True
