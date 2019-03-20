@@ -239,11 +239,10 @@ def network_status_is_ok(network_status):
         info("[NetworkStatus] Half of all nodes are dead")
         return False
 
-    # make sure all PulseNumber's are equal
-    # TODO: make this check pass during 'start/stop virtual at pod#2 test started'
-    #if len(set([ s['PulseNumber'] for s in network_status])) != 1:
-    #    info("[NetworkStatus] PulseNumber's differ: " + str(network_status))
-    #    return False
+    # make sure all PulseNumber's are equal (expect for nodes that are down)
+    if len(set([ s['PulseNumber'] for s in network_status if s['Error'] == '' ])) != 1:
+        info("[NetworkStatus] PulseNumber's differ: " + str(network_status))
+        return False
 
     # TODO: make this check pass during 'Killing virtual on pod #2, testing from pod #4'
     #for node_status in network_status:
