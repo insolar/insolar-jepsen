@@ -226,6 +226,9 @@ def fix_simple_netsplit(pod, pod_ips):
         ssh(pod, 'sudo iptables -D INPUT -s '+current_ip+' -j DROP && '+
             'sudo iptables -D OUTPUT -d '+current_ip+' -j DROP')
 
+def node_is_down(status):
+    return status['Error'] != '' and status['PulseNumber'] == -1
+
 def node_status_is_ok(status):
     # TODO use an argument instead of (NPODS-1)/2
     return status['NetworkState'] == 'CompleteNetworkState' and \
@@ -240,12 +243,15 @@ def network_status_is_ok(network_status):
         return False
 
     # make sure all PulseNumber's are equal (expect for nodes that are down)
-    if len(set([ s['PulseNumber'] for s in network_status if s['Error'] == '' ])) != 1:
+    if len(set([ s['PulseNumber'] for s in network_status if not node_is_down(s)])) != 1:
         info("[NetworkStatus] PulseNumber's differ: " + str(network_status))
         return False
 
     # TODO: make this check pass during 'Killing virtual on pod #2, testing from pod #4'
+    # check node statuses (except for nodes that are down)
     #for node_status in network_status:
+    #    if node_is_down(node_status):
+    #        continue
     #    if not node_status_is_ok(node_status):
     #        info("[NetworkStatus] Node status is not OK: "+str(node_status))
     #        return False
