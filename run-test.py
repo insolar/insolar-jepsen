@@ -253,7 +253,8 @@ def network_status_is_ok(network_status, nodes_online):
         if node_is_down(node_status):
             continue
         if not node_status_is_ok(node_status, nodes_online):
-            info("[NetworkStatus] Node status is not OK: "+str(node_status))
+            info("[NetworkStatus] Node status is not OK: "+str(node_status)+\
+                "   (nodes online: "+str(nodes_online)+")")
             return False
 
     info("[NetworkStatus] Everything is OK")
