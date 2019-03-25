@@ -16,6 +16,9 @@ import time
 # jepsen-5: light
 # jepsen-6: pulsar
 
+# TODO add MUT 1400 test. Default MTU is 1500
+# sudo ifconfig eth0 mtu 1400
+
 START_PORT = 32000
 VIRTUAL_START_PORT = 19100
 INSPATH = "go/src/github.com/insolar/insolar"
