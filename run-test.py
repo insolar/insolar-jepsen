@@ -16,9 +16,6 @@ import time
 # jepsen-5: light
 # jepsen-6: pulsar
 
-# TODO add MUT 1400 test. Default MTU is 1500
-# sudo ifconfig eth0 mtu 1400
-
 START_PORT = 32000
 VIRTUAL_START_PORT = 19100
 INSPATH = "go/src/github.com/insolar/insolar"
@@ -28,6 +25,8 @@ LOG_LEVEL = "Debug" # Info
 NAMESPACE = "default"
 SLOW_NETWORK_SPEED = '4mbps'
 FAST_NETWORK_SPEED = '1000mbps'
+SMALL_MTU = 1400
+NORMAL_MTU = 1500
 DEBUG = False
 POD_NODES = dict() # is filled below
 
@@ -205,6 +204,9 @@ def set_network_speed(pod, speed):
     ssh(pod, 'sudo tc filter add dev eth0 root protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
     ssh(pod, 'sudo tc filter add dev eth0 parent ffff: protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
 
+def set_mtu(pod, mtu):
+    ssh(pod, 'sudo ifconfig eth0 mtu '+str(mtu))
+
 def create_simple_netsplit(pod, pod_ips):
     """
     Simulates simplest netsplit: one node is cut-off from the rest of the network
@@ -280,7 +282,7 @@ def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod = 1):
     if out == 'Successes: 5':
         return True
     else:
-        info('insolar_is_alive() is about to return false, out = "'+out+'"')
+        info('insolar_is_alive() is false, out = "'+out+'"')
         return False
 
 def insolar_is_alive_on_pod(pod):
@@ -375,7 +377,7 @@ def test_stop_start_virtual(pod, pod_ips):
     check(alive)
     info("==== start/stop virtual at pod#"+str(pod)+" passed! ====")
 
-def test_network_slow_down_speed_up():
+def test_network_slow_down_speed_up(pod_ips):
     info("==== slow down / speed up network test started ====")
     for pod in range(1, NPODS+1):
         set_network_speed(pod, SLOW_NETWORK_SPEED)
@@ -387,7 +389,7 @@ def test_network_slow_down_speed_up():
     check(alive)
     info("==== slow down / speed up network test passed! ====")
 
-def test_virtuals_slow_down_speed_up():
+def test_virtuals_slow_down_speed_up(pod_ips):
     info("==== slow down / speed up virtuals test started ====")
     for pod in VIRTUALS:
         set_network_speed(pod, SLOW_NETWORK_SPEED)
@@ -398,6 +400,18 @@ def test_virtuals_slow_down_speed_up():
     alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="fast-virtuals")
     check(alive)
     info("==== slow down / speed up virtuals test passed! ====")
+
+def test_small_mtu(pod_ips):
+    info("==== small mtu test started ====")
+    for pod in range(1, NPODS+1):
+        set_mtu(pod, SMALL_MTU)
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="small-mtu")
+    check(alive)
+    for pod in range(1, NPODS+1):
+        set_mtu(pod, NORMAL_MTU)
+    alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="noraml-mtu")
+    check(alive)
+    info("==== small mtu test passed! ====")
 
 def test_stop_start_pulsar(pod_ips):
     info("==== start/stop pulsar test started ====")
@@ -470,13 +484,14 @@ wait(5) # if pod is started it doesn't mean it's ready to accept connections
 
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
-    # TODO: run tests in random order
-    test_network_slow_down_speed_up()
-    test_virtuals_slow_down_speed_up()
+    # TODO: implement a flag that runs tests in random order
+    test_network_slow_down_speed_up(pod_ips)
+    test_virtuals_slow_down_speed_up(pod_ips)
+    test_small_mtu(pod_ips)
     test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
     test_stop_start_virtual(VIRTUALS[0], pod_ips)
-    test_stop_start_virtual(VIRTUALS[1], pod_ips)
+    test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO: starting from 25.03.19 this test doesn't always pass, INS-2181
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
 notify("Test completed!")
