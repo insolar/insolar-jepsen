@@ -33,7 +33,7 @@ ledger:
     exportlag: 40
 log:
   level: Debug
-  adapter: logrus
+  adapter: zerolog
   formatter: text
 metrics:
   listenaddress: JEPSEN-3:8003
