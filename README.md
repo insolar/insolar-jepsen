@@ -14,7 +14,7 @@ chmod 600 ./base-image/id_rsa
 kubectl label node docker-for-desktop jepsen=true
 
 # to build the base image:
-cd base-image && docker build --no-cache -t tsovak/insolar-jepsen-base .
+cd base-image && docker build --no-cache -t tsovak/insolar-jepsen-base . && cd ..
 
 # to build the branch image:
 ./build-docker.py branch-name
