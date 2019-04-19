@@ -12,8 +12,8 @@ RUN make install-deps pre-build
 COPY config-templates/genesis.yaml ./scripts/insolard/genesis.yaml
 COPY config-templates/pulsar_template.yaml ./scripts/insolard/pulsar_template.yaml
 RUN make clean build
-RUN ./bin/insolar -c gen_keys > scripts/insolard/configs/bootstrap_keys.json
-RUN ./bin/insolar -c gen_keys > scripts/insolard/configs/root_member_keys.json
+RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/bootstrap_keys.json
+RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/root_member_keys.json
 RUN go run scripts/generate_insolar_configs.go \
         -o scripts/insolard/configs/generated_configs \
         -p scripts/insolard/configs/insgorund_ports.txt \
