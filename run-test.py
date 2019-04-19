@@ -29,6 +29,8 @@ SMALL_MTU = 1400
 NORMAL_MTU = 1500
 DEBUG = False
 POD_NODES = dict() # is filled below
+C = 5
+R = 1
 
 K8S_YAML_TEMPLATE = """
 kind: Service
@@ -277,9 +279,9 @@ def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod = 1):
 
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
         'timelimit -s9 -t10 '+ # timeout: 10 seconds
-        './bin/benchmark -c 1 -r 5 -u http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/api '+
+        './bin/benchmark -c '+str(C)+' -r '+str(R)+' -u http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/api '+
         '-k=./scripts/insolard/configs/root_member_keys.json | grep Success')
-    if out == 'Successes: 5':
+    if out == 'Successes: '+str(C*R):
         return True
     else:
         info('insolar_is_alive() is false, out = "'+out+'"')
