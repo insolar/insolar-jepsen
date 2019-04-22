@@ -32,6 +32,8 @@ USER gopher
 WORKDIR /home/gopher
 ENV PATH="/home/gopher/go/bin:/home/gopher/opt/go/bin:${PATH}"
 RUN mkdir .ssh
+# make sure file has the right permissions, dirty workaround for Docker
+RUN sudo chown gopher:gopher ./.ssh/authorized_keys
 COPY id_rsa.pub ./.ssh/authorized_keys
 RUN wget https://dl.google.com/go/go1.12.linux-amd64.tar.gz
 RUN tar -xvzf *.tar.gz
