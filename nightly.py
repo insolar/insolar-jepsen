@@ -58,9 +58,9 @@ except Exception as e:
 print("Test passed: "+str(tests_passed))
 message = 'PASSED' if tests_passed else '**FAILED**'
 message = 'Nighly Jepsen-like tests '+message+'. Logs: '+args.url+'/'+logfile_name
-cmd = 'curl -X POST --data-urlencode "payload={\"channel\": \"'+args.channel+\
-        '\", \"username\": \"aphyr\", \"text\": \"'+message+\
-        '\", \"icon_emoji\": \":'+args.emoji+\
-        ':\"}" https://hooks.slack.com/services/'+args.slack
+cmd = 'curl -X POST --data-urlencode \'payload={"channel": "'+args.channel+\
+        '", "username": "aphyr", "text": "'+message+\
+        '", "icon_emoji": ":'+args.emoji+\
+        ':"}\' https://hooks.slack.com/services/'+args.slack
 print("EXECUTING: "+cmd)
-# run(cmd)
+run(cmd)
