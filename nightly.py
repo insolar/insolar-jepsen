@@ -8,9 +8,8 @@ import argparse
 def run(cmd):
     code = subprocess.call([ '/bin/bash', '-o', 'pipefail', '-c', cmd ])
     if code != 0:
-        print("Command `%s` returned non-zero status: %d" %
+        raise RuntimeError("Command `%s` returned non-zero status: %d" %
               (cmd, code))
-        sys.exit(1)
 
 def get_output(cmd):
     data = subprocess.check_output(cmd, shell=True)
