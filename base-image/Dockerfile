@@ -52,5 +52,5 @@ WORKDIR /home/gopher/go/src/github.com/insolar
 RUN git clone https://github.com/insolar/insolar.git
 
 WORKDIR /home/gopher/go/src/github.com/insolar/insolar
-RUN make install-deps pre-build
+RUN make install-deps ensure
 
