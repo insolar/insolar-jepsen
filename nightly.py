@@ -45,9 +45,9 @@ try:
     logfile_name = 'jepsen-' + date + '.txt'
     logfile_fullname = args.logdir + '/' + logfile_name
     run('echo "=== BUILDING BRANCH '+args.branch+' ===" | tee -a '+logfile_fullname)
-    run('./build-docker.py '+args.branch+' | tee -a '+logfile_fullname)
+    run('./build-docker.py '+args.branch+' 2>&1 | tee -a '+logfile_fullname)
     run('echo "==== RUNNING TESTS '+str(args.repeat)+' TIMES ===" | tee -a '+logfile_fullname)
-    run('./run-test.py -i insolar-jepsen:latest -r '+str(args.repeat)+' | tee -a '+logfile_fullname)
+    run('./run-test.py -i insolar-jepsen:latest -r '+str(args.repeat)+' 2>&1 | tee -a '+logfile_fullname)
     tests_passed = True
 except Exception as e:
     print("ERROR:")
