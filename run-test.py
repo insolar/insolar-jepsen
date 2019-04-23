@@ -482,7 +482,7 @@ k8s_gen_yaml(k8s_yaml, args.image, "IfNotPresent" if args.ci else "Never")
 k8s_stop_pods_if_running(k8s_yaml)
 k8s_start_pods(k8s_yaml)
 POD_NODES = k8s_get_pod_nodes()
-wait(5) # if pod is started it doesn't mean it's ready to accept connections
+wait(10) # if pod is started it doesn't mean it's ready to accept connections
 
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
