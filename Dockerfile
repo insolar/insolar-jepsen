@@ -14,10 +14,6 @@ RUN mkdir -p scripts/insolard/configs || true
 RUN mkdir -p scripts/insolard/discoverynodes/certs || true
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/bootstrap_keys.json
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/root_member_keys.json
-#RUN go run scripts/generate_insolar_configs.go \
-#        -o scripts/insolard/configs/generated_configs \
-#        -p scripts/insolard/configs/insgorund_ports.txt \
-#        -g scripts/insolard/genesis.yaml
 COPY config-templates/genesis.yaml ./scripts/insolard/genesis.yaml
 COPY config-templates/insolar_genesis.yaml ./scripts/insolard/insolar.yaml
 RUN ./bin/insolard --config scripts/insolard/insolar.yaml \
