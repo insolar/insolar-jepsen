@@ -310,7 +310,8 @@ def start_insolard(pod, extra_args = ""):
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +\
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
         "./scripts/insolard/discoverynodes/"+str(pod)+\
-        "/insolar_"+str(pod)+".yaml "+logto("insolard")+"""; bash\\" """)
+        "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json "+\
+        logto("insolard")+"""; bash\\" """)
 
 def start_insgorund(pod, pod_ips, extra_args = ""):
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" "+\

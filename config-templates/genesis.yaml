@@ -1,4 +1,5 @@
 root_keys_file: "scripts/insolard/configs/root_member_keys.json"
+heavy_genesis_config_file: "scripts/insolard/configs/heavy_genesis.json"
 node_keys_dir: "scripts/insolard/reusekeys/node"
 discovery_keys_dir: "scripts/insolard/reusekeys/discovery"
 keys_name_format: "/node_%02d.json"
