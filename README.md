@@ -2,7 +2,7 @@
 
 Jepsen-like tests for Insolar.
 
-*Requirements:* docker, kubectl, jq.
+**Requirements:** docker, kubectl, jq.
 
 If you are using Docker Desktop, please note, that by default it uses rather strict resource limits. You might want to change these limits in Preferences... -> Advanced tab.
 
