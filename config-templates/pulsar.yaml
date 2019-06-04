@@ -51,7 +51,7 @@ pulsar:
     randomnodescount: 5
 versionmanager:
   minalowedversion: v0.3.0
-keyspath: scripts/insolard/configs/bootstrap_keys.json
+keyspath: scripts/insolard/configs/pulsar_keys.json
 certificatepath: ""
 tracer:
   jaeger:

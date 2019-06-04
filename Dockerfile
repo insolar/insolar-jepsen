@@ -13,7 +13,7 @@ RUN make install-deps && \
   make build
 RUN mkdir -p scripts/insolard/configs
 RUN mkdir -p scripts/insolard/discoverynodes/certs
-RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/bootstrap_keys.json
+RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/pulsar_keys.json
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/root_member_keys.json
 COPY config-templates/bootstrap.yaml ./scripts/insolard/bootstrap.yaml
 RUN ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml \
