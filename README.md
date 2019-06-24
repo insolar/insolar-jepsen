@@ -12,6 +12,9 @@ Usage:
 # Make sure private key is readable only by current user
 chmod 600 ./base-image/id_rsa
 
+# Switch kubernetes context to docker-for-desktop or use any other context you have
+kubectl config use-context docker-for-desktop
+
 # Label current node: jepsen=true
 kubectl label node docker-for-desktop jepsen=true
 
