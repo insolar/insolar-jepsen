@@ -29,6 +29,7 @@ SMALL_MTU = 1400
 NORMAL_MTU = 1500
 DEBUG = False
 POD_NODES = dict() # is filled below
+DEPENDENCIES = ['docker', 'kubectl', 'jq']
 C = 5
 R = 1
 
@@ -455,6 +456,12 @@ def test_netsplit_single_virtual(pod, pod_ips):
     check(alive)
     info("==== netsplit of single virtual at pod#"+str(pod)+" test passed! ====")
 
+def check_dependencies():
+    info("Checking dependencies...")
+    for d in DEPENDENCIES:
+        run('which ' + d)
+    info("All dependencies found.")
+
 parser = argparse.ArgumentParser(description='Test Insolar using Jepsen-like tests')
 parser.add_argument(
     '-d', '--debug', action="store_true",
@@ -476,6 +483,8 @@ args = parser.parse_args()
 
 NAMESPACE = args.namespace
 DEBUG = args.debug
+
+check_dependencies()
 
 k8s_yaml = "jepsen-pods.yaml"
 info("Generating "+k8s_yaml)
