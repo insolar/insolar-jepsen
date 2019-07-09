@@ -78,6 +78,12 @@ os.environ["LC_CTYPE"] = "C"
 def logto(fname):
     return "2>&1 | tee /dev/tty | gzip --stdout > "+fname+"-$(date +%s).log.gz"
 
+def start_test(msg):
+    print("##teamcity[testStarted name='"+msg+"']")
+
+def stop_test(msg):
+    print("##teamcity[testFinished name='"+msg+"']")
+
 def info(msg):
     print("INFO: "+msg)
 
@@ -365,6 +371,7 @@ def deploy_insolar():
     return pod_ips
 
 def test_stop_start_virtual(pod, pod_ips):
+    start_test(str(pod) + ".test_stop_start_virtual")
     info("==== start/stop virtual at pod#"+str(pod)+" test started ====")
     alive_pod = [ p for p in VIRTUALS if p != pod ][0]
     alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="before-killing-virtual")
@@ -380,8 +387,10 @@ def test_stop_start_virtual(pod, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, virtual_pod = alive_pod, step="virtual-up")
     check(alive)
     info("==== start/stop virtual at pod#"+str(pod)+" passed! ====")
+    stop_test(str(pod) + ".test_stop_start_virtual")
 
 def test_network_slow_down_speed_up(pod_ips):
+    start_test("test_network_slow_down_speed_up")
     info("==== slow down / speed up network test started ====")
     for pod in range(1, NPODS+1):
         set_network_speed(pod, SLOW_NETWORK_SPEED)
@@ -392,8 +401,10 @@ def test_network_slow_down_speed_up(pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="fast-network")
     check(alive)
     info("==== slow down / speed up network test passed! ====")
+    stop_test("test_network_slow_down_speed_up")
 
 def test_virtuals_slow_down_speed_up(pod_ips):
+    start_test("test_virtuals_slow_down_speed_up")
     info("==== slow down / speed up virtuals test started ====")
     for pod in VIRTUALS:
         set_network_speed(pod, SLOW_NETWORK_SPEED)
@@ -404,8 +415,10 @@ def test_virtuals_slow_down_speed_up(pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="fast-virtuals")
     check(alive)
     info("==== slow down / speed up virtuals test passed! ====")
+    stop_test("test_virtuals_slow_down_speed_up")
 
 def test_small_mtu(pod_ips):
+    start_test("test_small_mtu")
     info("==== small mtu test started ====")
     for pod in range(1, NPODS+1):
         set_mtu(pod, SMALL_MTU)
@@ -416,8 +429,10 @@ def test_small_mtu(pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="noraml-mtu")
     check(alive)
     info("==== small mtu test passed! ====")
+    stop_test("test_small_mtu")
 
 def test_stop_start_pulsar(pod_ips):
+    start_test("test_stop_start_pulsar")
     info("==== start/stop pulsar test started ====")
     info("Killing pulsard")
     kill(NPODS, "pulsard")
@@ -430,8 +445,10 @@ def test_stop_start_pulsar(pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="pulsar-up")
     check(alive)
     info("==== start/stop pulsar test passed! ====")
+    stop_test("test_stop_start_pulsar")
 
 def test_netsplit_single_virtual(pod, pod_ips):
+    start_test("test_netsplit_single_virtual")
     info("==== netsplit of single virtual at pod#"+str(pod)+" test started ====")
     alive_pod = [ p for p in VIRTUALS if p != pod ][0]
     alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, step="before-netsplit-virtual")
@@ -455,6 +472,7 @@ def test_netsplit_single_virtual(pod, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NPODS-1, virtual_pod = alive_pod, step="netsplit-virtual-relaunched")
     check(alive)
     info("==== netsplit of single virtual at pod#"+str(pod)+" test passed! ====")
+    stop_test("test_netsplit_single_virtual")
 
 def check_dependencies():
     info("Checking dependencies...")
