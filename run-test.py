@@ -511,9 +511,10 @@ k8s_stop_pods_if_running(k8s_yaml)
 k8s_start_pods(k8s_yaml)
 POD_NODES = k8s_get_pod_nodes()
 wait(10) # if pod is started it doesn't mean it's ready to accept connections
-stop_test("prepare")
 
 pod_ips = deploy_insolar()
+stop_test("prepare")
+
 for test_num in range(0, args.repeat):
     # TODO: implement a flag that runs tests in random order
     test_network_slow_down_speed_up(pod_ips)
