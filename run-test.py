@@ -501,7 +501,7 @@ args = parser.parse_args()
 
 NAMESPACE = args.namespace
 DEBUG = args.debug
-
+start_test("prepare")
 check_dependencies()
 
 k8s_yaml = "jepsen-pods.yaml"
@@ -511,6 +511,7 @@ k8s_stop_pods_if_running(k8s_yaml)
 k8s_start_pods(k8s_yaml)
 POD_NODES = k8s_get_pod_nodes()
 wait(10) # if pod is started it doesn't mean it's ready to accept connections
+stop_test("prepare")
 
 pod_ips = deploy_insolar()
 for test_num in range(0, args.repeat):
