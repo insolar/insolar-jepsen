@@ -286,7 +286,7 @@ def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod = 1):
 
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
         'timelimit -s9 -t10 '+ # timeout: 10 seconds
-        './bin/benchmark -c '+str(C)+' -r '+str(R)+' -u http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/api '+
+        './bin/benchmark -b -c '+str(C)+' -r '+str(R)+' -u http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/api '+
         '-k=./scripts/insolard/configs/ | grep Success')
     if out == 'Successes: '+str(C*R):
         return True
