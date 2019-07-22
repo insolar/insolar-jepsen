@@ -92,7 +92,7 @@ def wait(nsec):
     time.sleep(nsec)
 
 def notify(message):
-    run("""which osascript && osascript -e 'display notification " """ + message + """ " with title "Jepsen"' || true""")
+    run("""(which osascript 2>/dev/null 1>&2) && osascript -e 'display notification " """ + message + """ " with title "Jepsen"' || true""")
 
 def check(condition):
     if not condition:
