@@ -485,6 +485,9 @@ parser.add_argument(
     '-d', '--debug', action="store_true",
     help='enable debug output')
 parser.add_argument(
+    '-s', '--skip-all-tests', action="store_true",
+    help='skip all tests, check only deploy procedure')
+parser.add_argument(
     '-r', '--repeat', metavar='N', type=int, default=1,
     help='number of times to repeat tests')
 parser.add_argument(
@@ -514,6 +517,10 @@ wait(10) # if pod is started it doesn't mean it's ready to accept connections
 
 pod_ips = deploy_insolar()
 stop_test("prepare")
+
+if args.skip_all_tests:
+    notify("Deploy checked, skipping all tests")
+    sys.exit(0)
 
 for test_num in range(0, args.repeat):
     # TODO: implement a flag that runs tests in random order
