@@ -299,19 +299,24 @@ def insolar_is_alive_on_pod(pod):
     return (out != '')
 
 def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=10, pause_sec=10, step=""):
-    alive = False
+    min_nalive = 2
+    nalive = 0
     if virtual_pod == -1:
         virtual_pod = VIRTUALS[0]
     for attempt in range(1, nattempts+1):
         wait(pause_sec)
         try:
             alive = insolar_is_alive(pod_ips, virtual_pod, nodes_online)
+            if alive:
+                nalive += 1
+            info("[Step: "+step+"] Alive check passed "+str(nalive)+"/"+str(min_nalive)+" (attempt "+str(attempt)+" of "+str(nattempts)+")" )
         except Exception as e:
             print(e)
             info("[Step: "+step+"] Insolar is not alive yet (attempt "+str(attempt)+" of "+str(nattempts)+")" )
-        if alive:
+            nalive = 0
+        if nalive >= min_nalive:
             break
-    return alive
+    return nalive >= min_nalive
 
 def start_insolard(pod, extra_args = ""):
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +\
