@@ -177,7 +177,9 @@ def k8s_get_pod_nodes():
     res = {}
     for kv in data.split("\n"):
         [k, v] = kv.split(' ')
-        if v == "docker-for-desktop":
+        if v == "docker-for-desktop": # Docker Desktop 2.0, k8s 1.10, docker 18.09
+            v = "localhost"
+        if v == "docker-desktop": # Docker Desktop 2.1, k8s 1.14, docker 19.03
             v = "localhost"
         res[k] = v
     return res
