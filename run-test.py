@@ -247,7 +247,6 @@ def node_is_down(status):
 
 def node_status_is_ok(status, nodes_online):
     return status['NetworkState'] == 'CompleteNetworkState' and \
-        status['NodeState'] == 'NodeReady' and \
         status['ActiveListSize'] == nodes_online and \
         status['WorkingListSize'] == nodes_online and \
         status['Error'] == ''
