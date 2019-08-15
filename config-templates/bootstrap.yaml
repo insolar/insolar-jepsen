@@ -7,8 +7,8 @@ heavy_genesis_plugins_dir: "scripts/insolard/configs/contracts/"
 contracts:
   insgocc: "bin/insgocc"
   outdir: "scripts/insolard/configs/contracts/"
-root_balance: "100000000000000000000"
-md_balance: "100000000000000000000"
+root_balance: "0"
+md_balance: "50000000000000000000"
 majority_rule: 4
 min_roles:
   virtual:  2
