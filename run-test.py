@@ -339,6 +339,30 @@ def start_pulsard(extra_args = ""):
 def kill(pod, proc_name):
     ssh(pod, "killall -s 9 "+proc_name+" || true")
 
+def check_ssh_is_up_on_pods():
+    try:
+        for pod in range(1, NPODS+1):
+            out = ssh_output(pod, "echo 1")
+            if out != "1":
+                return False
+    except Exception as e:
+        print(e)
+        return False
+    return True
+
+def wait_until_ssh_is_up_on_pods():
+    info("Waiting until SSH daemons are up on all nodes")
+    is_up = False
+    nchecks = 10
+    for check in range(1, nchecks+1):
+        is_up = check_ssh_is_up_on_pods()
+        if is_up:
+            break
+        info("SSH daemons are not up yet (attempt "+str(check)+" of "+str(nchecks)+")" )
+        wait(1)
+    assert(is_up)
+    info("SSH daemons are up!")
+
 def deploy_insolar():
     info("building configs based on provided templates")
     run("rm -r /tmp/insolar-jepsen-configs || true")
@@ -519,8 +543,7 @@ k8s_gen_yaml(k8s_yaml, args.image, "IfNotPresent" if args.ci else "Never")
 k8s_stop_pods_if_running(k8s_yaml)
 k8s_start_pods(k8s_yaml)
 POD_NODES = k8s_get_pod_nodes()
-wait(10) # if pod is started it doesn't mean it's ready to accept connections
-
+wait_until_ssh_is_up_on_pods()
 pod_ips = deploy_insolar()
 stop_test("prepare")
 
