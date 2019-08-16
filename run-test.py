@@ -243,13 +243,12 @@ def fix_simple_netsplit(pod, pod_ips):
             'sudo iptables -D OUTPUT -d '+current_ip+' -j DROP')
 
 def node_is_down(status):
-    return status['Error'] != '' and status['PulseNumber'] == -1
+    return status['pulseNumber'] == -1
 
 def node_status_is_ok(status, nodes_online):
-    return status['NetworkState'] == 'CompleteNetworkState' and \
-        status['ActiveListSize'] == nodes_online and \
-        status['WorkingListSize'] == nodes_online and \
-        status['Error'] == ''
+    return status['networkState'] == 'CompleteNetworkState' and \
+        status['activeListSize'] == nodes_online and \
+        status['workingListSize'] == nodes_online
 
 def network_status_is_ok(network_status, nodes_online):
     online_list = [ s for s in network_status if not node_is_down(s)]
