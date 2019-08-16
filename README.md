@@ -37,4 +37,7 @@ tmux attach -t insolard
 
 # To copy a file from `jepsen-1` pod:
 scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P 32001 gopher@localhost:.bash_profile ./
+
+# Aggregate all logfiles:
+./aggregate-logs.py /tmp/jepsen-agg/
 ```
