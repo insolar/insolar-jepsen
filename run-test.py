@@ -243,7 +243,7 @@ def fix_simple_netsplit(pod, pod_ips):
             'sudo iptables -D OUTPUT -d '+current_ip+' -j DROP')
 
 def old_node_is_down(status):
-    return status['PulseNumber'] == -1
+    return status['Error'] != '' and status['PulseNumber'] == -1
 
 def new_node_is_down(status):
     return status['pulseNumber'] == -1
@@ -254,7 +254,8 @@ def node_is_down(status):
 def old_node_status_is_ok(status, nodes_online):
     return status['NetworkState'] == 'CompleteNetworkState' and \
         status['ActiveListSize'] == nodes_online and \
-        status['WorkingListSize'] == nodes_online
+        status['WorkingListSize'] == nodes_online and \
+        status['Error'] == ''
 
 def new_node_status_is_ok(status, nodes_online):
     return status['networkState'] == 'CompleteNetworkState' and \
