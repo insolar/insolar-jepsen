@@ -48,9 +48,14 @@ logicrunner:
     runnerlisten: JEPSEN-1:33300
     runnerprotocol: tcp
 apirunner:
-  address: JEPSEN-1:19101
-  call: /api/call
+  address: 127.0.0.1:19101
   rpc: /api/rpc
+  ispublic: true
+  timeout: 15
+apiinternalrunner:
+  address: 127.0.0.1:19001
+  rpc: /admin-api/rpc
+  ispublic: false
   timeout: 15
 pulsar:
   connectiontype: tcp
