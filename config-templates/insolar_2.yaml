@@ -50,12 +50,12 @@ logicrunner:
 apirunner:
   address: 127.0.0.1:19102
   rpc: /api/rpc
-  ispublic: true
+  isadmin: false
   timeout: 15
-apiinternalrunner:
+adminapirunner:
   address: 127.0.0.1:19002
   rpc: /admin-api/rpc
-  ispublic: false
+  isadmin: true
   timeout: 15
 pulsar:
   connectiontype: tcp
