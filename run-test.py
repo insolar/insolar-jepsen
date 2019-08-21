@@ -242,14 +242,47 @@ def fix_simple_netsplit(pod, pod_ips):
         ssh(pod, 'sudo iptables -D INPUT -s '+current_ip+' -j DROP && '+
             'sudo iptables -D OUTPUT -d '+current_ip+' -j DROP')
 
+def old_node_is_down(status):
+    if 'PulseNumber' in status and \
+        'Error' in status :
+        return status['PulseNumber'] == -1 and \
+            status['Error'] != ''
+    else:
+        return 0
+
+def new_node_is_down(status):
+    if 'pulseNumber' in status:
+        return status['pulseNumber'] == -1
+    else:
+        return 0
+
 def node_is_down(status):
-    return status['Error'] != '' and status['PulseNumber'] == -1
+    return old_node_is_down(status) or new_node_is_down(status)
+
+def old_node_status_is_ok(status, nodes_online):
+    if 'NetworkState' in status and \
+        'ActiveListSize' in status and \
+        'WorkingListSize' in status and \
+        'Error' in status :
+        return status['NetworkState'] == 'CompleteNetworkState' and \
+            status['ActiveListSize'] == nodes_online and \
+            status['WorkingListSize'] == nodes_online and \
+            status['Error'] == ''
+    else:
+        return 0
+
+def new_node_status_is_ok(status, nodes_online):
+    if 'networkState' in status and \
+        'activeListSize' in status and \
+        'workingListSize' in status :
+        return status['networkState'] == 'CompleteNetworkState' and \
+            status['activeListSize'] == nodes_online and \
+            status['workingListSize'] == nodes_online
+    else:
+        return 0
 
 def node_status_is_ok(status, nodes_online):
-    return status['NetworkState'] == 'CompleteNetworkState' and \
-        status['ActiveListSize'] == nodes_online and \
-        status['WorkingListSize'] == nodes_online and \
-        status['Error'] == ''
+    return old_node_status_is_ok(status, nodes_online) or new_node_status_is_ok(status, nodes_online)
 
 def network_status_is_ok(network_status, nodes_online):
     online_list = [ s for s in network_status if not node_is_down(s)]
