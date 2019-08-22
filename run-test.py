@@ -278,8 +278,6 @@ def network_status_is_ok(network_status, nodes_online):
 def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod = 1):
     virtual_pod_name = 'jepsen-'+str(virtual_pod)
     port = VIRTUAL_START_PORT + virtual_pod
-    ssh_output(virtual_pod_name)
-    ssh_output(port)
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
         'timelimit -s9 -t10 '+ # timeout: 10 seconds
         './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
