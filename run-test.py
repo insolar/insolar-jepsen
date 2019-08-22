@@ -17,7 +17,7 @@ import time
 # jepsen-6: pulsar
 
 START_PORT = 32000
-VIRTUAL_START_PORT = 19000
+VIRTUAL_START_PORT = 19100
 INSPATH = "go/src/github.com/insolar/insolar"
 NPODS = 6
 VIRTUALS = [2, 4] # these pods require local insgorund
