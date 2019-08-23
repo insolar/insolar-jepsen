@@ -18,7 +18,7 @@ RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/root_member_keys.json
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/migration_admin_member_keys.json
 RUN for m in $(seq 0 9); do ./bin/insolar gen-key-pair > \
   scripts/insolard/configs/migration_daemon_${m}_member_keys.json; done
-RUN ./bin/insolar gen-migration-addresses > scripts/insolard/configs/migration_addresses.json
+RUN ./bin/insolar gen-migration-addresses > scripts/insolard/configs/migration_addresses.json || true
 
 RUN cd scripts/insolard/configs && ls && cd ../../..
 
