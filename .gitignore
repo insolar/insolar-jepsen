@@ -1,2 +1,4 @@
+.idea
+venv
 jepsen-pods.yaml
 *.swp
