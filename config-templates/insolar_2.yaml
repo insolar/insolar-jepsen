@@ -48,12 +48,12 @@ logicrunner:
     runnerlisten: JEPSEN-2:33305
     runnerprotocol: tcp
 apirunner:
-  address: 127.0.0.1:19102
+  address: JEPSEN-2:19102
   rpc: /api/rpc
   isadmin: false
   timeout: 15
 adminapirunner:
-  address: 127.0.0.1:19002
+  address: JEPSEN-2:19002
   rpc: /admin-api/rpc
   isadmin: true
   timeout: 15
