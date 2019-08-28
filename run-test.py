@@ -81,7 +81,7 @@ os.environ["LANG"] = "C"
 os.environ["LC_CTYPE"] = "C"
 
 def logto(fname):
-    return "> "+fname+"-$(date +%s).log"
+    return "2>&1 | tee /dev/tty | gzip --stdout > "+fname+"-$(date +%s).log.gz"
 
 def start_test(msg):
     print("##teamcity[testStarted name='"+msg+"']")
@@ -423,8 +423,9 @@ def prepare_configs():
     run("rm -r /tmp/insolar-jepsen-configs || true")
     run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
     pod_ips = k8s_get_pod_ips()
+
     for k in pod_ips.keys():
-        run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+ \
+        run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
             "| xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
 
 
@@ -470,7 +471,7 @@ def deploy_not_discovery():
     for pod in NOT_DISCOVERY_NODES:
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
         start_insolard_not_discovery(pod, extra_args="-s insolard")
-        if pod in VIRTUALS: # also start insgorund
+        if pod in VIRTUALS:  # also start insgorund
             start_insgorund(pod, pod_ips, extra_args="-s insgorund")
 
     alive = wait_until_insolar_is_alive(pod_ips, DISCOVERY_NODES + NOT_DISCOVERY_NODES, step="starting nodes")
@@ -494,7 +495,7 @@ def deploy_discovery():
     for pod in DISCOVERY_NODES:
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
         start_insolard(pod, extra_args="-s insolard")
-        if pod in VIRTUALS:
+        if pod in VIRTUALS:  # also start insgorund
             start_insgorund(pod, pod_ips, extra_args="-s insgorund")
 
     alive = wait_until_insolar_is_alive(pod_ips, DISCOVERY_NODES, step="starting")
