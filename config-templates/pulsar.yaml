@@ -45,7 +45,7 @@ pulsar:
     - JEPSEN-3:33833
     - JEPSEN-4:43834
     - JEPSEN-5:53835
-    - JEPSEN-6:53866
+    - JEPSEN-6:63836
     pingrequesttimeout: 1000
     randomhostsrequesttimeout: 1000
     pulserequesttimeout: 1000
