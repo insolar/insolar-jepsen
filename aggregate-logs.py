@@ -28,6 +28,7 @@ copy_to_dir = sys.argv[1] + "/"
 
 for port in range(START_PORT, END_PORT+1):
     node_dir = copy_to_dir + str(port) + "/"
+    run("""rm -rf """+node_dir)
     run("""mkdir -p """+node_dir+""" || true """)
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port)+\
         """ gopher@localhost:go/src/github.com/insolar/insolar/*.log """+node_dir+""" 2>/dev/null """)
