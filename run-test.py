@@ -299,7 +299,7 @@ def network_status_is_ok(network_status, nodes_online):
     # make sure all PulseNumber's are equal
     pn = set(s['PulseNumber'] for s in online_list)
     if len(pn) != 1:
-        info("[NetworkStatus] PulseNumber's differ: " + str(pn))
+        info("[NetworkStatus] PulseNumber's differ: " + str([s['PulseNumber'] for s in online_list]))
         return False
     else:
         info("[NetworkStatus] PulseNumber is " + str(pn))
@@ -671,7 +671,7 @@ for test_num in range(0, args.repeat):
     # test_network_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_virtuals_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
-    test_stop_start_pulsar(pod_ips)
+    # test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
     test_stop_start_virtual(VIRTUALS[2], pod_ips)
     # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO: starting from 25.03.19 this test doesn't always pass, INS-2181
