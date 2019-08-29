@@ -81,7 +81,7 @@ os.environ["LANG"] = "C"
 os.environ["LC_CTYPE"] = "C"
 
 def logto(fname):
-    return "2>&1 | tee /dev/tty | gzip --stdout > "+fname+"-$(date +%s).log.gz"
+    return "> "+fname+"-$(date +%s).log"
 
 def start_test(msg):
     print("##teamcity[testStarted name='"+msg+"']")
