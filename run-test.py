@@ -81,7 +81,7 @@ os.environ["LANG"] = "C"
 os.environ["LC_CTYPE"] = "C"
 
 def logto(fname):
-    return "2>&1 | tee /dev/tty | gzip --stdout > "+fname+"-$(date +%s).log.gz"
+    return "> "+fname+"-$(date +%s).log"
 
 def start_test(msg):
     print("##teamcity[testStarted name='"+msg+"']")
@@ -213,12 +213,12 @@ def k8s_start_pods(fname):
         wait(1)
 
 def set_network_speed(pod, speed):
-    ssh(pod, 'sudo tc qdisc del dev eth0 root || true')
-    ssh(pod, 'sudo tc qdisc add dev eth0 root handle 1: tbf rate '+speed+' latency 1ms burst 1540')
-    ssh(pod, 'sudo tc qdisc del dev eth0 ingress || true')
-    ssh(pod, 'sudo tc qdisc add dev eth0 ingress')
-    ssh(pod, 'sudo tc filter add dev eth0 root protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
-    ssh(pod, 'sudo tc filter add dev eth0 parent ffff: protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
+    ssh(pod, 'timelimit -s9 -t10 ' + 'sudo tc qdisc del dev eth0 root || true')
+    ssh(pod, 'timelimit -s9 -t10 ' + 'sudo tc qdisc add dev eth0 root handle 1: tbf rate '+speed+' latency 1ms burst 1540')
+    ssh(pod, 'timelimit -s9 -t10 ' + 'sudo tc qdisc del dev eth0 ingress || true')
+    ssh(pod, 'timelimit -s9 -t10 ' + 'sudo tc qdisc add dev eth0 ingress')
+    ssh(pod, 'timelimit -s9 -t10 ' + 'sudo tc filter add dev eth0 root protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
+    ssh(pod, 'timelimit -s9 -t10 ' + 'sudo tc filter add dev eth0 parent ffff: protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
 
 def set_mtu(pod, mtu):
     ssh(pod, 'sudo ifconfig eth0 mtu '+str(mtu))
@@ -668,8 +668,8 @@ if args.skip_all_tests:
 
 for test_num in range(0, args.repeat):
     # TODO: implement a flag that runs tests in random order
-    # test_network_slow_down_speed_up(pod_ips)
-    # test_virtuals_slow_down_speed_up(pod_ips)
+    test_network_slow_down_speed_up(pod_ips)
+    test_virtuals_slow_down_speed_up(pod_ips)
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
     test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
