@@ -457,7 +457,6 @@ def deploy_not_discovery():
 
     create_data_for_not_discovery()
 
-    info("copying configs and fixing certificates on all pods")
     for pod in NOT_DISCOVERY_NODES:
         not_discovery_path = INSPATH+"/scripts/insolard/nodes/"
         pod_path = not_discovery_path+str(pod)
@@ -669,8 +668,8 @@ if args.skip_all_tests:
 
 for test_num in range(0, args.repeat):
     # TODO: implement a flag that runs tests in random order
-    test_network_slow_down_speed_up(pod_ips)
-    test_virtuals_slow_down_speed_up(pod_ips)
+    # test_network_slow_down_speed_up(pod_ips)
+    # test_virtuals_slow_down_speed_up(pod_ips)
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
     test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
