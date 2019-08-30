@@ -365,15 +365,7 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
 def start_insolard(pod, extra_args = ""):
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +\
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
-        "./scripts/insolard/discoverynodes/"+str(pod)+\
-        "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json &"+\
-        logto("insolard")+"""; bash\\" """)
-
-
-def start_insolard_not_discovery(pod, extra_args = ""):
-    ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +\
-        """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
-        "./scripts/insolard/nodes/"+str(pod)+\
+        "./scripts/insolard/"+str(pod)+\
         "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json &"+\
         logto("insolard")+"""; bash\\" """)
 
@@ -436,68 +428,26 @@ def deploy_pulsar():
     start_pulsard(extra_args="-s pulsard")
 
 
-def create_data_for_not_discovery():
-    info("create configs and certificates for not-discovery nodes")
-    pod_ips = k8s_get_pod_ips()
-    virtual_pod = VIRTUALS[0]
-    virtual_pod_name = 'jepsen-'+str(virtual_pod)
-    port = VIRTUAL_START_PORT + virtual_pod
-
-    for i, pod in enumerate(NOT_DISCOVERY_NODES, start=1):
-        ssh(pod, "cd " + INSPATH + " && " + " mkdir -vp scripts/insolard/reusekeys/nodes")
-        ssh(pod, "cd " + INSPATH + " && " + " mkdir -vp scripts/insolard/nodes/certs")
-        ssh(pod, "cd " + INSPATH + " && " + "./bin/insolar certgen --root-keys scripts/insolard/configs/root_member_keys.json --url " +
-            'http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/admin-api/rpc ' +
-            " --node-cert scripts/insolard/nodes/certs/node_cert_" + str(i) + ".json --node-keys scripts/insolard/reusekeys/nodes/node_0" + str(i) + ".json --role virtual")
-
-
-def deploy_not_discovery():
-    info("copying configs and fixing certificates for not-discovery nodes")
-    pod_ips = k8s_get_pod_ips()
-
-    create_data_for_not_discovery()
-
-    for pod in NOT_DISCOVERY_NODES:
-        not_discovery_path = INSPATH+"/scripts/insolard/nodes/"
-        pod_path = not_discovery_path+str(pod)
-        ssh(pod, "mkdir -p "+pod_path)
-        for k in pod_ips.keys():
-            ssh(pod, "find "+not_discovery_path+" -type f -print "+ \
-                " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
-        scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
-
-    info("starting insolard's and insgorund's")
-    for pod in NOT_DISCOVERY_NODES:
-        scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
-        start_insolard_not_discovery(pod, extra_args="-s insolard")
-        if pod in VIRTUALS:  # also start insgorund
-            start_insgorund(pod, pod_ips, extra_args="-s insgorund")
-
-    alive = wait_until_insolar_is_alive(pod_ips, DISCOVERY_NODES + NOT_DISCOVERY_NODES, step="starting nodes")
-    check(alive)
-    info("==== Insolar with not-discovery started! ====")
-
-
-def deploy_discovery():
+def deploy_insolar():
     info("copying configs and fixing certificates for discovery nodes")
     pod_ips = k8s_get_pod_ips()
-    for pod in DISCOVERY_NODES:
-        discovery_path = INSPATH+"/scripts/insolard/discoverynodes/"
-        pod_path = discovery_path+str(pod)
+    for pod in NODES:
+        path = INSPATH+"/scripts/insolard/"
+        pod_path = path+str(pod)
         ssh(pod, "mkdir -p "+pod_path)
         for k in pod_ips.keys():
-            ssh(pod, "find "+discovery_path+" -type f -print "+\
+            ssh(pod, "find "+path+" -type f -print "+\
                 " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
         scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
 
     info("starting insolard's and insgorund's")
-    for pod in DISCOVERY_NODES:
+    for pod in NODES:
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
         start_insolard(pod, extra_args="-s insolard")
         if pod in VIRTUALS:  # also start insgorund
             start_insgorund(pod, pod_ips, extra_args="-s insgorund")
 
-    alive = wait_until_insolar_is_alive(pod_ips, DISCOVERY_NODES, step="starting")
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="starting")
     check(alive)
     info("==== Insolar started! ====")
 
@@ -516,7 +466,7 @@ def test_stop_start_virtual(pod, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, stay_alive_nods, virtual_pod=alive_pod, step="virtual-down")
     check(alive)
     info("Insolar is still alive. Re-launching insolard on pod #"+str(pod))
-    start_insolard_not_discovery(pod)
+    start_insolard(pod)
     start_insgorund(pod, pod_ips)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, virtual_pod=alive_pod, step="virtual-up")
     check(alive)
@@ -656,8 +606,7 @@ wait_until_ssh_is_up_on_pods()
 
 prepare_configs()
 deploy_pulsar()
-deploy_discovery()
-deploy_not_discovery()
+deploy_insolar()
 pod_ips = k8s_get_pod_ips()
 
 stop_test("prepare")

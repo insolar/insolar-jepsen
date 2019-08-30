@@ -84,7 +84,7 @@ pulsar:
 versionmanager:
   minalowedversion: v0.3.0
 keyspath: scripts/insolard/reusekeys/discovery/node_01.json
-certificatepath: scripts/insolard/discoverynodes/certs/discovery_cert_1.json
+certificatepath: scripts/insolard/certs/discovery_cert_1.json
 tracer:
   jaeger:
     collectorendpoint: ""
