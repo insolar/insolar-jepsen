@@ -15,9 +15,18 @@ RUN mkdir -p scripts/insolard/configs
 RUN mkdir -p scripts/insolard/discoverynodes/certs
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/pulsar_keys.json
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/root_member_keys.json
+RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/fee_member_keys.json
+RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/funds_and_enterprise_member_keys.json
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/migration_admin_member_keys.json
 RUN for m in $(seq 0 9); do ./bin/insolar gen-key-pair > \
   scripts/insolard/configs/migration_daemon_${m}_member_keys.json; done
+RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
+  scripts/insolard/configs/network_incentives_${m}_member_keys.json; done
+RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
+  scripts/insolard/configs/application_incentives_${m}_member_keys.json; done
+RUN for m in $(seq 0 13); do ./bin/insolar gen-key-pair > \
+  scripts/insolard/configs/foundation_${m}_member_keys.json; done
+
 RUN ./bin/insolar gen-migration-addresses > scripts/insolard/configs/migration_addresses.json || true
 
 RUN cd scripts/insolard/configs && ls && cd ../../..
