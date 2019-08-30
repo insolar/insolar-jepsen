@@ -16,7 +16,7 @@ majority_rule: 4
 min_roles:
   virtual:  2
   heavy_material: 1
-  light_material: 2
+  light_material: 5
 pulsar_public_keys:
   - "pulsar_public_key"
 discovery_nodes:
@@ -26,7 +26,7 @@ discovery_nodes:
     cert_name: "discovery_cert_1.json"
   -
     host: "JEPSEN-2:23832"
-    role: "virtual"
+    role: "light_material"
     cert_name: "discovery_cert_2.json"
   -
     host: "JEPSEN-3:33833"
@@ -34,16 +34,16 @@ discovery_nodes:
     cert_name: "discovery_cert_3.json"
   -
     host: "JEPSEN-4:43834"
-    role: "virtual"
+    role: "light_material"
     cert_name: "discovery_cert_4.json"
   -
     host: "JEPSEN-5:53835"
     role: "light_material"
     cert_name: "discovery_cert_5.json"
-#  -
-#    host: "127.0.0.1:53866"
-#    role: "virtual"
-#    cert_name: "discovery_cert_6.json"
+  -
+    host: "JEPSEN-6:53866"
+    role: "light_material"
+    cert_name: "discovery_cert_6.json"
 #  -
 #    host: "127.0.0.1:53877"
 #    role: "light_material"
@@ -115,9 +115,25 @@ discovery_nodes:
 
 nodes:
   -
-    host: "JEPSEN-6:63836"
+    host: "JEPSEN-7:63836"
     role: "virtual"
     cert_name: "node_cert_1.json"
+  -
+    host: "JEPSEN-8:63846"
+    role: "virtual"
+    cert_name: "node_cert_2.json"
+  -
+    host: "JEPSEN-9:63856"
+    role: "virtual"
+    cert_name: "node_cert_3.json"
+  -
+    host: "JEPSEN-10:63866"
+    role: "virtual"
+    cert_name: "node_cert_4.json"
+  -
+    host: "JEPSEN-11:63876"
+    role: "virtual"
+    cert_name: "node_cert_5.json"
 #  - # Attention! You must wait `lightChainLimit` pulses after LM joined to run benchmark w/o errors.
 #    host: "127.0.0.1:63936"
 #    role: "light_material"

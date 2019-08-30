@@ -4,7 +4,7 @@ import sys
 import subprocess
 
 START_PORT = 32001
-END_PORT = 32007
+END_PORT = 32012
 DEBUG = True
 
 def debug(msg):

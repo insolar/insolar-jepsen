@@ -10,22 +10,27 @@ import time
 
 # Roles:
 # jepsen-1: heavy
-# jepsen-2: virtual
+# jepsen-2: light
 # jepsen-3: light
-# jepsen-4: virtual
+# jepsen-4: light
 # jepsen-5: light
-# jepsen-6: virtual (not-discovery)
-# jepsen-7: pulsar
+# jepsen-6: light
+# jepsen-7: virtual (not-discovery)
+# jepsen-8: virtual (not-discovery)
+# jepsen-9: virtual (not-discovery)
+# jepsen-10: virtual (not-discovery)
+# jepsen-11: virtual (not-discovery)
+# jepsen-12: pulsar
 
 START_PORT = 32000
 VIRTUAL_START_PORT = 19000
 INSPATH = "go/src/github.com/insolar/insolar"
-DISCOVERY_NODES = [1, 2, 3, 4, 5]
-NOT_DISCOVERY_NODES = [6]
+DISCOVERY_NODES = [1, 2, 3, 4, 5, 6]
+NOT_DISCOVERY_NODES = [7, 8, 9, 10, 11]
 NODES = DISCOVERY_NODES + NOT_DISCOVERY_NODES
-PULSAR = 7
+PULSAR = 12
 ALL_PODS = NODES + [PULSAR]
-VIRTUALS = [2, 4, 6] # these pods require local insgorund
+VIRTUALS = [7, 8, 9, 10, 11]  # these pods require local insgorund
 LOG_LEVEL = "Debug" # Info
 NAMESPACE = "default"
 SLOW_NETWORK_SPEED = '4mbps'
@@ -416,7 +421,8 @@ def prepare_configs():
     run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
     pod_ips = k8s_get_pod_ips()
 
-    for k in pod_ips.keys():
+    # here love
+    for k in sorted(pod_ips.keys(), reverse=True):
         run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
             "| xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
 
@@ -447,7 +453,7 @@ def deploy_insolar():
         if pod in VIRTUALS:  # also start insgorund
             start_insgorund(pod, pod_ips, extra_args="-s insgorund")
 
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="starting")
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="starting", nattempts=60)
     check(alive)
     info("==== Insolar started! ====")
 
@@ -622,7 +628,7 @@ for test_num in range(0, args.repeat):
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
     # test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
-    test_stop_start_virtual(VIRTUALS[2], pod_ips)
+    test_stop_start_virtual(VIRTUALS[0], pod_ips)
     # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO: starting from 25.03.19 this test doesn't always pass, INS-2181
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 

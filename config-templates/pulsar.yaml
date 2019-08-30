@@ -1,7 +1,7 @@
 host:
   transport:
     protocol: TCP
-    address: JEPSEN-7:0
+    address: JEPSEN-12:0
     behindnat: false
   isrelay: false
   infinitybootstrap: false
@@ -17,13 +17,13 @@ log:
   adapter: zerolog
   formatter: text
 metrics:
-  listenaddress: JEPSEN-7:9090
+  listenaddress: JEPSEN-12:9090
   namespace: insolar
   zpagesenabled: true
   reportingperiod: 0s
 pulsar:
   connectiontype: tcp
-  mainlisteneraddress: JEPSEN-7:58090
+  mainlisteneraddress: JEPSEN-12:58090
   storage:
     datadirectory: ./data_pulsar
     txretriesonconflict: 0
@@ -36,7 +36,7 @@ pulsar:
   numberdelta: 10
   distributiontransport:
     protocol: TCP
-    address: JEPSEN-7:58091
+    address: JEPSEN-12:58091
     behindnat: false
   pulsedistributor:
     bootstraphosts:
@@ -45,7 +45,12 @@ pulsar:
     - JEPSEN-3:33833
     - JEPSEN-4:43834
     - JEPSEN-5:53835
-    - JEPSEN-6:63836
+    - JEPSEN-6:53866
+    - JEPSEN-7:63836
+    - JEPSEN-8:63846
+    - JEPSEN-9:63856
+    - JEPSEN-10:63866
+    - JEPSEN-11:63876
     pingrequesttimeout: 1000
     randomhostsrequesttimeout: 1000
     pulserequesttimeout: 1000
