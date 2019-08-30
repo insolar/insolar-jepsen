@@ -83,8 +83,8 @@ pulsar:
     randomnodescount: 5
 versionmanager:
   minalowedversion: v0.3.0
-keyspath: scripts/insolard/reusekeys/nodes/node_01.json
-certificatepath: scripts/insolard/nodes/certs/node_cert_1.json
+keyspath: scripts/insolard/reusekeys/not_discovery/node_01.json
+certificatepath: scripts/insolard/certs/node_cert_1.json
 tracer:
   jaeger:
     collectorendpoint: ""

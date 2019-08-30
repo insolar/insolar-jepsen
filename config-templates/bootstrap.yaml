@@ -1,5 +1,6 @@
 members_keys_dir: "scripts/insolard/configs/"
 discovery_keys_dir: "scripts/insolard/reusekeys/discovery/"
+not_discovery_keys_dir: "scripts/insolard/reusekeys/not_discovery/"
 keys_name_format: "/node_%02d.json"
 reuse_keys: false
 heavy_genesis_config_file: "scripts/insolard/configs/heavy_genesis.json"
@@ -116,7 +117,6 @@ nodes:
   -
     host: "JEPSEN-6:63836"
     role: "virtual"
-    keys_file: "scripts/insolard/nodes/1/keys.json"
     cert_name: "node_cert_1.json"
 #  - # Attention! You must wait `lightChainLimit` pulses after LM joined to run benchmark w/o errors.
 #    host: "127.0.0.1:63936"
