@@ -441,7 +441,7 @@ def deploy_insolar():
         scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
 
     info("starting insolard's and insgorund's")
-    for pod in DISCOVERY_NODES:
+    for pod in NODES:
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
         start_insolard(pod, extra_args="-s insolard")
         if pod in VIRTUALS:  # also start insgorund
