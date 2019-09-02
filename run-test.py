@@ -540,7 +540,8 @@ def test_stop_start_pulsar(pod_ips):
     info("Killing pulsard")
     kill(PULSAR, "pulsard")
 
-    wait_until_insolar_is_down()
+    down = wait_until_insolar_is_down()
+    check(down)
     info("Insolar is down. Re-launching net")
 
     info("Starting pulsar")
