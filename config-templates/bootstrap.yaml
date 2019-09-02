@@ -12,6 +12,7 @@ root_balance: "0"
 md_balance: "50000000000000000000"
 vesting_pulse_period: 31636000
 lockup_pulse_period: 10
+lokup_pulse_period: 10
 majority_rule: 4
 min_roles:
   virtual:  2
