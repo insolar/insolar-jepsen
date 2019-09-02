@@ -452,7 +452,7 @@ def deploy_insolar():
         if pod in VIRTUALS:  # also start insgorund
             start_insgorund(pod, pod_ips, extra_args="-s insgorund")
 
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="starting", nattempts=60)
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="starting", nattempts=20)
     check(alive)
     info("==== Insolar started! ====")
 
