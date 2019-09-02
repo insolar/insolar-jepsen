@@ -1,7 +1,7 @@
 host:
   transport:
     protocol: TCP
-    address: JEPSEN-6:53866
+    address: JEPSEN-7:63836
     behindnat: false
   isrelay: false
   infinitybootstrap: false
@@ -36,24 +36,24 @@ log:
   adapter: zerolog
   formatter: text
 metrics:
-  listenaddress: JEPSEN-6:8006
+  listenaddress: JEPSEN-7:8007
   namespace: insolar
   zpagesenabled: true
   reportingperiod: 0s
 logicrunner:
-  rpclisten: JEPSEN-6:33306
+  rpclisten: JEPSEN-7:33306
   rpcprotocol: tcp
   builtin: {}
   goplugin:
-    runnerlisten: JEPSEN-6:33305
+    runnerlisten: JEPSEN-7:33305
     runnerprotocol: tcp
 apirunner:
-  address: JEPSEN-6:19106
+  address: JEPSEN-7:19107
   rpc: /api/rpc
   isadmin: false
   timeout: 15
 adminapirunner:
-  address: JEPSEN-6:19006
+  address: JEPSEN-7:19007
   rpc: /admin-api/rpc
   isadmin: true
   timeout: 15
@@ -83,8 +83,8 @@ pulsar:
     randomnodescount: 5
 versionmanager:
   minalowedversion: v0.3.0
-keyspath: scripts/insolard/reusekeys/discovery/node_06.json
-certificatepath: scripts/insolard/certs/discovery_cert_6.json
+keyspath: scripts/insolard/reusekeys/not_discovery/node_01.json
+certificatepath: scripts/insolard/certs/node_cert_1.json
 tracer:
   jaeger:
     collectorendpoint: ""
