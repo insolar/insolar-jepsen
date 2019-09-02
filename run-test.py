@@ -421,7 +421,6 @@ def prepare_configs():
     run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
     pod_ips = k8s_get_pod_ips()
 
-    # here love
     for k in sorted(pod_ips.keys(), reverse=True):
         run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
             "| xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
