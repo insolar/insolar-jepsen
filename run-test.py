@@ -362,6 +362,28 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
             break
     return nalive >= min_nalive
 
+
+def start_insolar_net(nodes, pod_ips, extra_args_insolard="", extra_args_insgorund=""):
+    info("Starting insolar net")
+    for pod in nodes:
+        start_insolard(pod, extra_args=extra_args_insolard)
+        if pod in VIRTUALS:  # also start insgorund
+            start_insgorund(pod, pod_ips, extra_args=extra_args_insgorund)
+
+
+def wait_until_insolar_is_down(nattempts=10, pause_sec=10):
+    all_down = False
+    for pod in NODES:
+        for i in range(0, nattempts):
+            if not insolar_is_alive_on_pod(pod):
+                all_down = True
+                break
+            info('Insolard is not terminated yet at pod#'+str(pod))
+            all_down = False
+            wait(pause_sec)
+    return all_down
+
+
 def start_insolard(pod, extra_args = ""):
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +\
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
@@ -439,13 +461,9 @@ def deploy_insolar():
             ssh(pod, "find "+path+" -type f -print "+\
                 " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
         scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
-
-    info("starting insolard's and insgorund's")
-    for pod in NODES:
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
-        start_insolard(pod, extra_args="-s insolard")
-        if pod in VIRTUALS:  # also start insgorund
-            start_insgorund(pod, pod_ips, extra_args="-s insgorund")
+
+    start_insolar_net(NODES, pod_ips, "-s insolard", "-s insgorund")
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="starting")
     check(alive)
@@ -515,24 +533,26 @@ def test_small_mtu(pod_ips):
     info("==== small mtu test passed! ====")
     stop_test("test_small_mtu")
 
+
 def test_stop_start_pulsar(pod_ips):
     start_test("test_stop_start_pulsar")
     info("==== start/stop pulsar test started ====")
     info("Killing pulsard")
     kill(PULSAR, "pulsard")
 
-    wait(20)
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="pulsar-down")
-    check(alive)
-    info("Insolar is still alive. Re-launching pulsard")
+    wait_until_insolar_is_down()
+    info("Insolar is down. Re-launching net")
+
     info("Starting pulsar")
     start_pulsard()
 
+    start_insolar_net(NODES, pod_ips, "-s insolard_after_pulsar", "-s insgorund_after_pulsar")
     wait(20)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="pulsar-up")
     check(alive)
     info("==== start/stop pulsar test passed! ====")
     stop_test("test_stop_start_pulsar")
+
 
 def test_netsplit_single_virtual(pod, pod_ips):
     start_test("test_netsplit_single_virtual")
@@ -620,7 +640,7 @@ for test_num in range(0, args.repeat):
     # test_network_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_virtuals_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
-    # test_stop_start_pulsar(pod_ips)
+    test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
     test_stop_start_virtual(VIRTUALS[2], pod_ips)
     # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO: starting from 25.03.19 this test doesn't always pass, INS-2181
