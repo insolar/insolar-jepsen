@@ -12,7 +12,7 @@ RUN make install-deps && \
   make clean && \
   make build
 RUN mkdir -p scripts/insolard/configs
-RUN mkdir -p scripts/insolard/discoverynodes/certs
+RUN mkdir -p scripts/insolard/certs
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/pulsar_keys.json
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/root_member_keys.json
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/fee_member_keys.json || true
@@ -25,7 +25,7 @@ RUN cd scripts/insolard/configs && ls && cd ../../..
 
 COPY config-templates/bootstrap.yaml ./scripts/insolard/bootstrap.yaml
 RUN ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml \
-  --certificates-out-dir scripts/insolard/discoverynodes/certs
+  --certificates-out-dir scripts/insolard/certs
 
 EXPOSE 22
 CMD ["/usr/bin/sudo", "/usr/sbin/sshd", "-D"]

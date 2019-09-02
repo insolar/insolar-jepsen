@@ -4,5 +4,6 @@ nodes:
 - JEPSEN-3:19003
 - JEPSEN-4:19004
 - JEPSEN-5:19005
+- JEPSEN-6:19006
 interval: 500ms
 timeout: 1s
