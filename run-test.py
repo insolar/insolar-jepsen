@@ -332,7 +332,7 @@ def network_status_is_ok(network_status, nodes_online):
     return True
 
 
-def get_last_pulse_from_exporter():
+def get_finalized_pulse_from_exporter():
     cmd = 'grpcurl -import-path /home/gopher/go/src' +\
           ' -proto /home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto' +\
           """ -plaintext localhost:5678 exporter.PulseExporter.TopSyncPulse"""
@@ -537,11 +537,11 @@ def test_stop_start_lights(light_pods, pod_ips):
     check(ok)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
-    old_pulse = get_last_pulse_from_exporter()
-    new_pulse = get_last_pulse_from_exporter()
+    old_pulse = get_finalized_pulse_from_exporter()
+    new_pulse = get_finalized_pulse_from_exporter()
     while old_pulse == new_pulse:
-        wait(5)
-        new_pulse = get_last_pulse_from_exporter()
+        wait(1)
+        new_pulse = get_finalized_pulse_from_exporter()
 
     info("Data was saved on heavy (top sync pulse changed)")
     log_index = "after_light"
