@@ -499,8 +499,12 @@ def deploy_insolar():
 
 
 def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
-    start_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_ok")
-    info("==== start/stop virtual at pods #"+str(virtual_pods)+" test started ====")
+    virtual_pods_indexes = ""
+    for pod in virtual_pods:
+        virtual_pods_indexes = virtual_pods_indexes + "_" + str(pod)
+
+    start_test(virtual_pods_indexes + ".test_stop_start_virtuals_min_roles_ok")
+    info("==== start/stop virtual at pods #"+virtual_pods_indexes+" test started ====")
     if len(VIRTUALS) - len(virtual_pods) < MIN_ROLES_VIRTUAL:
         msg = "TEST FAILED: test receive wrong parameter: " +\
               "amount of working virtual nodes must be more or equel to min roles in config (2 at the moment)"
@@ -514,11 +518,9 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     ok = run_benchmark(pod_ips, extra_args='-s')
     check(ok)
 
-    log_index = "after_virtual_ok"
     for pod in virtual_pods:
         info("Killing virtual on pod #"+str(pod))
         kill(pod, "insolard")
-        log_index = log_index + "_" + str(pod)
 
     alive_pod = [p for p in VIRTUALS if p not in virtual_pods][0]
     stay_alive_nods = [p for p in NODES if p not in virtual_pods]
@@ -527,7 +529,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
 
     info("Insolar is still alive. Re-launching insolard on pods #"+str(virtual_pods))
     for pod in virtual_pods:
-        start_insolard(pod)
+        start_insolard(pod, log_index="after_virtual_ok" + virtual_pods_indexes)
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
     check(alive)
@@ -540,8 +542,12 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
 
 
 def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
-    start_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_not_ok")
-    info("==== start/stop virtual at pods #"+str(virtual_pods)+" test started ====")
+    virtual_pods_indexes = ""
+    for pod in virtual_pods:
+        virtual_pods_indexes = virtual_pods_indexes + "_" + str(pod)
+
+    start_test(virtual_pods_indexes + ".test_stop_start_virtuals_min_roles_not_ok")
+    info("==== start/stop virtual at pods #"+virtual_pods_indexes+" test started ====")
     if len(VIRTUALS) - len(virtual_pods) >= MIN_ROLES_VIRTUAL:
         msg = "TEST FAILED: test receive wrong parameter: " +\
              "amount of working virtual nodes must be less then min roles in config (2 at the moment)"
@@ -555,16 +561,14 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     ok = run_benchmark(pod_ips, api_pod=LIGHTS[0], extra_args='-s')
     check(ok)
 
-    log_index = "after_virtual_net_down"
     for pod in virtual_pods:
         info("Killing virtual on pod #"+str(pod))
         kill(pod, "insolard")
-        log_index = log_index + "_" + str(pod)
 
     down = wait_until_insolar_is_down()
     check(down)
     info("Insolar is down. Re-launching nodes")
-    start_insolar_net(NODES, pod_ips, log_index=log_index)
+    start_insolar_net(NODES, pod_ips, log_index="after_virtual_net_down"+virtual_pods_indexes)
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
     check(alive)
@@ -577,8 +581,12 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
 
 
 def test_stop_start_lights(light_pods, pod_ips):
-    start_test(str(light_pods) + ".test_stop_start_light")
-    info("==== start/stop light at pods #"+str(light_pods)+" test started ====")
+    light_pods_indexes = ""
+    for pod in light_pods:
+        light_pods_indexes = light_pods_indexes + "_" + str(pod)
+
+    start_test(light_pods_indexes + ".test_stop_start_light")
+    info("==== start/stop light at pods #"+light_pods_indexes+" test started ====")
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-light")
     check(alive)
 
@@ -593,17 +601,15 @@ def test_stop_start_lights(light_pods, pod_ips):
         new_pulse = get_finalized_pulse_from_exporter()
 
     info("Data was saved on heavy (top sync pulse changed)")
-    log_index = "after_light"
 
     for pod in light_pods:
         info("Killing light on pod #"+str(pod))
         kill(pod, "insolard")
-        log_index = log_index + "_" + str(pod)
 
     down = wait_until_insolar_is_down()
     check(down)
     info("Insolar is down. Re-launching nodes")
-    start_insolar_net(NODES, pod_ips, log_index=log_index)
+    start_insolar_net(NODES, pod_ips, log_index="after_light"+light_pods_indexes)
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="light-up")
     check(alive)
