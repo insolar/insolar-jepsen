@@ -101,6 +101,11 @@ def logto(fname, index="$(date +%s)"):
 def start_test(msg):
     print("##teamcity[testStarted name='"+msg+"']")
 
+
+def fail_test(test_name, failure_message):
+    print("##teamcity[testFailed name='%s' message='%s']" % test_name, failure_message)
+
+
 def stop_test(msg):
     print("##teamcity[testFinished name='"+msg+"']")
 
@@ -508,8 +513,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     if len(VIRTUALS) - len(virtual_pods) < MIN_ROLES_VIRTUAL:
         msg = "TEST FAILED: test receive wrong parameter: " +\
               "amount of working virtual nodes must be more or equel to min roles in config (2 at the moment)"
-        notify(msg)
-        print(msg)
+        fail_test(virtual_pods_indexes + "test_stop_start_virtuals_min_roles_ok", msg)
         return
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
@@ -551,8 +555,7 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     if len(VIRTUALS) - len(virtual_pods) >= MIN_ROLES_VIRTUAL:
         msg = "TEST FAILED: test receive wrong parameter: " +\
              "amount of working virtual nodes must be less then min roles in config (2 at the moment)"
-        notify(msg)
-        print(msg)
+        fail_test(virtual_pods_indexes + "test_stop_start_virtuals_min_roles_not_ok", msg)
         return
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
