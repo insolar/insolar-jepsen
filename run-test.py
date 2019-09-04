@@ -103,7 +103,7 @@ def start_test(msg):
 
 
 def fail_test(test_name, failure_message):
-    print("##teamcity[testFailed name='%s' message='%s']" % test_name, failure_message)
+    print("##teamcity[testFailed name='%s' message='%s']" % (test_name, failure_message))
 
 
 def stop_test(msg):
@@ -381,7 +381,7 @@ def insolar_is_alive_on_pod(pod):
     out = ssh_output(pod, 'pidof insolard || true')
     return (out != '')
 
-def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=10, pause_sec=10, step=""):
+def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=10, pause_sec=1, step=""):
     min_nalive = 2
     nalive = 0
     if virtual_pod == -1:
