@@ -501,7 +501,7 @@ def deploy_insolar():
 def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     virtual_pods_indexes = ""
     for pod in virtual_pods:
-        virtual_pods_indexes = virtual_pods_indexes + "_" + str(pod)
+        virtual_pods_indexes = virtual_pods_indexes + str(pod) + "_"
 
     start_test(virtual_pods_indexes + ".test_stop_start_virtuals_min_roles_ok")
     info("==== start/stop virtual at pods #"+virtual_pods_indexes+" test started ====")
@@ -544,7 +544,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
 def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     virtual_pods_indexes = ""
     for pod in virtual_pods:
-        virtual_pods_indexes = virtual_pods_indexes + "_" + str(pod)
+        virtual_pods_indexes = virtual_pods_indexes + str(pod) + "_"
 
     start_test(virtual_pods_indexes + ".test_stop_start_virtuals_min_roles_not_ok")
     info("==== start/stop virtual at pods #"+virtual_pods_indexes+" test started ====")
@@ -583,9 +583,9 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
 def test_stop_start_lights(light_pods, pod_ips):
     light_pods_indexes = ""
     for pod in light_pods:
-        light_pods_indexes = light_pods_indexes + "_" + str(pod)
+        light_pods_indexes = light_pods_indexes + str(pod) + "_"
 
-    start_test(light_pods_indexes + ".test_stop_start_light")
+    start_test(light_pods_indexes + "test_stop_start_light")
     info("==== start/stop light at pods #"+light_pods_indexes+" test started ====")
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-light")
     check(alive)
