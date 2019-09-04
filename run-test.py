@@ -770,9 +770,11 @@ for test_num in range(0, args.repeat):
 
     test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
     test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS, pod_ips)
 
     test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
     test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
+    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[2:], pod_ips)
 
     test_stop_start_lights([LIGHTS[0]], pod_ips)
     test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
