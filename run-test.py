@@ -404,10 +404,7 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
 
 def start_insolar_net(nodes, pod_ips, log_index="", extra_args_insolard=""):
     info("Starting insolar net")
-    for pod in DISCOVERY_NODES:
-        start_insolard(pod, log_index=log_index, extra_args=extra_args_insolard)
-    wait(5)
-    for pod in NOT_DISCOVERY_NODES:
+    for pod in nodes:
         start_insolard(pod, log_index=log_index, extra_args=extra_args_insolard)
 
 
