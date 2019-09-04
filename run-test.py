@@ -381,7 +381,7 @@ def insolar_is_alive_on_pod(pod):
     out = ssh_output(pod, 'pidof insolard || true')
     return (out != '')
 
-def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=10, pause_sec=1, step=""):
+def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=10, pause_sec=5, step=""):
     min_nalive = 2
     nalive = 0
     if virtual_pod == -1:
@@ -404,7 +404,10 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
 
 def start_insolar_net(nodes, pod_ips, log_index="", extra_args_insolard=""):
     info("Starting insolar net")
-    for pod in nodes:
+    for pod in DISCOVERY_NODES:
+        start_insolard(pod, log_index=log_index, extra_args=extra_args_insolard)
+    wait(5)
+    for pod in NOT_DISCOVERY_NODES:
         start_insolard(pod, log_index=log_index, extra_args=extra_args_insolard)
 
 
