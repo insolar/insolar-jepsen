@@ -592,7 +592,7 @@ def test_stop_start_heavy(heavy_pod, pod_ips):
     info("Insolar is down. Re-launching nodes")
     start_insolar_net(NODES, pod_ips, log_index="after_heavy_" + str(heavy_pod))
 
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="light-up")
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="heavy-up")
     check(alive)
 
     ok = run_benchmark(pod_ips, extra_args='-m')
