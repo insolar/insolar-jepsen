@@ -503,7 +503,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     for pod in virtual_pods:
         virtual_pods_indexes = virtual_pods_indexes + str(pod) + "_"
 
-    start_test(virtual_pods_indexes + ".test_stop_start_virtuals_min_roles_ok")
+    start_test(virtual_pods_indexes + "test_stop_start_virtuals_min_roles_ok")
     info("==== start/stop virtual at pods #"+virtual_pods_indexes+" test started ====")
     if len(VIRTUALS) - len(virtual_pods) < MIN_ROLES_VIRTUAL:
         msg = "TEST FAILED: test receive wrong parameter: " +\
@@ -538,7 +538,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     check(ok)
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
-    stop_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_ok")
+    stop_test(str(virtual_pods) + "test_stop_start_virtuals_min_roles_ok")
 
 
 def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
@@ -546,7 +546,7 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     for pod in virtual_pods:
         virtual_pods_indexes = virtual_pods_indexes + str(pod) + "_"
 
-    start_test(virtual_pods_indexes + ".test_stop_start_virtuals_min_roles_not_ok")
+    start_test(virtual_pods_indexes + "test_stop_start_virtuals_min_roles_not_ok")
     info("==== start/stop virtual at pods #"+virtual_pods_indexes+" test started ====")
     if len(VIRTUALS) - len(virtual_pods) >= MIN_ROLES_VIRTUAL:
         msg = "TEST FAILED: test receive wrong parameter: " +\
@@ -577,7 +577,7 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     check(ok)
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
-    stop_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_not_ok")
+    stop_test(str(virtual_pods) + "test_stop_start_virtuals_min_roles_not_ok")
 
 
 def test_stop_start_lights(light_pods, pod_ips):
@@ -618,7 +618,7 @@ def test_stop_start_lights(light_pods, pod_ips):
     check(ok)
 
     info("==== start/stop light at pods #"+str(light_pods)+" passed! ====")
-    stop_test(str(light_pods) + ".test_stop_start_light")
+    stop_test(str(light_pods) + "test_stop_start_light")
 
 
 def test_network_slow_down_speed_up(pod_ips):
