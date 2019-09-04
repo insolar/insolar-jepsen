@@ -542,7 +542,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     check(ok)
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
-    stop_test(str(virtual_pods) + "test_stop_start_virtuals_min_roles_ok")
+    stop_test(virtual_pods_indexes + "test_stop_start_virtuals_min_roles_ok")
 
 
 def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
@@ -580,7 +580,7 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     check(ok)
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
-    stop_test(str(virtual_pods) + "test_stop_start_virtuals_min_roles_not_ok")
+    stop_test(virtual_pods_indexes + "test_stop_start_virtuals_min_roles_not_ok")
 
 
 def test_stop_start_lights(light_pods, pod_ips):
@@ -621,7 +621,7 @@ def test_stop_start_lights(light_pods, pod_ips):
     check(ok)
 
     info("==== start/stop light at pods #"+str(light_pods)+" passed! ====")
-    stop_test(str(light_pods) + "test_stop_start_light")
+    stop_test(light_pods_indexes + "test_stop_start_light")
 
 
 def test_stop_start_heavy(heavy_pod, pod_ips):
