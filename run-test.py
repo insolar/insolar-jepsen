@@ -28,7 +28,7 @@ INSPATH = "go/src/github.com/insolar/insolar"
 
 HEAVY = 1
 LIGHTS = [2, 3, 4, 5, 6]
-VIRTUALS = [7, 8, 9, 10, 11]  # these pods require local insgorund
+VIRTUALS = [7, 8, 9, 10, 11]
 
 DISCOVERY_NODES = [HEAVY] + LIGHTS
 NOT_DISCOVERY_NODES = VIRTUALS
@@ -396,12 +396,10 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
     return nalive >= min_nalive
 
 
-def start_insolar_net(nodes, pod_ips, log_index="", extra_args_insolard="", extra_args_insgorund=""):
+def start_insolar_net(nodes, pod_ips, log_index="", extra_args_insolard=""):
     info("Starting insolar net")
     for pod in nodes:
         start_insolard(pod, log_index=log_index, extra_args=extra_args_insolard)
-        if pod in VIRTUALS:  # also start insgorund
-            start_insgorund(pod, pod_ips, log_index=log_index, extra_args=extra_args_insgorund)
 
 
 def wait_until_insolar_is_down(nattempts=10, pause_sec=10):
@@ -423,12 +421,6 @@ def start_insolard(pod, log_index="", extra_args=""):
         "./scripts/insolard/"+str(pod)+\
         "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json &"+\
         logto("insolard", log_index)+"""; bash\\" """)
-
-
-def start_insgorund(pod, pod_ips, log_index="", extra_args=""):
-    ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" "+\
-        """\\"./bin/insgorund -l """+pod_ips["jepsen-"+str(pod)]+":33305 --rpc "+\
-        pod_ips["jepsen-"+str(pod)]+":33306 --log-level=debug "+logto("insgorund", log_index)+"""; bash\\" """)
 
 
 def start_pulsard(log_index="", extra_args=""):
@@ -498,7 +490,7 @@ def deploy_insolar():
         scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
 
-    start_insolar_net(NODES, pod_ips, log_index="deploy", extra_args_insolard="-s insolard", extra_args_insgorund="-s insgorund")
+    start_insolar_net(NODES, pod_ips, log_index="deploy", extra_args_insolard="-s insolard")
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="starting", nattempts=20)
     check(alive)
@@ -523,7 +515,6 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     for pod in virtual_pods:
         info("Killing virtual on pod #"+str(pod))
         kill(pod, "insolard")
-        kill(pod, "insgorund")  # currently we also have to kill insgorund. It will be fixed in contract compiler.
         log_index = log_index + "_" + str(pod)
 
     alive_pod = [p for p in VIRTUALS if p not in virtual_pods][0]
@@ -534,7 +525,6 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     info("Insolar is still alive. Re-launching insolard on pods #"+str(virtual_pods))
     for pod in virtual_pods:
         start_insolard(pod)
-        start_insgorund(pod, pod_ips, log_index=log_index)
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
     check(alive)
@@ -564,7 +554,6 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     for pod in virtual_pods:
         info("Killing virtual on pod #"+str(pod))
         kill(pod, "insolard")
-        kill(pod, "insgorund")  # currently we also have to kill insgorund. It will be fixed in contract compiler.
         log_index = log_index + "_" + str(pod)
 
     down = wait_until_insolar_is_down()
@@ -677,7 +666,7 @@ def test_stop_start_pulsar(pod_ips):
     info("Starting pulsar")
     start_pulsard(log_index="after_pulsar")
 
-    start_insolar_net(NODES, pod_ips, log_index="after_pulsar", extra_args_insolard="-s insolard_after_pulsar", extra_args_insgorund="-s insgorund_after_pulsar")
+    start_insolar_net(NODES, pod_ips, log_index="after_pulsar", extra_args_insolard="-s insolard_after_pulsar")
     wait(20)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="pulsar-up")
     check(alive)
