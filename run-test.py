@@ -566,6 +566,42 @@ def test_stop_start_lights(light_pods, pod_ips):
     stop_test(str(light_pods) + ".test_stop_start_light")
 
 
+def test_stop_start_heavy(heavy_pod, pod_ips):
+    start_test(str(heavy_pod) + ".test_stop_start_heavy")
+    info("==== start/stop heavy at pod #"+str(heavy_pod)+" test started ====")
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-heavy")
+    check(alive)
+
+    ok = run_benchmark(pod_ips, extra_args='-s')
+    check(ok)
+
+    info("Wait for data to save on heavy (top sync pulse must change)")
+    old_pulse = get_finalized_pulse_from_exporter()
+    new_pulse = get_finalized_pulse_from_exporter()
+    while old_pulse == new_pulse:
+        wait(1)
+        new_pulse = get_finalized_pulse_from_exporter()
+
+    info("Data was saved on heavy (top sync pulse changed)")
+
+    info("Killing heavy on pod #"+str(heavy_pod))
+    kill(heavy_pod, "insolard")
+
+    down = wait_until_insolar_is_down()
+    check(down)
+    info("Insolar is down. Re-launching nodes")
+    start_insolar_net(NODES, pod_ips, log_index="after_heavy_" + str(heavy_pod))
+
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="light-up")
+    check(alive)
+
+    ok = run_benchmark(pod_ips, extra_args='-m')
+    check(ok)
+
+    info("==== start/stop heavy at pod #"+str(heavy_pod)+" passed! ====")
+    stop_test(str(heavy_pod) + ".test_stop_start_heavy")
+
+
 def test_network_slow_down_speed_up(pod_ips):
     start_test("test_network_slow_down_speed_up")
     info("==== slow down / speed up network test started ====")
@@ -722,6 +758,7 @@ for test_num in range(0, args.repeat):
     test_stop_start_lights([LIGHTS[0]], pod_ips)
     test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
     test_stop_start_lights(LIGHTS, pod_ips)
+    test_stop_start_heavy(HEAVY, pod_ips)
     # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO: starting from 25.03.19 this test doesn't always pass, INS-2181
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
