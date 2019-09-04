@@ -37,6 +37,7 @@ NODES = DISCOVERY_NODES + NOT_DISCOVERY_NODES
 PULSAR = 12
 ALL_PODS = NODES + [PULSAR]
 
+MIN_ROLES_VIRTUAL = 2
 LOG_LEVEL = "Debug" # Info
 NAMESPACE = "default"
 SLOW_NETWORK_SPEED = '4mbps'
@@ -342,9 +343,9 @@ def get_finalized_pulse_from_exporter():
     return pulse
 
 
-def run_benchmark(pod_ips, virtual_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
-    virtual_pod_name = 'jepsen-'+str(virtual_pod)
-    port = VIRTUAL_START_PORT + virtual_pod
+def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
+    virtual_pod_name = 'jepsen-'+str(api_pod)
+    port = VIRTUAL_START_PORT + api_pod
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
                      'timelimit -s9 -t10 '+ # timeout: 10 seconds
                      './bin/benchmark -b -c '+str(C)+' -r '+str(R)+' -a http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/admin-api/rpc '+
@@ -500,9 +501,11 @@ def deploy_insolar():
 def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     start_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_ok")
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" test started ====")
-    if len(VIRTUALS) - len(virtual_pods) < 2:
-        info("TEST RECEIVE WRONG PARAMETER: AMOUNT OF WORKING VIRTUAL NODES MUST BE MORE OR EQUEL TO MIN ROLES IN CONFIG (2 at the moment)")
-        stop_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_ok")
+    if len(VIRTUALS) - len(virtual_pods) < MIN_ROLES_VIRTUAL:
+        msg = "TEST FAILED: test receive wrong parameter: " +\
+              "amount of working virtual nodes must be more or equel to min roles in config (2 at the moment)"
+        notify(msg)
+        print(msg)
         return
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
@@ -539,15 +542,17 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
 def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     start_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_not_ok")
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" test started ====")
-    if len(VIRTUALS) - len(virtual_pods) >= 2:
-        info("TEST RECEIVE WRONG PARAMETER: AMOUNT OF WORKING VIRTUAL NODES MUST BE LESS THEN MIN ROLES IN CONFIG (2 at the moment)")
-        stop_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_not_ok")
+    if len(VIRTUALS) - len(virtual_pods) >= MIN_ROLES_VIRTUAL:
+        msg = "TEST FAILED: test receive wrong parameter: " +\
+             "amount of working virtual nodes must be less then min roles in config (2 at the moment)"
+        notify(msg)
+        print(msg)
         return
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
     check(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-s')
+    ok = run_benchmark(pod_ips, api_pod=LIGHTS[0], extra_args='-s')
     check(ok)
 
     log_index = "after_virtual_net_down"
@@ -765,11 +770,9 @@ for test_num in range(0, args.repeat):
 
     test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
     test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS, pod_ips)
 
     test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
     test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
-    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[2:], pod_ips)
 
     test_stop_start_lights([LIGHTS[0]], pod_ips)
     test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
