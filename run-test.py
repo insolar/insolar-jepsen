@@ -563,7 +563,7 @@ def test_stop_start_lights(light_pods, pod_ips):
     check(ok)
 
     info("==== start/stop light at pods #"+str(light_pods)+" passed! ====")
-    stop_test(str(light_pods) + ".test_stop_start_two_light")
+    stop_test(str(light_pods) + ".test_stop_start_light")
 
 
 def test_network_slow_down_speed_up(pod_ips):
