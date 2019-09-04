@@ -505,26 +505,81 @@ def deploy_insolar():
     info("==== Insolar started! ====")
 
 
-def test_stop_start_virtual(pod, pod_ips):
-    start_test(str(pod) + ".test_stop_start_virtual")
-    info("==== start/stop virtual at pod#"+str(pod)+" test started ====")
-    alive_pod = [ p for p in VIRTUALS if p != pod ][0]
+def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
+    start_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_ok")
+    info("==== start/stop virtual at pods #"+str(virtual_pods)+" test started ====")
+    if len(VIRTUALS) - len(virtual_pods) < 2:
+        info("TEST RECEIVE WRONG PARAMETER: AMOUNT OF WORKING VIRTUAL NODES MUST BE MORE OR EQUEL TO MIN ROLES IN CONFIG (2 at the moment)")
+        stop_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_ok")
+        return
+
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
     check(alive)
-    info("Killing virtual on pod #"+str(pod)+", testing from pod #"+str(alive_pod))
-    kill(pod, "insolard")
-    kill(pod, "insgorund") # currently we also have to kill insgorund. It will be fixed in contract compiler.
-    stay_alive_nods = NODES.copy()
-    stay_alive_nods.remove(pod)
+
+    ok = run_benchmark(pod_ips, extra_args='-s')
+    check(ok)
+
+    log_index = "after_virtual_ok"
+    for pod in virtual_pods:
+        info("Killing virtual on pod #"+str(pod))
+        kill(pod, "insolard")
+        kill(pod, "insgorund")  # currently we also have to kill insgorund. It will be fixed in contract compiler.
+        log_index = log_index + "_" + str(pod)
+
+    alive_pod = [p for p in VIRTUALS if p not in virtual_pods][0]
+    stay_alive_nods = [p for p in NODES if p not in virtual_pods]
     alive = wait_until_insolar_is_alive(pod_ips, stay_alive_nods, virtual_pod=alive_pod, step="virtual-down")
     check(alive)
-    info("Insolar is still alive. Re-launching insolard on pod #"+str(pod))
-    start_insolard(pod)
-    start_insgorund(pod, pod_ips, log_index="after_virtual")
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, virtual_pod=alive_pod, step="virtual-up")
+
+    info("Insolar is still alive. Re-launching insolard on pods #"+str(virtual_pods))
+    for pod in virtual_pods:
+        start_insolard(pod)
+        start_insgorund(pod, pod_ips, log_index=log_index)
+
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
     check(alive)
-    info("==== start/stop virtual at pod#"+str(pod)+" passed! ====")
-    stop_test(str(pod) + ".test_stop_start_virtual")
+
+    ok = run_benchmark(pod_ips, extra_args='-m')
+    check(ok)
+
+    info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
+    stop_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_ok")
+
+
+def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
+    start_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_not_ok")
+    info("==== start/stop virtual at pods #"+str(virtual_pods)+" test started ====")
+    if len(VIRTUALS) - len(virtual_pods) >= 2:
+        info("TEST RECEIVE WRONG PARAMETER: AMOUNT OF WORKING VIRTUAL NODES MUST BE LESS THEN MIN ROLES IN CONFIG (2 at the moment)")
+        stop_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_not_ok")
+        return
+
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
+    check(alive)
+
+    ok = run_benchmark(pod_ips, extra_args='-s')
+    check(ok)
+
+    log_index = "after_virtual_net_down"
+    for pod in virtual_pods:
+        info("Killing virtual on pod #"+str(pod))
+        kill(pod, "insolard")
+        kill(pod, "insgorund")  # currently we also have to kill insgorund. It will be fixed in contract compiler.
+        log_index = log_index + "_" + str(pod)
+
+    down = wait_until_insolar_is_down()
+    check(down)
+    info("Insolar is down. Re-launching nodes")
+    start_insolar_net(NODES, pod_ips, log_index=log_index)
+
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
+    check(alive)
+
+    ok = run_benchmark(pod_ips, extra_args='-m')
+    check(ok)
+
+    info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
+    stop_test(str(virtual_pods) + ".test_stop_start_virtuals_min_roles_not_ok")
 
 
 def test_stop_start_lights(light_pods, pod_ips):
@@ -718,11 +773,19 @@ for test_num in range(0, args.repeat):
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
     test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
-    test_stop_start_virtual(VIRTUALS[0], pod_ips)
+
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS, pod_ips)
+
+    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
+    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
+    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[2:], pod_ips)
+
     test_stop_start_lights([LIGHTS[0]], pod_ips)
     test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
     test_stop_start_lights(LIGHTS, pod_ips)
-    # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO: starting from 25.03.19 this test doesn't always pass, INS-2181
+
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
 notify("Test completed!")
