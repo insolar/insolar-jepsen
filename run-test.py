@@ -110,9 +110,8 @@ def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
-    for s in traceback.format_stack()[:-1]:
-        s_for_tc = s.replace("\n", "|n")
-        print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, s_for_tc))
+    trace = "".join(traceback.format_stack()[:-1]).replace("\n", "|n")
+    print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, trace))
     stop_test()
     exit()
 
