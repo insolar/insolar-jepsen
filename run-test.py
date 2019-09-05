@@ -544,6 +544,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
         msg = "TEST FAILED: test receive wrong parameter: " +\
               "amount of working virtual nodes must be more or equel to min roles in config (2 at the moment)"
         fail_test(msg)
+        stop_test()
         return
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
@@ -586,6 +587,7 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
         msg = "TEST FAILED: test receive wrong parameter: " +\
              "amount of working virtual nodes must be less then min roles in config (2 at the moment)"
         fail_test(msg)
+        stop_test()
         return
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
