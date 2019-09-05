@@ -137,7 +137,7 @@ def check(condition, failure_message):
 
 
 def check_alive(condition):
-    if not condition:
+    if condition:
         fail_test("Insolar must be alive, but its not")
         assert False
 
