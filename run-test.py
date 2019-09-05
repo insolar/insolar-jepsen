@@ -139,16 +139,19 @@ def check(condition, failure_message):
 def check_alive(condition):
     if not condition:
         fail_test("Insolar must be alive, but its not")
+        assert False
 
 
 def check_down(condition):
     if not condition:
         fail_test("Insolar must be dowm, but its not")
+        assert False
 
 
 def check_benchmark(condition):
     if not condition:
         fail_test("Benchmark return error")
+        assert False
 
 
 def debug(msg):
