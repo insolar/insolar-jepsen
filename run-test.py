@@ -97,9 +97,7 @@ os.environ["LC_CTYPE"] = "C"
 
 
 def logto(fname, index="$(date +%s)"):
-    if index == "":
-        index = "$(date +%s)"
-    return "> " + fname + "_" + index + ".log"
+    return ">> " + fname + "_" + "deploy" + ".log"
 
 
 def start_test(msg):
@@ -112,8 +110,9 @@ def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
-    for s in traceback.format_stack()[:1]:
-        print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, s))
+    for s in traceback.format_stack()[:-1]:
+        s_for_tc = s.replace("\n", "|n|r")
+        print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, s_for_tc))
     stop_test()
     exit()
 
@@ -142,8 +141,9 @@ def check(condition, failure_message):
 
 
 def check_alive(condition):
-    if condition:
+    if not condition:
         fail_test("Insolar must be alive, but its not")
+    fail_test("test fail now")
 
 
 def check_down(condition):
@@ -813,7 +813,6 @@ args = parser.parse_args()
 NAMESPACE = args.namespace
 DEBUG = args.debug
 start_test("prepare")
-fail_test("love sorry")
 check_dependencies()
 
 k8s_yaml = "jepsen-pods.yaml"
