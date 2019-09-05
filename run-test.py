@@ -437,7 +437,7 @@ def start_insolar_net(nodes, pod_ips, log_index="", extra_args_insolard=""):
         start_insolard(pod, log_index=log_index, extra_args=extra_args_insolard)
 
 
-def wait_until_insolar_is_down(nattempts=10, pause_sec=10):
+def wait_until_insolar_is_down(nattempts=10, pause_sec=5):
     all_down = False
     for pod in NODES:
         for i in range(0, nattempts):
@@ -744,7 +744,6 @@ def test_stop_start_pulsar(pod_ips):
     start_pulsard(log_index="after_pulsar")
 
     start_insolar_net(NODES, pod_ips, log_index="after_pulsar", extra_args_insolard="-s insolard_after_pulsar")
-    wait(20)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="pulsar-up")
     check_alive(alive)
     info("==== start/stop pulsar test passed! ====")
@@ -840,13 +839,11 @@ for test_num in range(0, args.repeat):
     test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
 
-    # test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
-    # test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS, pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
 
     test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
     test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
-    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[2:], pod_ips)
 
     test_stop_start_lights([LIGHTS[0]], pod_ips)
     test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
