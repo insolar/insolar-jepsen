@@ -28,7 +28,7 @@ INSPATH = "go/src/github.com/insolar/insolar"
 
 HEAVY = 1
 LIGHTS = [2, 3, 4, 5, 6]
-VIRTUALS = [7, 8, 9, 10, 11]  # these pods require local insgorund
+VIRTUALS = [7, 8, 9, 10, 11]
 
 DISCOVERY_NODES = [HEAVY] + LIGHTS
 NOT_DISCOVERY_NODES = VIRTUALS
@@ -37,6 +37,7 @@ NODES = DISCOVERY_NODES + NOT_DISCOVERY_NODES
 PULSAR = 12
 ALL_PODS = NODES + [PULSAR]
 
+MIN_ROLES_VIRTUAL = 2
 LOG_LEVEL = "Debug" # Info
 NAMESPACE = "default"
 SLOW_NETWORK_SPEED = '4mbps'
@@ -48,6 +49,8 @@ POD_NODES = dict() # is filled below
 DEPENDENCIES = ['docker', 'kubectl', 'jq']
 C = 5
 R = 1
+
+CURRENT_TEST_NAME = ""
 
 K8S_YAML_TEMPLATE = """
 kind: Service
@@ -97,26 +100,58 @@ def logto(fname, index="$(date +%s)"):
         index = "$(date +%s)"
     return "> " + fname + "_" + index + ".log"
 
-def start_test(msg):
-    print("##teamcity[testStarted name='"+msg+"']")
 
-def stop_test(msg):
-    print("##teamcity[testFinished name='"+msg+"']")
+def start_test(msg):
+    global CURRENT_TEST_NAME
+    CURRENT_TEST_NAME = msg
+    print("##teamcity[testStarted name='%s']" % CURRENT_TEST_NAME)
+
+
+def fail_test(failure_message):
+    global CURRENT_TEST_NAME
+    notify("Test failed")
+    print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
+    stop_test()
+    exit()
+
+
+def stop_test():
+    global CURRENT_TEST_NAME
+    print("##teamcity[testFinished name='%s']" % CURRENT_TEST_NAME)
+
 
 def info(msg):
     print("INFO: "+str(msg))
+
 
 def wait(nsec):
     info("waiting "+str(nsec)+" second"+("s" if nsec > 1 else "")+"...")
     time.sleep(nsec)
 
+
 def notify(message):
     run("""(which osascript 2>/dev/null 1>&2) && osascript -e 'display notification " """ + message + """ " with title "Jepsen"' || true""")
 
-def check(condition):
+
+def check(condition, failure_message):
     if not condition:
-        notify("Test failed")
-    assert(condition)
+        fail_test(failure_message)
+
+
+def check_alive(condition):
+    if not condition:
+        fail_test("Insolar must be alive, but its not")
+
+
+def check_down(condition):
+    if not condition:
+        fail_test("Insolar must be dowm, but its not")
+
+
+def check_benchmark(condition):
+    if not condition:
+        fail_test("Benchmark return error")
+
 
 def debug(msg):
     if not DEBUG:
@@ -342,9 +377,9 @@ def get_finalized_pulse_from_exporter():
     return pulse
 
 
-def run_benchmark(pod_ips, virtual_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
-    virtual_pod_name = 'jepsen-'+str(virtual_pod)
-    port = VIRTUAL_START_PORT + virtual_pod
+def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
+    virtual_pod_name = 'jepsen-'+str(api_pod)
+    port = VIRTUAL_START_PORT + api_pod
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
                      'timelimit -s9 -t10 '+ # timeout: 10 seconds
                      './bin/benchmark -b -c '+str(C)+' -r '+str(R)+' -a http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/admin-api/rpc '+
@@ -375,7 +410,7 @@ def insolar_is_alive_on_pod(pod):
     out = ssh_output(pod, 'pidof insolard || true')
     return (out != '')
 
-def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=10, pause_sec=10, step=""):
+def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=10, pause_sec=5, step=""):
     min_nalive = 2
     nalive = 0
     if virtual_pod == -1:
@@ -396,15 +431,13 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
     return nalive >= min_nalive
 
 
-def start_insolar_net(nodes, pod_ips, log_index="", extra_args_insolard="", extra_args_insgorund=""):
+def start_insolar_net(nodes, pod_ips, log_index="", extra_args_insolard=""):
     info("Starting insolar net")
     for pod in nodes:
         start_insolard(pod, log_index=log_index, extra_args=extra_args_insolard)
-        if pod in VIRTUALS:  # also start insgorund
-            start_insgorund(pod, pod_ips, log_index=log_index, extra_args=extra_args_insgorund)
 
 
-def wait_until_insolar_is_down(nattempts=10, pause_sec=10):
+def wait_until_insolar_is_down(nattempts=10, pause_sec=5):
     all_down = False
     for pod in NODES:
         for i in range(0, nattempts):
@@ -423,12 +456,6 @@ def start_insolard(pod, log_index="", extra_args=""):
         "./scripts/insolard/"+str(pod)+\
         "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json &"+\
         logto("insolard", log_index)+"""; bash\\" """)
-
-
-def start_insgorund(pod, pod_ips, log_index="", extra_args=""):
-    ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" "+\
-        """\\"./bin/insgorund -l """+pod_ips["jepsen-"+str(pod)]+":33305 --rpc "+\
-        pod_ips["jepsen-"+str(pod)]+":33306 --log-level=debug "+logto("insgorund", log_index)+"""; bash\\" """)
 
 
 def start_pulsard(log_index="", extra_args=""):
@@ -498,43 +525,103 @@ def deploy_insolar():
         scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
 
-    start_insolar_net(NODES, pod_ips, log_index="deploy", extra_args_insolard="-s insolard", extra_args_insgorund="-s insgorund")
+    start_insolar_net(NODES, pod_ips, log_index="deploy", extra_args_insolard="-s insolard")
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="starting", nattempts=20)
-    check(alive)
+    check_alive(alive)
     info("==== Insolar started! ====")
 
 
-def test_stop_start_virtual(pod, pod_ips):
-    start_test(str(pod) + ".test_stop_start_virtual")
-    info("==== start/stop virtual at pod#"+str(pod)+" test started ====")
-    alive_pod = [ p for p in VIRTUALS if p != pod ][0]
+def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
+    virtual_pods_indexes = ""
+    for pod in virtual_pods:
+        virtual_pods_indexes = virtual_pods_indexes + str(pod) + "_"
+
+    start_test(virtual_pods_indexes + "test_stop_start_virtuals_min_roles_ok")
+    info("==== start/stop virtual at pods #"+virtual_pods_indexes+" test started ====")
+    if len(VIRTUALS) - len(virtual_pods) < MIN_ROLES_VIRTUAL:
+        msg = "TEST FAILED: test receive wrong parameter: " +\
+              "amount of working virtual nodes must be more or equel to min roles in config (2 at the moment)"
+        fail_test(msg)
+
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
-    check(alive)
-    info("Killing virtual on pod #"+str(pod)+", testing from pod #"+str(alive_pod))
-    kill(pod, "insolard")
-    kill(pod, "insgorund") # currently we also have to kill insgorund. It will be fixed in contract compiler.
-    stay_alive_nods = NODES.copy()
-    stay_alive_nods.remove(pod)
+    check_alive(alive)
+
+    ok = run_benchmark(pod_ips, extra_args='-s')
+    check_benchmark(ok)
+
+    for pod in virtual_pods:
+        info("Killing virtual on pod #"+str(pod))
+        kill(pod, "insolard")
+
+    alive_pod = [p for p in VIRTUALS if p not in virtual_pods][0]
+    stay_alive_nods = [p for p in NODES if p not in virtual_pods]
     alive = wait_until_insolar_is_alive(pod_ips, stay_alive_nods, virtual_pod=alive_pod, step="virtual-down")
-    check(alive)
-    info("Insolar is still alive. Re-launching insolard on pod #"+str(pod))
-    start_insolard(pod)
-    start_insgorund(pod, pod_ips, log_index="after_virtual")
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, virtual_pod=alive_pod, step="virtual-up")
-    check(alive)
-    info("==== start/stop virtual at pod#"+str(pod)+" passed! ====")
-    stop_test(str(pod) + ".test_stop_start_virtual")
+    check_alive(alive)
+
+    info("Insolar is still alive. Re-launching insolard on pods #"+str(virtual_pods))
+    for pod in virtual_pods:
+        start_insolard(pod, log_index="after_virtual_ok" + virtual_pods_indexes)
+
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
+    check_alive(alive)
+
+    ok = run_benchmark(pod_ips, extra_args='-m')
+    check_benchmark(ok)
+
+    info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
+    stop_test()
+
+
+def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
+    virtual_pods_indexes = ""
+    for pod in virtual_pods:
+        virtual_pods_indexes = virtual_pods_indexes + str(pod) + "_"
+
+    start_test(virtual_pods_indexes + "test_stop_start_virtuals_min_roles_not_ok")
+    info("==== start/stop virtual at pods #"+virtual_pods_indexes+" test started ====")
+    if len(VIRTUALS) - len(virtual_pods) >= MIN_ROLES_VIRTUAL:
+        msg = "TEST FAILED: test receive wrong parameter: " +\
+             "amount of working virtual nodes must be less then min roles in config (2 at the moment)"
+        fail_test(msg)
+
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
+    check_alive(alive)
+
+    ok = run_benchmark(pod_ips, api_pod=LIGHTS[0], extra_args='-s')
+    check_benchmark(ok)
+
+    for pod in virtual_pods:
+        info("Killing virtual on pod #"+str(pod))
+        kill(pod, "insolard")
+
+    down = wait_until_insolar_is_down()
+    check_down(down)
+    info("Insolar is down. Re-launching nodes")
+    start_insolar_net(NODES, pod_ips, log_index="after_virtual_net_down"+virtual_pods_indexes)
+
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
+    check_alive(alive)
+
+    ok = run_benchmark(pod_ips, extra_args='-m')
+    check_benchmark(ok)
+
+    info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
+    stop_test()
 
 
 def test_stop_start_lights(light_pods, pod_ips):
-    start_test(str(light_pods) + ".test_stop_start_light")
-    info("==== start/stop light at pods #"+str(light_pods)+" test started ====")
+    light_pods_indexes = ""
+    for pod in light_pods:
+        light_pods_indexes = light_pods_indexes + str(pod) + "_"
+
+    start_test(light_pods_indexes + "test_stop_start_light")
+    info("==== start/stop light at pods #"+light_pods_indexes+" test started ====")
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-light")
-    check(alive)
+    check_alive(alive)
 
     ok = run_benchmark(pod_ips, extra_args='-s')
-    check(ok)
+    check_benchmark(ok)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
     old_pulse = get_finalized_pulse_from_exporter()
@@ -544,36 +631,34 @@ def test_stop_start_lights(light_pods, pod_ips):
         new_pulse = get_finalized_pulse_from_exporter()
 
     info("Data was saved on heavy (top sync pulse changed)")
-    log_index = "after_light"
 
     for pod in light_pods:
         info("Killing light on pod #"+str(pod))
         kill(pod, "insolard")
-        log_index = log_index + "_" + str(pod)
 
     down = wait_until_insolar_is_down()
-    check(down)
+    check_down(down)
     info("Insolar is down. Re-launching nodes")
-    start_insolar_net(NODES, pod_ips, log_index=log_index)
+    start_insolar_net(NODES, pod_ips, log_index="after_light"+light_pods_indexes)
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="light-up")
-    check(alive)
+    check_alive(alive)
 
     ok = run_benchmark(pod_ips, extra_args='-m')
-    check(ok)
+    check_benchmark(ok)
 
     info("==== start/stop light at pods #"+str(light_pods)+" passed! ====")
-    stop_test(str(light_pods) + ".test_stop_start_light")
+    stop_test()
 
 
 def test_stop_start_heavy(heavy_pod, pod_ips):
-    start_test(str(heavy_pod) + ".test_stop_start_heavy")
+    start_test("test_stop_start_heavy")
     info("==== start/stop heavy at pod #"+str(heavy_pod)+" test started ====")
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-heavy")
-    check(alive)
+    check_alive(alive)
 
     ok = run_benchmark(pod_ips, extra_args='-s')
-    check(ok)
+    check_benchmark(ok)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
     old_pulse = get_finalized_pulse_from_exporter()
@@ -588,18 +673,18 @@ def test_stop_start_heavy(heavy_pod, pod_ips):
     kill(heavy_pod, "insolard")
 
     down = wait_until_insolar_is_down()
-    check(down)
+    check_down(down)
     info("Insolar is down. Re-launching nodes")
     start_insolar_net(NODES, pod_ips, log_index="after_heavy_" + str(heavy_pod))
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="heavy-up")
-    check(alive)
+    check_alive(alive)
 
     ok = run_benchmark(pod_ips, extra_args='-m')
-    check(ok)
+    check_benchmark(ok)
 
     info("==== start/stop heavy at pod #"+str(heavy_pod)+" passed! ====")
-    stop_test(str(heavy_pod) + ".test_stop_start_heavy")
+    stop_test()
 
 
 def test_network_slow_down_speed_up(pod_ips):
@@ -608,13 +693,13 @@ def test_network_slow_down_speed_up(pod_ips):
     for pod in ALL_PODS:
         set_network_speed(pod, SLOW_NETWORK_SPEED)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="slow-network")
-    check(alive)
+    check_alive(alive)
     for pod in ALL_PODS:
         set_network_speed(pod, FAST_NETWORK_SPEED)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="fast-network")
-    check(alive)
+    check_alive(alive)
     info("==== slow down / speed up network test passed! ====")
-    stop_test("test_network_slow_down_speed_up")
+    stop_test()
 
 def test_virtuals_slow_down_speed_up(pod_ips):
     start_test("test_virtuals_slow_down_speed_up")
@@ -622,13 +707,13 @@ def test_virtuals_slow_down_speed_up(pod_ips):
     for pod in VIRTUALS:
         set_network_speed(pod, SLOW_NETWORK_SPEED)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="slow-virtuals")
-    check(alive)
+    check_alive(alive)
     for pod in VIRTUALS:
         set_network_speed(pod, FAST_NETWORK_SPEED)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="fast-virtuals")
-    check(alive)
+    check_alive(alive)
     info("==== slow down / speed up virtuals test passed! ====")
-    stop_test("test_virtuals_slow_down_speed_up")
+    stop_test()
 
 def test_small_mtu(pod_ips):
     start_test("test_small_mtu")
@@ -636,13 +721,13 @@ def test_small_mtu(pod_ips):
     for pod in ALL_PODS:
         set_mtu(pod, SMALL_MTU)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="small-mtu")
-    check(alive)
+    check_alive(alive)
     for pod in ALL_PODS:
         set_mtu(pod, NORMAL_MTU)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="noraml-mtu")
-    check(alive)
+    check_alive(alive)
     info("==== small mtu test passed! ====")
-    stop_test("test_small_mtu")
+    stop_test()
 
 
 def test_stop_start_pulsar(pod_ips):
@@ -652,18 +737,17 @@ def test_stop_start_pulsar(pod_ips):
     kill(PULSAR, "pulsard")
 
     down = wait_until_insolar_is_down()
-    check(down)
+    check_down(down)
     info("Insolar is down. Re-launching net")
 
     info("Starting pulsar")
     start_pulsard(log_index="after_pulsar")
 
-    start_insolar_net(NODES, pod_ips, log_index="after_pulsar", extra_args_insolard="-s insolard_after_pulsar", extra_args_insgorund="-s insgorund_after_pulsar")
-    wait(20)
+    start_insolar_net(NODES, pod_ips, log_index="after_pulsar", extra_args_insolard="-s insolard_after_pulsar")
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="pulsar-up")
-    check(alive)
+    check_alive(alive)
     info("==== start/stop pulsar test passed! ====")
-    stop_test("test_stop_start_pulsar")
+    stop_test()
 
 
 def test_netsplit_single_virtual(pod, pod_ips):
@@ -671,13 +755,13 @@ def test_netsplit_single_virtual(pod, pod_ips):
     info("==== netsplit of single virtual at pod#"+str(pod)+" test started ====")
     alive_pod = [ p for p in VIRTUALS if p != pod ][0]
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-netsplit-virtual")
-    check(alive)
+    check_alive(alive)
     info("Emulating netsplit that affects single pod #"+str(pod)+", testing from pod #"+str(alive_pod))
     create_simple_netsplit(pod, pod_ips)
     stay_alive_nods = NODES.copy()
     stay_alive_nods.remove(pod)
     alive = wait_until_insolar_is_alive(pod_ips, stay_alive_nods, virtual_pod = alive_pod, step="netsplit-virtual")
-    check(alive)
+    check_alive(alive)
     info("Insolar is alive during netsplit")
     # insolard suppose to die in case of netsplit
     for i in range(0,10):
@@ -685,15 +769,15 @@ def test_netsplit_single_virtual(pod, pod_ips):
             break
         info('Insolard is not terminated yet at pod#'+str(pod))
         wait(10)
-    check(not insolar_is_alive_on_pod(pod))
+    check(not insolar_is_alive_on_pod(pod), "Insolar must be down on pod %s, but its up" % pod)
     info('Fixing netsplit')
     fix_simple_netsplit(pod, pod_ips)
     info('Restarting insolard at pod#'+str(pod))
     start_insolard(pod)
     alive = wait_until_insolar_is_alive(pod_ips, NODES, virtual_pod=alive_pod, step="netsplit-virtual-relaunched")
-    check(alive)
+    check_alive(alive)
     info("==== netsplit of single virtual at pod#"+str(pod)+" test passed! ====")
-    stop_test("test_netsplit_single_virtual")
+    stop_test()
 
 def check_dependencies():
     info("Checking dependencies...")
@@ -741,7 +825,7 @@ deploy_pulsar()
 deploy_insolar()
 pod_ips = k8s_get_pod_ips()
 
-stop_test("prepare")
+stop_test()
 
 if args.skip_all_tests:
     notify("Deploy checked, skipping all tests")
@@ -754,12 +838,19 @@ for test_num in range(0, args.repeat):
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
     test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
-    test_stop_start_virtual(VIRTUALS[0], pod_ips)
+
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
+
+    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
+    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
+
     test_stop_start_lights([LIGHTS[0]], pod_ips)
     test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
     test_stop_start_lights(LIGHTS, pod_ips)
+
     test_stop_start_heavy(HEAVY, pod_ips)
-    # test_stop_start_virtual(VIRTUALS[1], pod_ips) # TODO: starting from 25.03.19 this test doesn't always pass, INS-2181
+
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
 notify("Test completed!")
