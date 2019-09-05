@@ -7,6 +7,7 @@ import subprocess
 import argparse
 import json
 import time
+import traceback
 
 # Roles:
 # jepsen-1: heavy
@@ -111,6 +112,8 @@ def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
+    for s in traceback.format_stack()[:1]:
+        print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, s))
     stop_test()
     exit()
 
@@ -139,7 +142,7 @@ def check(condition, failure_message):
 
 
 def check_alive(condition):
-    if not condition:
+    if condition:
         fail_test("Insolar must be alive, but its not")
 
 
@@ -810,6 +813,7 @@ args = parser.parse_args()
 NAMESPACE = args.namespace
 DEBUG = args.debug
 start_test("prepare")
+fail_test("love sorry")
 check_dependencies()
 
 k8s_yaml = "jepsen-pods.yaml"
