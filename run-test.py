@@ -111,6 +111,8 @@ def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
+    stop_test()
+    exit()
 
 
 def stop_test():
@@ -137,21 +139,18 @@ def check(condition, failure_message):
 
 
 def check_alive(condition):
-    if condition:
+    if not condition:
         fail_test("Insolar must be alive, but its not")
-        assert False
 
 
 def check_down(condition):
     if not condition:
         fail_test("Insolar must be dowm, but its not")
-        assert False
 
 
 def check_benchmark(condition):
     if not condition:
         fail_test("Benchmark return error")
-        assert False
 
 
 def debug(msg):
@@ -544,8 +543,6 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
         msg = "TEST FAILED: test receive wrong parameter: " +\
               "amount of working virtual nodes must be more or equel to min roles in config (2 at the moment)"
         fail_test(msg)
-        stop_test()
-        return
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
     check_alive(alive)
@@ -587,8 +584,6 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
         msg = "TEST FAILED: test receive wrong parameter: " +\
              "amount of working virtual nodes must be less then min roles in config (2 at the moment)"
         fail_test(msg)
-        stop_test()
-        return
 
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
     check_alive(alive)
@@ -845,8 +840,8 @@ for test_num in range(0, args.repeat):
     test_stop_start_pulsar(pod_ips)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
 
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
+    # test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
+    # test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
     test_stop_start_virtuals_min_roles_ok(VIRTUALS, pod_ips)
 
     test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
