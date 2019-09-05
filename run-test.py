@@ -96,8 +96,8 @@ os.environ["LANG"] = "C"
 os.environ["LC_CTYPE"] = "C"
 
 
-def logto(fname, index="$(date +%s)"):
-    return ">> " + fname + "_" + "deploy" + ".log"
+def logto(fname, index=""):
+    return ">> " + fname + "_" + index + ".log"
 
 
 def start_test(msg):
@@ -111,7 +111,7 @@ def fail_test(failure_message):
     notify("Test failed")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
     for s in traceback.format_stack()[:-1]:
-        s_for_tc = s.replace("\n", "|n|r")
+        s_for_tc = s.replace("\n", "|n")
         print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, s_for_tc))
     stop_test()
     exit()
@@ -458,13 +458,13 @@ def start_insolard(pod, log_index="", extra_args=""):
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
         "./scripts/insolard/"+str(pod)+\
         "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json &"+\
-        logto("insolard", log_index)+"""; bash\\" """)
+        logto("insolard", str(pod))+"""; bash\\" """)
 
 
 def start_pulsard(log_index="", extra_args=""):
     ssh(PULSAR, "cd " + INSPATH + """ && tmux new-session -d """+\
         extra_args+""" \\"./bin/pulsard -c pulsar.yaml &"""+\
-        logto("pulsar", log_index) +"""; bash\\" """)
+        logto("pulsar") +"""; bash\\" """)
 
 
 def kill(pod, proc_name):
