@@ -142,7 +142,6 @@ def check(condition, failure_message):
 def check_alive(condition):
     if not condition:
         fail_test("Insolar must be alive, but its not")
-    fail_test("test fail now")
 
 
 def check_down(condition):
