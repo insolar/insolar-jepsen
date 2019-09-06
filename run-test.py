@@ -110,7 +110,7 @@ def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
-    trace = "".join(traceback.format_stack()[:-1]).replace("\n", "|n")
+    trace = "".join(traceback.format_stack()[:-1]).replace("\n", "|n").replace("\r", "|n")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, trace))
     stop_test()
     exit()
@@ -140,6 +140,9 @@ def check(condition, failure_message):
 
 
 def check_alive(condition):
+    if CURRENT_TEST_NAME == "2_test_stop_start_light":
+        fail_test("Check test message")
+        return
     if not condition:
         fail_test("Insolar must be alive, but its not")
 
