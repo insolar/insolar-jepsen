@@ -110,7 +110,9 @@ def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
-    trace = "".join(traceback.format_stack()[:-1]).replace("\n", "|n").replace("\r", "|n")
+    trace = "".join(traceback.format_stack()[:-1])\
+        .replace("\n", "|n").replace("\r", "|r")\
+        .replace("[", "|[").replace("]", "|]")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, trace))
     stop_test()
     exit()
@@ -840,14 +842,14 @@ for test_num in range(0, args.repeat):
     # test_network_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_virtuals_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
-    test_stop_start_pulsar(pod_ips)
-    # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
-
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
-
-    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
-    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
+    # test_stop_start_pulsar(pod_ips)
+    # # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
+    #
+    # test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
+    # test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
+    #
+    # test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
+    # test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
 
     test_stop_start_lights([LIGHTS[0]], pod_ips)
     test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
