@@ -48,9 +48,8 @@ run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(START
 run("""go build -o """ + track_dir + """/bin """ + track_dir + """/track.go""")
 
 run("""grep -rn " ERR " """ + copy_to_dir +
-    """ | """ + track_dir +
-    """/bin > """ + copy_to_dir + """all_errors.log""")
+    """ | sort > """ + copy_to_dir + """all_errors.log""")
 
 run("""grep -rn " ERR " """ + copy_to_dir +
-    """ | grep -v "TraceID already set" | grep -v "Failed to process packet" | """ + track_dir +
-    """/bin > """ + copy_to_dir + """filtered_errors.log""")
+    """ | grep -v "TraceID already set" | grep -v "Failed to process packet" | sort > """ +
+    copy_to_dir + """filtered_errors.log""")

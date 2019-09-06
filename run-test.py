@@ -382,7 +382,7 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
     virtual_pod_name = 'jepsen-'+str(api_pod)
     port = VIRTUAL_START_PORT + api_pod
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
-                     'timelimit -s9 -t10 '+ # timeout: 10 seconds
+                     'timelimit -s9 -t20 '+  # timeout: 20 seconds
                      './bin/benchmark -b -c '+str(C)+' -r '+str(R)+' -a http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/admin-api/rpc '+
                      ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
                      '-k=./scripts/insolard/configs/ ' + extra_args + ' | grep Success')
