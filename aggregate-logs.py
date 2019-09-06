@@ -36,10 +36,21 @@ for port in range(START_PORT, END_PORT+1):
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
         """ gopher@localhost:go/src/github.com/insolar/insolar/*.log """+node_dir+""" 2>/dev/null """)
 
+track_dir = copy_to_dir + "track"
+
+run("""rm -rf """+track_dir)
+run("""mkdir -p """+track_dir+""" || true """)
+
 run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(START_PORT) +
-        """ gopher@localhost:go/src/github.com/insolar/insolar/scripts/cmd/track """+ copy_to_dir + """track/""" +""" 2>/dev/null """)
+    """ gopher@localhost:go/src/github.com/insolar/insolar/scripts/cmd/track/track.go """ + track_dir +
+    """ 2>/dev/null """)
 
-run("""go build -o ./bin_track .track/track.go""")
+run("""go build -o """ + track_dir + """/bin """ + track_dir + """/track.go""")
 
-run("""grep -rn "ERR" """ + copy_to_dir +
-    """ | grep -v "TraceID already set" | ./bin_track > err_grep_track.log""")
+run("""grep -rn " ERR " """ + copy_to_dir +
+    """ | """ + track_dir +
+    """/bin > """ + copy_to_dir + """all_errors.log""")
+
+run("""grep -rn " ERR " """ + copy_to_dir +
+    """ | grep -v "TraceID already set" | grep -v "Failed to process packet" | """ + track_dir +
+    """/bin > """ + copy_to_dir + """filtered_errors.log""")
