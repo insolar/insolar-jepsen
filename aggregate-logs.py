@@ -36,17 +36,6 @@ for port in range(START_PORT, END_PORT+1):
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
         """ gopher@localhost:go/src/github.com/insolar/insolar/*.log """+node_dir+""" 2>/dev/null """)
 
-track_dir = copy_to_dir + "track"
-
-run("""rm -rf """+track_dir)
-run("""mkdir -p """+track_dir+""" || true """)
-
-run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(START_PORT) +
-    """ gopher@localhost:go/src/github.com/insolar/insolar/scripts/cmd/track/track.go """ + track_dir +
-    """ 2>/dev/null """)
-
-run("""go build -o """ + track_dir + """/bin """ + track_dir + """/track.go""")
-
 run("""grep -rn " ERR " """ + copy_to_dir +
     """ | sort > """ + copy_to_dir + """all_errors.log""")
 
