@@ -210,14 +210,14 @@ def k8s():
 
 
 def k8s_gen_yaml(fname, image_name, pull_policy):
-	with open(fname, "w") as f:
-		for i in ALL_PODS:
-			pod_name = "jepsen-"+str(i)
-			ssh_port = str(32000 + i)
-			descr = K8S_YAML_TEMPLATE.format(
-				pod_name = pod_name, ssh_port = ssh_port,
-				image_name = image_name, pull_policy = pull_policy)
-			f.write(descr)
+    with open(fname, "w") as f:
+        for i in ALL_PODS:
+            pod_name = "jepsen-"+str(i)
+            ssh_port = str(32000 + i)
+            descr = K8S_YAML_TEMPLATE.format(
+                pod_name = pod_name, ssh_port = ssh_port,
+                image_name = image_name, pull_policy = pull_policy)
+            f.write(descr)
 
 
 def k8s_get_pod_ips():
@@ -404,9 +404,10 @@ def get_finalized_pulse_from_exporter():
 def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
     virtual_pod_name = 'jepsen-'+str(api_pod)
     port = VIRTUAL_START_PORT + api_pod
-    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
-                     'timelimit -s9 -t10 '+ # timeout: 10 seconds
-                     './bin/benchmark -c '+str(C)+' -r '+str(R)+' -a http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/admin-api/rpc '+
+    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
+                     'timelimit -s9 -t10 ' +  # timeout: 10 seconds
+                     './bin/benchmark -c ' + str(C) + ' -r ' + str(R) + ' -a http://'+pod_ips[virtual_pod_name] +
+                     ':'+str(port) + '/admin-api/rpc ' +
                      ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
                      '-k=./scripts/insolard/configs/ ' + extra_args + ' | grep Success')
     if out == 'Successes: '+str(C*R):
