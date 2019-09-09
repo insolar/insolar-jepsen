@@ -142,9 +142,6 @@ def check(condition, failure_message):
 
 
 def check_alive(condition):
-    if CURRENT_TEST_NAME == "2_test_stop_start_light":
-        fail_test("Check test message")
-        return
     if not condition:
         fail_test("Insolar must be alive, but its not")
 
@@ -842,14 +839,14 @@ for test_num in range(0, args.repeat):
     # test_network_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_virtuals_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
-    # test_stop_start_pulsar(pod_ips)
-    # # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
-    #
-    # test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
-    # test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
-    #
-    # test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
-    # test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
+    test_stop_start_pulsar(pod_ips)
+    # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
+
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
+
+    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
+    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
 
     test_stop_start_lights([LIGHTS[0]], pod_ips)
     test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
