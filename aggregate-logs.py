@@ -39,6 +39,6 @@ for port in range(START_PORT, END_PORT+1):
 run("""grep -rn " ERR " """ + copy_to_dir +
     """ | sort > """ + copy_to_dir + """all_errors.log""")
 
-run("""grep -rn " ERR " """ + copy_to_dir +
+run("""grep -rn " ERR " """ + copy_to_dir + """*/*.log""" +
     """ | grep -v "TraceID already set" | grep -v "Failed to process packet" | sort > """ +
     copy_to_dir + """filtered_errors.log""")
