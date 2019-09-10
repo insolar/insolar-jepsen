@@ -7,6 +7,7 @@ import subprocess
 import argparse
 import json
 import time
+import traceback
 
 # Roles:
 # jepsen-1: heavy
@@ -95,10 +96,8 @@ os.environ["LANG"] = "C"
 os.environ["LC_CTYPE"] = "C"
 
 
-def logto(fname, index="$(date +%s)"):
-    if index == "":
-        index = "$(date +%s)"
-    return "> " + fname + "_" + index + ".log"
+def logto(fname, index=""):
+    return ">> " + fname + "_" + index + ".log"
 
 
 def start_test(msg):
@@ -111,6 +110,10 @@ def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
+    trace = "".join(traceback.format_stack()[:-1])\
+        .replace("\n", "|n").replace("\r", "|r")\
+        .replace("[", "|[").replace("]", "|]")
+    print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, trace))
     stop_test()
     exit()
 
@@ -405,9 +408,10 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
     virtual_pod_name = 'jepsen-'+str(api_pod)
     port = VIRTUAL_START_PORT + api_pod
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
-                     'timelimit -s9 -t30 ' +  # timeout: 10 seconds
+                     'timelimit -s9 -t30 ' +  # timeout: 30 seconds
                      './bin/benchmark -c ' + str(C) + ' -r ' + str(R) + ' -a http://'+pod_ips[virtual_pod_name] +
                      ':'+str(port) + '/admin-api/rpc ' +
+
                      ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
                      '-k=./scripts/insolard/configs/ ' + extra_args + ' | grep Success')
     if out == 'Successes: '+str(C*R):
@@ -481,13 +485,13 @@ def start_insolard(pod, log_index="", extra_args=""):
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
         "./scripts/insolard/"+str(pod)+\
         "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json &"+\
-        logto("insolard", log_index)+"""; bash\\" """)
+        logto("insolard", str(pod))+"""; bash\\" """)
 
 
 def start_pulsard(log_index="", extra_args=""):
     ssh(PULSAR, "cd " + INSPATH + """ && tmux new-session -d """+\
         extra_args+""" \\"./bin/pulsard -c pulsar.yaml &"""+\
-        logto("pulsar", log_index) +"""; bash\\" """)
+        logto("pulsar") +"""; bash\\" """)
 
 
 def kill(pod, proc_name):

@@ -13,7 +13,9 @@ md_balance: "50000000000000000000"
 vesting_pulse_period: 31636000
 lockup_pulse_period: 10
 lokup_pulse_period: 10
-majority_rule: 4
+pk_shard_count: 10
+ma_shard_count: 10
+majority_rule: 6
 min_roles:
   virtual:  2
   heavy_material: 1
