@@ -115,7 +115,7 @@ def fail_test(failure_message):
         .replace("[", "|[").replace("]", "|]")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, trace))
     stop_test()
-    exit()
+    sys.exit(1)
 
 
 def stop_test():
