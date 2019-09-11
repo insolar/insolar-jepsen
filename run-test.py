@@ -393,6 +393,15 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
     return False
 
 
+def current_pulse(node_index=HEAVY, ssh_pod=1):
+    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
+                     'timelimit -s9 -t10 ' +  # timeout: 10 seconds
+                     './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
+    network_status = json.loads(out)
+    pn = network_status[node_index]['PulseNumber']
+    return pn
+
+
 def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod = 1):
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
         'timelimit -s9 -t10 '+ # timeout: 10 seconds
@@ -627,11 +636,11 @@ def test_stop_start_lights(light_pods, pod_ips):
     check_benchmark(ok)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
-    old_pulse = get_finalized_pulse_from_exporter()
-    new_pulse = get_finalized_pulse_from_exporter()
-    while old_pulse == new_pulse:
+    pulse = current_pulse()
+    finalized_pulse = get_finalized_pulse_from_exporter()
+    while pulse != finalized_pulse:
         wait(1)
-        new_pulse = get_finalized_pulse_from_exporter()
+        finalized_pulse = get_finalized_pulse_from_exporter()
 
     info("Data was saved on heavy (top sync pulse changed)")
 
@@ -664,11 +673,11 @@ def test_stop_start_heavy(heavy_pod, pod_ips):
     check_benchmark(ok)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
-    old_pulse = get_finalized_pulse_from_exporter()
-    new_pulse = get_finalized_pulse_from_exporter()
-    while old_pulse == new_pulse:
+    pulse = current_pulse()
+    finalized_pulse = get_finalized_pulse_from_exporter()
+    while pulse != finalized_pulse:
         wait(1)
-        new_pulse = get_finalized_pulse_from_exporter()
+        finalized_pulse = get_finalized_pulse_from_exporter()
 
     info("Data was saved on heavy (top sync pulse changed)")
 
