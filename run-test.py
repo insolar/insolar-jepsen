@@ -733,7 +733,7 @@ def test_small_mtu(pod_ips):
     stop_test()
 
 
-def test_stop_start_pulsar(pod_ips):
+def test_stop_start_pulsar(pod_ips, test_num):
     start_test("test_stop_start_pulsar")
     info("==== start/stop pulsar test started ====")
     info("Killing pulsard")
@@ -746,7 +746,7 @@ def test_stop_start_pulsar(pod_ips):
     info("Starting pulsar")
     start_pulsard(log_index="after_pulsar")
 
-    start_insolar_net(NODES, pod_ips, log_index="after_pulsar", extra_args_insolard="-s insolard_after_pulsar")
+    start_insolar_net(NODES, pod_ips, log_index="after_pulsar", extra_args_insolard="-s insolard_after_pulsar_"+str(test_num))
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="pulsar-up")
     check_alive(alive)
     info("==== start/stop pulsar test passed! ====")
@@ -839,7 +839,7 @@ for test_num in range(0, args.repeat):
     # test_network_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_virtuals_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
-    test_stop_start_pulsar(pod_ips)
+    test_stop_start_pulsar(pod_ips, test_num)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
 
     test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
