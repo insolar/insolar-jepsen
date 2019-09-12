@@ -31,6 +31,20 @@ ledger:
   jetsizeshistorydepth: 10
   exporter:
     exportlag: 40
+  backup:
+    enabled: true
+    tmpdirectory: "/tmp/heavy/tmp"
+    targetdirectory: "/tmp/heavy/target"
+    metainfofile: meta.json
+    confirmfile: BACKUPED
+    backupfile: incr.bkp
+    dirnametemplate: pulse-%d
+    backupwaitperiod: 60
+    lastbackupinfofile: .artifacts/launchnet/last_backup_info.json
+    postprocessbackupcmd:
+    - bash
+    - -c
+    - touch $INSOLAR_CURRENT_BACKUP_DIR/BACKUPED
 log:
   level: Debug
   adapter: zerolog

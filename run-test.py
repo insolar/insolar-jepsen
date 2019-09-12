@@ -532,6 +532,7 @@ def deploy_insolar():
         pod_path = path+str(pod)
         ssh(pod, "mkdir -p "+pod_path)
         for k in pod_ips.keys():
+            ssh(pod, "mkdir -p /tmp/heavy/tmp && mkdir -p /tmp/heavy/target")
             ssh(pod, "find "+path+" -type f -print "+\
                 " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
         scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
