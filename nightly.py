@@ -23,8 +23,8 @@ parser.add_argument(
     '-r', '--repeat', metavar='N', type=int, default=100,
     help='number of times to repeat tests (default: 100)')
 parser.add_argument(
-    '-c', '--channel', metavar='C', type=str, default='#backend-dev',
-    help='slack channel (default: #backend-dev)')
+    '-c', '--channel', metavar='C', type=str, default='#dev-backend',
+    help='slack channel (default: #dev-backend)')
 parser.add_argument(
     '-e', '--emoji', metavar='E', type=str, default='aphyr',
     help='message emoji (default: aphyr)')
