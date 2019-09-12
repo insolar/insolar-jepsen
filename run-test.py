@@ -28,6 +28,8 @@ VIRTUAL_START_PORT = 19000
 INSPATH = "go/src/github.com/insolar/insolar"
 OLD_MEMBERS_FILE = ".artifacts/bench-members/members-from-start.txt"
 MEMBERS_FILE = ".artifacts/bench-members/members.txt"
+LIGHT_CHAIN_LIMIT = 5
+PULSE_DELTA = 10
 
 HEAVY = 1
 LIGHTS = [2, 3, 4, 5, 6]
@@ -847,9 +849,9 @@ ok = run_benchmark(pod_ips, extra_args="-s --members-file=" + OLD_MEMBERS_FILE)
 check_benchmark(ok)
 members_creted_at = time.time()
 info("Wait for data to save on heavy (top sync pulse must change)")
-pulse = current_pulse()
+pulse_when_members_created = current_pulse()
 finalized_pulse = get_finalized_pulse_from_exporter()
-while pulse != finalized_pulse:
+while pulse_when_members_created != finalized_pulse:
     wait(1)
     finalized_pulse = get_finalized_pulse_from_exporter()
 
@@ -881,8 +883,12 @@ for test_num in range(0, args.repeat):
 
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
-time_after_members = time.time() - members_creted_at
-info("Make calls to members, created at the beginning: " + str(time_after_members) + " seconds ago")
+pulses_pass = (current_pulse() - pulse_when_members_created)//PULSE_DELTA
+while pulses_pass < LIGHT_CHAIN_LIMIT:
+    wait(5)
+    pulses_pass = (current_pulse() - pulse_when_members_created)//PULSE_DELTA
+
+info("Make calls to members, created at the beginning: " + str(pulses_pass) + " pulses ago")
 ok = run_benchmark(pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
 check_benchmark(ok)
 
