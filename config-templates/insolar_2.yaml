@@ -36,7 +36,7 @@ log:
   adapter: zerolog
   formatter: text
 metrics:
-  listenaddress: JEPSEN-2:8002
+  listenaddress: JEPSEN-2:8080
   namespace: insolar
   zpagesenabled: true
   reportingperiod: 0s

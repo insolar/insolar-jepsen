@@ -405,10 +405,11 @@ def check_abandoned_requests_from_lights(pod_ips, nattempts=10, calcWindow=5, st
     
     abandonedCount = 0
     accumulator = 0
-
+    ssh_pod = 1
     for attempt in range(1, nattempts+1):
-        for address in pod_ips:
-            abandonedCount += get_abandones_metric_from_light(address)
+        for address in pod_ips.values():
+            abandonedCount += get_abandones_metric_from_light(address, ssh_pod)
+            ssh_pod += 1
             
         if abandonedCount == 0:
             if verbose: info("Attempt " + str(attempt) + ". No abandoned requests here.")
@@ -432,15 +433,15 @@ def check_abandoned_requests_from_lights(pod_ips, nattempts=10, calcWindow=5, st
 # get_abandones_metric_from_light returns count of abandoned requests from light node.
 #
 # address - hostname of light node for metric receiving.
-def get_abandones_metric_from_light(address):
+def get_abandones_metric_from_light(address, ssh_pod):
     abandonedCount = 0
     host = address + ':8080/metrics'
-    r = requests.get(host)
-    lines = r.text.split('\n')
-    for line in lines:
-        if 'insolar_requests_abandoned{role="light_material"}' in line:
-            abandonedKV = line.split()
-            abandonedCount = abandonedKV[-1]
+
+    line = ssh_output(ssh_pod, 'curl -s ' + host + ' | grep insolar_process_open_fds{')
+
+    if len(line) > 0:
+        abandonedKV = line.split()
+        abandonedCount = abandonedKV[-1]
     
     return int(abandonedCount)
 
@@ -867,6 +868,9 @@ parser.add_argument(
 parser.add_argument(
     '-i', '--image', metavar='IMG', type=str, required=True,
     help='Docker image to test')
+parser.add_argument(
+    '-a', '--abandones', action="store_true",
+    help='Only check for abandoned requests')
 
 args = parser.parse_args()
 
@@ -874,6 +878,12 @@ NAMESPACE = args.namespace
 DEBUG = args.debug
 start_test("prepare")
 check_dependencies()
+
+if args.abandones:
+    POD_NODES = k8s_get_pod_nodes()
+    check_abandoned_requests_from_lights(k8s_get_pod_ips(), verbose=True)
+    sys.exit(0)
+
 
 k8s_yaml = "jepsen-pods.yaml"
 info("Generating "+k8s_yaml)
@@ -892,6 +902,7 @@ stop_test()
 
 if args.skip_all_tests:
     notify("Deploy checked, skipping all tests")
+    check_abandoned_requests_from_lights(pod_ips, verbose=True)
     sys.exit(0)
 
 for test_num in range(0, args.repeat):
