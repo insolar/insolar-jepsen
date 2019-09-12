@@ -45,8 +45,8 @@ hostname = k8s_hostname()
 
 print("Info: k8s hostname = "+hostname)
 
-run("""rm """+copy_to_dir+"""all_errors.log""")
-run("""rm """+copy_to_dir+"""filtered_errors.log""")
+run("""rm -f"""+copy_to_dir+"""all_errors.log""")
+run("""rm -f"""+copy_to_dir+"""filtered_errors.log""")
 
 for port in range(START_PORT, END_PORT+1):
     node_dir = copy_to_dir + str(port) + "/"
