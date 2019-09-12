@@ -27,9 +27,7 @@ RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
 RUN for m in $(seq 0 13); do ./bin/insolar gen-key-pair > \
   scripts/insolard/configs/foundation_${m}_member_keys.json; done
 
-RUN ./bin/insolar gen-migration-addresses > scripts/insolard/configs/migration_addresses.json || true
-
-RUN cd scripts/insolard/configs && ls && cd ../../..
+RUN ./bin/insolar gen-migration-addresses > scripts/insolard/configs/migration_addresses.json
 
 COPY config-templates/bootstrap.yaml ./scripts/insolard/bootstrap.yaml
 RUN ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml \
