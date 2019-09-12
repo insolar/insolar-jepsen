@@ -8,6 +8,7 @@ import argparse
 import json
 import time
 import traceback
+import requests
 
 # Roles:
 # jepsen-1: heavy
@@ -392,6 +393,56 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
         return True
     return False
 
+# check_abandoned_requests_from_lights calculates abandoned requests leak.
+#
+# nattempts - number of attempts for checking abandoned requests metric from nodes.
+# calcWindow - count of last attempts for leak calculating.
+# step - time in seconds between two attempts.
+# verbose - flag for additional logging.
+def check_abandoned_requests_from_lights(pod_ips, nattempts=10, calcWindow=5, step=15, verbose=False):
+    start_test("check_abandoned_requests_from_lights")
+    info("==== start/stop check_abandoned_requests_from_lights test started ====")
+    
+    abandonedCount = 0
+    accumulator = 0
+
+    for attempt in range(1, nattempts+1):
+        for address in pod_ips:
+            abandonedCount += get_abandones_metric_from_light(address)
+            
+        if abandonedCount == 0:
+            if verbose: info("Attempt " + str(attempt) + ". No abandoned requests here.")
+        else:
+            if verbose: info("Attempt " + str(attempt) + ". Count of abandoned requests: " + str(abandonedCount))
+            if (nattempts - attempt) < calcWindow:
+                accumulator += abandonedCount
+
+        attempt += 1
+        time.sleep(step)
+
+    # If abandoned requests count doesn't change in calcWindow
+    # we assume, that all of them was processed.
+    res = accumulator / calcWindow
+
+    check(res == abandonedCount, "Unprocessed Abandoned-requests count IS NOT ZERO.")
+
+    info("==== start/stop check_abandoned_requests_from_lights test passed! ====")
+    stop_test()
+
+# get_abandones_metric_from_light returns count of abandoned requests from light node.
+#
+# address - hostname of light node for metric receiving.
+def get_abandones_metric_from_light(address):
+    abandonedCount = 0
+    host = address + ':8080/metrics'
+    r = requests.get(host)
+    lines = r.text.split('\n')
+    for line in lines:
+        if 'insolar_requests_abandoned{role="light_material"}' in line:
+            abandonedKV = line.split()
+            abandonedCount = abandonedKV[-1]
+    
+    return int(abandonedCount)
 
 def current_pulse(node_index=HEAVY, ssh_pod=1):
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
@@ -848,20 +899,22 @@ for test_num in range(0, args.repeat):
     # test_network_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_virtuals_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
-    test_stop_start_pulsar(pod_ips, test_num)
+    #test_stop_start_pulsar(pod_ips, test_num)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
 
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
+    #test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
+    #test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
 
-    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
-    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
+    #test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
+    #test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
 
     test_stop_start_lights([LIGHTS[0]], pod_ips)
-    test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
-    test_stop_start_lights(LIGHTS, pod_ips)
+    #test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
+    #test_stop_start_lights(LIGHTS, pod_ips)
 
-    test_stop_start_heavy(HEAVY, pod_ips)
+    #test_stop_start_heavy(HEAVY, pod_ips)
+
+    check_abandoned_requests_from_lights(pod_ips, verbose=True)
 
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
