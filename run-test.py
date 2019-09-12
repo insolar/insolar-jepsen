@@ -228,7 +228,7 @@ def k8s_get_pod_ips():
     """
     Returns a map PodName -> PodIP
     """
-    data = get_output(k8s() + "get pods -l app=insolar-jepsen -o=json | " + \
+    data = get_output(k8s() + "get pods -l app=insolar-jepsen -o=json | " +
                       """jq -r '.items[] | .metadata.name + " " + .status.podIP'""")
     res = {}
     for kv in data.split("\n"):
@@ -241,7 +241,7 @@ def k8s_get_pod_nodes():
     """
     Returns a map PodName -> NodeName
     """
-    data = get_output(k8s() + "get pods -l app=insolar-jepsen -o=json | " + \
+    data = get_output(k8s() + "get pods -l app=insolar-jepsen -o=json | " +
                       """jq -r '.items[] | .metadata.name + " " + .spec.nodeName'""")
     res = {}
     for kv in data.split("\n"):
@@ -271,7 +271,7 @@ def k8s_start_pods(fname):
     info("starting pods")
     run(k8s() + "apply -f " + fname)
     while True:
-        data = get_output(k8s() + "get pods -l app=insolar-jepsen -o=json | " + \
+        data = get_output(k8s() + "get pods -l app=insolar-jepsen -o=json | " +
                           "jq -r '.items[].status.phase' | grep Running | wc -l")
         info("running pods: " + data)
         if data == str(len(ALL_PODS)):
