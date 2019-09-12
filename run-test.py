@@ -8,9 +8,9 @@ import argparse
 import json
 import time
 import traceback
-import requests
 
 # Roles:
+# jepsen-100: tools pod
 # jepsen-1: heavy
 # jepsen-2: light
 # jepsen-3: light
@@ -36,6 +36,7 @@ DISCOVERY_NODES = [HEAVY] + LIGHTS
 NOT_DISCOVERY_NODES = VIRTUALS
 NODES = DISCOVERY_NODES + NOT_DISCOVERY_NODES
 
+TOOLS_POD = 100
 PULSAR = 12
 ALL_PODS = NODES + [PULSAR]
 
@@ -53,6 +54,42 @@ C = 5
 R = 1
 
 CURRENT_TEST_NAME = ""
+
+K8S_YAML_TOOLS_TEMPLATE = """
+kind: Service
+apiVersion: v1
+metadata:
+  name: jepsen-100
+spec:
+  type: NodePort
+  ports:
+    - port: 22
+      nodePort: 32100
+  selector:
+    name: jepsen-100
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jepsen-100
+  labels:
+    name: jepsen-100
+    app: insolar-jepsen
+spec:
+  containers:
+    - name: jepsen-100
+      image: {image_name}
+      imagePullPolicy: {pull_policy}
+      securityContext:
+        capabilities:
+          add:
+            - NET_ADMIN
+      ports:
+        - containerPort: 22
+  nodeSelector:
+    jepsen: "true"
+---
+"""
 
 K8S_YAML_TEMPLATE = """
 kind: Service
@@ -205,14 +242,18 @@ def k8s():
     return "kubectl --namespace "+NAMESPACE+" "
 
 def k8s_gen_yaml(fname, image_name, pull_policy):
-	with open(fname, "w") as f:
-		for i in ALL_PODS:
-			pod_name = "jepsen-"+str(i)
-			ssh_port = str(32000 + i)
-			descr = K8S_YAML_TEMPLATE.format(
-				pod_name = pod_name, ssh_port = ssh_port,
-				image_name = image_name, pull_policy = pull_policy)
-			f.write(descr)
+    with open(fname, "w") as f:
+        f.write(K8S_YAML_TOOLS_TEMPLATE.format(image_name=image_name, pull_policy=pull_policy))
+        for i in ALL_PODS:
+            pod_name = "jepsen-" + str(i)
+            ssh_port = str(32000 + i)
+            descr = K8S_YAML_TEMPLATE.format(
+                pod_name=pod_name,
+                ssh_port=ssh_port,
+                image_name=image_name,
+                pull_policy=pull_policy
+            )
+            f.write(descr)
 
 def k8s_get_pod_ips():
     """
@@ -261,7 +302,7 @@ def k8s_start_pods(fname):
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | "+\
             "jq -r '.items[].status.phase' | grep Running | wc -l")
         info("running pods: "+data)
-        if data == str(len(ALL_PODS)):
+        if data >= str(len(ALL_PODS)):
             break
         wait(1)
 
@@ -393,57 +434,55 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
         return True
     return False
 
-# check_abandoned_requests_from_lights calculates abandoned requests leak.
+# check_abandoned_requests calculates abandoned requests leak.
 #
 # nattempts - number of attempts for checking abandoned requests metric from nodes.
-# calcWindow - count of last attempts for leak calculating.
 # step - time in seconds between two attempts.
 # verbose - flag for additional logging.
-def check_abandoned_requests_from_lights(pod_ips, nattempts=10, calcWindow=5, step=15, verbose=False):
-    start_test("check_abandoned_requests_from_lights")
-    info("==== start/stop check_abandoned_requests_from_lights test started ====")
-    
-    abandonedCount = 0
-    accumulator = 0
-    ssh_pod = 1
+def check_abandoned_requests(nattempts=5, step=15, verbose=False):
+    start_test("check_abandoned_requests")
+    info("==== start/stop check_abandoned_requests test started ====")
+    abandoned_data = {}
+    abandoned_leak = 0
+    errors = ""
     for attempt in range(1, nattempts+1):
-        for address in pod_ips.values():
-            abandonedCount += get_abandones_metric_from_light(address, ssh_pod)
-            ssh_pod += 1
-            
-        if abandonedCount == 0:
-            if verbose: info("Attempt " + str(attempt) + ". No abandoned requests here.")
+        i = 0
+        abandoned_raw_data = get_abandones_metric()
+        debug(abandoned_raw_data)
+        if len(abandoned_raw_data) > 0:
+            for line in abandoned_raw_data.split("\n"):
+                kv = line.split()
+                if len(kv) <= 1:
+                    kv.insert(1, 0)
+                if i in abandoned_data and int(kv[1]) > abandoned_data[i]:
+                    abandoned_leak += 1
+                    errors += "Abandoned increase in " + str(kv[0]) + ". Old:" + str(abandoned_data[i]) + ", new:" + str(kv[1]) + "\n"
+
+                abandoned_data[i] = int(kv[1])
+                i += 1
+
+        if abandoned_leak == 0:
+            if verbose:
+                info("Attempt " + str(attempt) + ". No abandoned requests here.")
         else:
-            if verbose: info("Attempt " + str(attempt) + ". Count of abandoned requests: " + str(abandonedCount))
-            if (nattempts - attempt) < calcWindow:
-                accumulator += abandonedCount
+            if verbose:
+                info("Attempt " + str(attempt) + ". Count of abandoned requests: " + str(abandoned_leak))
 
         attempt += 1
         time.sleep(step)
 
-    # If abandoned requests count doesn't change in calcWindow
+    # If abandoned_leak is 0
     # we assume, that all of them was processed.
-    res = accumulator / calcWindow
+    check(0 == abandoned_leak, "Unprocessed Abandoned-requests count IS NOT ZERO. Errors:" + errors)
 
-    check(res == abandonedCount, "Unprocessed Abandoned-requests count IS NOT ZERO.")
-
-    info("==== start/stop check_abandoned_requests_from_lights test passed! ====")
+    info("==== start/stop check_abandoned_requests test passed! ====")
     stop_test()
 
-# get_abandones_metric_from_light returns count of abandoned requests from light node.
+# get_abandones_metric returns count of abandoned requests from light node.
 #
 # address - hostname of light node for metric receiving.
-def get_abandones_metric_from_light(address, ssh_pod):
-    abandonedCount = 0
-    host = address + ':8080/metrics'
-
-    line = ssh_output(ssh_pod, 'curl -s ' + host + ' | grep insolar_process_open_fds{')
-
-    if len(line) > 0:
-        abandonedKV = line.split()
-        abandonedCount = abandonedKV[-1]
-    
-    return int(abandonedCount)
+def get_abandones_metric():
+    return ssh_output(TOOLS_POD, 'cd ' + INSPATH + ' && ./jepsen-tools/collect_abandoned_metrics.sh')
 
 def current_pulse(node_index=HEAVY, ssh_pod=1):
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
@@ -849,6 +888,12 @@ def check_dependencies():
         run('which ' + d)
     info("All dependencies found.")
 
+def upload_tools(pod, pod_ips):
+    info("Uploading tools ...")
+    ips = ' '.join(pod_ips.values())
+    ssh(pod, "mkdir -p "+INSPATH+"/jepsen-tools/ && echo " + ips + " > "+INSPATH+"/jepsen-tools/pod_ips")
+    scp_to(pod, "./jepsen-tools/*", INSPATH+"/jepsen-tools/")
+
 parser = argparse.ArgumentParser(description='Test Insolar using Jepsen-like tests')
 parser.add_argument(
     '-d', '--debug', action="store_true",
@@ -868,6 +913,7 @@ parser.add_argument(
 parser.add_argument(
     '-i', '--image', metavar='IMG', type=str, required=True,
     help='Docker image to test')
+# TODO remove after test
 parser.add_argument(
     '-a', '--abandones', action="store_true",
     help='Only check for abandoned requests')
@@ -879,9 +925,14 @@ DEBUG = args.debug
 start_test("prepare")
 check_dependencies()
 
+# TODO remove after test
 if args.abandones:
+    pod_ips = k8s_get_pod_ips()
     POD_NODES = k8s_get_pod_nodes()
-    check_abandoned_requests_from_lights(k8s_get_pod_ips(), verbose=True)
+    upload_tools(TOOLS_POD, pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
+    check_abandoned_requests(verbose=True)
     sys.exit(0)
 
 
@@ -897,12 +948,11 @@ prepare_configs()
 deploy_pulsar()
 deploy_insolar()
 pod_ips = k8s_get_pod_ips()
-
+upload_tools(TOOLS_POD, pod_ips)
 stop_test()
 
 if args.skip_all_tests:
     notify("Deploy checked, skipping all tests")
-    check_abandoned_requests_from_lights(pod_ips, verbose=True)
     sys.exit(0)
 
 for test_num in range(0, args.repeat):
@@ -910,22 +960,22 @@ for test_num in range(0, args.repeat):
     # test_network_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_virtuals_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
     # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
-    #test_stop_start_pulsar(pod_ips, test_num)
+    test_stop_start_pulsar(pod_ips, test_num)
     # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
 
-    #test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
-    #test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
+    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
 
-    #test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
-    #test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
+    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
+    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
 
     test_stop_start_lights([LIGHTS[0]], pod_ips)
-    #test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
-    #test_stop_start_lights(LIGHTS, pod_ips)
+    test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
+    test_stop_start_lights(LIGHTS, pod_ips)
 
-    #test_stop_start_heavy(HEAVY, pod_ips)
+    test_stop_start_heavy(HEAVY, pod_ips)
 
-    check_abandoned_requests_from_lights(pod_ips, verbose=True)
+    check_abandoned_requests(verbose=True)
 
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
