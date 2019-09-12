@@ -411,7 +411,6 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
                      'timelimit -s9 -t30 ' +  # timeout: 30 seconds
                      './bin/benchmark -c ' + str(C) + ' -r ' + str(R) + ' -a http://'+pod_ips[virtual_pod_name] +
                      ':'+str(port) + '/admin-api/rpc ' +
-
                      ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
                      '-k=./scripts/insolard/configs/ ' + extra_args + ' | grep Success')
     if out == 'Successes: '+str(C*R):
