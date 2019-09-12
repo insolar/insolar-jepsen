@@ -45,10 +45,12 @@ hostname = k8s_hostname()
 
 print("Info: k8s hostname = "+hostname)
 
-run("""rm -rf """+copy_to_dir)
+run("""rm """+copy_to_dir+"""all_errors.log""")
+run("""rm """+copy_to_dir+"""filtered_errors.log""")
 
 for port in range(START_PORT, END_PORT+1):
     node_dir = copy_to_dir + str(port) + "/"
+    run("""rm -rf """+node_dir)
     run("""mkdir -p """+node_dir+""" || true """)
     if port == START_PORT:
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
