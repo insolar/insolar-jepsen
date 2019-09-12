@@ -39,7 +39,7 @@ PULSAR = 12
 ALL_PODS = NODES + [PULSAR]
 
 MIN_ROLES_VIRTUAL = 2
-LOG_LEVEL = "Debug" # Info
+LOG_LEVEL = "Debug"  # Info
 NAMESPACE = "default"
 SLOW_NETWORK_SPEED = '4mbps'
 FAST_NETWORK_SPEED = '1000mbps'
@@ -161,6 +161,7 @@ def debug(msg):
         return
     print("    "+msg)
 
+
 def run(cmd):
     debug(cmd)
     code = subprocess.call(cmd, shell=True)
@@ -169,49 +170,58 @@ def run(cmd):
               (cmd, code))
         sys.exit(1)
 
+
 def get_output(cmd):
     debug(cmd)
     data = subprocess.check_output(cmd, shell=True)
     data = data.decode('utf-8').strip()
     return data
 
+
 def ssh_user_host(pod):
     return "gopher@"+POD_NODES['jepsen-'+str(pod)]
 
+
 def ssh(pod, cmd):
-	run("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
+    run("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p" +
+        str(START_PORT + pod)+" "+ssh_user_host(pod) +
+        """ "bash -c 'source ./.bash_profile ; """ +
+        cmd + """ '" 2>/dev/null""")
+
+
+def ssh_output(pod, cmd):
+    return get_output("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
         str(START_PORT + pod)+" "+ssh_user_host(pod)+\
         """ "bash -c 'source ./.bash_profile ; """+\
         cmd + """ '" 2>/dev/null""")
 
-def ssh_output(pod, cmd):
-	return get_output("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
-        str(START_PORT + pod)+" "+ssh_user_host(pod)+\
-        """ "bash -c 'source ./.bash_profile ; """+\
-        cmd + """ '" 2>/dev/null""")
 
 def scp_to(pod, lpath, rpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P"+\
         str(START_PORT + pod)+" "+flags+" " + lpath + " "+ssh_user_host(pod)+\
         ":"+rpath+" 2>/dev/null")
 
+
 def scp_from(pod, rpath, lpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P"+\
         str(START_PORT + pod)+" " + flags + " "+ssh_user_host(pod)+\
         ":"+rpath+" "+lpath+" 2>/dev/null")
 
+
 def k8s():
     return "kubectl --namespace "+NAMESPACE+" "
 
+
 def k8s_gen_yaml(fname, image_name, pull_policy):
-	with open(fname, "w") as f:
-		for i in ALL_PODS:
-			pod_name = "jepsen-"+str(i)
-			ssh_port = str(32000 + i)
-			descr = K8S_YAML_TEMPLATE.format(
-				pod_name = pod_name, ssh_port = ssh_port,
-				image_name = image_name, pull_policy = pull_policy)
-			f.write(descr)
+    with open(fname, "w") as f:
+        for i in ALL_PODS:
+            pod_name = "jepsen-"+str(i)
+            ssh_port = str(32000 + i)
+            descr = K8S_YAML_TEMPLATE.format(
+                pod_name = pod_name, ssh_port = ssh_port,
+                image_name = image_name, pull_policy = pull_policy)
+            f.write(descr)
+
 
 def k8s_get_pod_ips():
     """
@@ -224,6 +234,7 @@ def k8s_get_pod_ips():
         [k, v] = kv.split(' ')
         res[k] = v
     return res
+
 
 def k8s_get_pod_nodes():
     """
@@ -241,6 +252,7 @@ def k8s_get_pod_nodes():
         res[k] = v
     return res
 
+
 def k8s_stop_pods_if_running(fname):
     info("stopping pods if they are running")
     run(k8s()+"delete -f "+fname+" 2>/dev/null || true")
@@ -253,6 +265,7 @@ def k8s_stop_pods_if_running(fname):
         wait(1)
     wait(10) # make sure services and everything else are gone as well
 
+
 def k8s_start_pods(fname):
     info("starting pods")
     run(k8s()+"apply -f "+fname)
@@ -264,6 +277,7 @@ def k8s_start_pods(fname):
             break
         wait(1)
 
+
 def set_network_speed(pod, speed):
     ssh(pod, 'sudo tc qdisc del dev eth0 root || true')
     ssh(pod, 'sudo tc qdisc add dev eth0 root handle 1: tbf rate '+speed+' latency 1ms burst 1540')
@@ -272,8 +286,10 @@ def set_network_speed(pod, speed):
     ssh(pod, 'sudo tc filter add dev eth0 root protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
     ssh(pod, 'sudo tc filter add dev eth0 parent ffff: protocol ip u32 match u32 0 0 police rate '+speed+' burst 10k drop flowid :1')
 
+
 def set_mtu(pod, mtu):
     ssh(pod, 'sudo ifconfig eth0 mtu '+str(mtu))
+
 
 def create_simple_netsplit(pod, pod_ips):
     """
@@ -287,6 +303,7 @@ def create_simple_netsplit(pod, pod_ips):
         ssh(pod, 'sudo iptables -A INPUT -s '+current_ip+' -j DROP && '+
             'sudo iptables -A OUTPUT -d '+current_ip+' -j DROP')
 
+
 def fix_simple_netsplit(pod, pod_ips):
     """
     Rolls back an effect of create_simple_netsplit()
@@ -299,6 +316,7 @@ def fix_simple_netsplit(pod, pod_ips):
         ssh(pod, 'sudo iptables -D INPUT -s '+current_ip+' -j DROP && '+
             'sudo iptables -D OUTPUT -d '+current_ip+' -j DROP')
 
+
 def old_node_is_down(status):
     if 'PulseNumber' in status and \
         'Error' in status :
@@ -307,14 +325,17 @@ def old_node_is_down(status):
     else:
         return 0
 
+
 def new_node_is_down(status):
     if 'pulseNumber' in status:
         return status['pulseNumber'] == -1
     else:
         return 0
 
+
 def node_is_down(status):
     return old_node_is_down(status) or new_node_is_down(status)
+
 
 def old_node_status_is_ok(status, nodes_online):
     if 'NetworkState' in status and \
@@ -328,6 +349,7 @@ def old_node_status_is_ok(status, nodes_online):
     else:
         return 0
 
+
 def new_node_status_is_ok(status, nodes_online):
     if 'networkState' in status and \
         'activeListSize' in status and \
@@ -338,8 +360,10 @@ def new_node_status_is_ok(status, nodes_online):
     else:
         return 0
 
+
 def node_status_is_ok(status, nodes_online):
     return old_node_status_is_ok(status, nodes_online) or new_node_status_is_ok(status, nodes_online)
+
 
 def network_status_is_ok(network_status, nodes_online):
     online_list = [network_status[nodeIndex-1] for nodeIndex in nodes_online if not node_is_down(network_status[nodeIndex-1])]
@@ -383,9 +407,11 @@ def get_finalized_pulse_from_exporter():
 def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
     virtual_pod_name = 'jepsen-'+str(api_pod)
     port = VIRTUAL_START_PORT + api_pod
-    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
-                     'timelimit -s9 -t20 '+  # timeout: 20 seconds
-                     './bin/benchmark -b -c '+str(C)+' -r '+str(R)+' -a http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/admin-api/rpc '+
+    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
+                     'timelimit -s9 -t30 ' +  # timeout: 30 seconds
+                     './bin/benchmark -c ' + str(C) + ' -r ' + str(R) + ' -a http://'+pod_ips[virtual_pod_name] +
+                     ':'+str(port) + '/admin-api/rpc ' +
+
                      ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
                      '-k=./scripts/insolard/configs/ ' + extra_args + ' | grep Success')
     if out == 'Successes: '+str(C*R):
@@ -403,8 +429,8 @@ def current_pulse(node_index=HEAVY, ssh_pod=1):
 
 
 def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod = 1):
-    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
-        'timelimit -s9 -t10 '+ # timeout: 10 seconds
+    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
+        'timelimit -s9 -t10 ' +  # timeout: 10 seconds
         './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
     network_status = json.loads(out)
     if not network_status_is_ok(network_status, nodes_online):
@@ -420,7 +446,8 @@ def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod = 1):
 
 def insolar_is_alive_on_pod(pod):
     out = ssh_output(pod, 'pidof insolard || true')
-    return (out != '')
+    return out != ''
+
 
 def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=10, pause_sec=5, step=""):
     min_nalive = 2
@@ -433,10 +460,10 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
             alive = insolar_is_alive(pod_ips, virtual_pod, nodes_online)
             if alive:
                 nalive += 1
-            info("[Step: "+step+"] Alive check passed "+str(nalive)+"/"+str(min_nalive)+" (attempt "+str(attempt)+" of "+str(nattempts)+")" )
+            info("[Step: "+step+"] Alive check passed "+str(nalive)+"/"+str(min_nalive)+" (attempt "+str(attempt)+" of "+str(nattempts)+")")
         except Exception as e:
             print(e)
-            info("[Step: "+step+"] Insolar is not alive yet (attempt "+str(attempt)+" of "+str(nattempts)+")" )
+            info("[Step: "+step+"] Insolar is not alive yet (attempt "+str(attempt)+" of "+str(nattempts)+")")
             nalive = 0
         if nalive >= min_nalive:
             break
@@ -479,6 +506,7 @@ def start_pulsard(log_index="", extra_args=""):
 def kill(pod, proc_name):
     ssh(pod, "killall -s 9 "+proc_name+" || true")
 
+
 def check_ssh_is_up_on_pods():
     try:
         for pod in ALL_PODS:
@@ -489,6 +517,7 @@ def check_ssh_is_up_on_pods():
         print(e)
         return False
     return True
+
 
 def wait_until_ssh_is_up_on_pods():
     info("Waiting until SSH daemons are up on all nodes")
@@ -713,6 +742,7 @@ def test_network_slow_down_speed_up(pod_ips):
     info("==== slow down / speed up network test passed! ====")
     stop_test()
 
+
 def test_virtuals_slow_down_speed_up(pod_ips):
     start_test("test_virtuals_slow_down_speed_up")
     info("==== slow down / speed up virtuals test started ====")
@@ -726,6 +756,7 @@ def test_virtuals_slow_down_speed_up(pod_ips):
     check_alive(alive)
     info("==== slow down / speed up virtuals test passed! ====")
     stop_test()
+
 
 def test_small_mtu(pod_ips):
     start_test("test_small_mtu")
@@ -791,11 +822,13 @@ def test_netsplit_single_virtual(pod, pod_ips):
     info("==== netsplit of single virtual at pod#"+str(pod)+" test passed! ====")
     stop_test()
 
+
 def check_dependencies():
     info("Checking dependencies...")
     for d in DEPENDENCIES:
         run('which ' + d)
     info("All dependencies found.")
+
 
 parser = argparse.ArgumentParser(description='Test Insolar using Jepsen-like tests')
 parser.add_argument(
