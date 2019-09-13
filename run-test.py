@@ -97,8 +97,8 @@ os.environ["LC_CTYPE"] = "C"
 
 
 def logto(fname, index=""):
-    return ">> " + fname + "_" + index + ".log"
-
+    # `tee` is used to see recent logs in tmux. please keep it!
+    return "2>&1 | tee /dev/tty >> " + fname + "_" + index + ".log"
 
 def start_test(msg):
     global CURRENT_TEST_NAME
@@ -492,13 +492,13 @@ def start_insolard(pod, log_index="", extra_args=""):
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +\
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
         "./scripts/insolard/"+str(pod)+\
-        "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json &"+\
+        "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json "+\
         logto("insolard", str(pod))+"""; bash\\" """)
 
 
 def start_pulsard(log_index="", extra_args=""):
     ssh(PULSAR, "cd " + INSPATH + """ && tmux new-session -d """+\
-        extra_args+""" \\"./bin/pulsard -c pulsar.yaml &"""+\
+        extra_args+""" \\"./bin/pulsard -c pulsar.yaml """+\
         logto("pulsar") +"""; bash\\" """)
 
 
@@ -560,9 +560,11 @@ def deploy_insolar():
         pod_path = path+str(pod)
         ssh(pod, "mkdir -p "+pod_path)
         for k in pod_ips.keys():
-            ssh(pod, "mkdir -p /tmp/heavy/tmp && mkdir -p /tmp/heavy/target")
             ssh(pod, "find "+path+" -type f -print "+\
                 " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
+        if pod == HEAVY:
+            ssh(pod, "mkdir -p /tmp/heavy/tmp && mkdir -p /tmp/heavy/target && mkdir -p "+INSPATH+"/data")
+            scp_to(pod, "/tmp/insolar-jepsen-configs/last_backup_info.json", INSPATH+"/data/last_backup_info.json")
         scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
 

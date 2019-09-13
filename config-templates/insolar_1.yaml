@@ -40,7 +40,7 @@ ledger:
     backupfile: incr.bkp
     dirnametemplate: pulse-%d
     backupwaitperiod: 60
-    lastbackupinfofile: .artifacts/launchnet/last_backup_info.json
+    lastbackupinfofile: ./data/last_backup_info.json
     postprocessbackupcmd:
     - bash
     - -c
