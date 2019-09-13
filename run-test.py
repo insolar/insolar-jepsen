@@ -26,6 +26,10 @@ import traceback
 START_PORT = 32000
 VIRTUAL_START_PORT = 19000
 INSPATH = "go/src/github.com/insolar/insolar"
+OLD_MEMBERS_FILE = ".artifacts/bench-members/members-from-start.txt"
+MEMBERS_FILE = ".artifacts/bench-members/members.txt"
+LIGHT_CHAIN_LIMIT = 5
+PULSE_DELTA = 10
 
 HEAVY = 1
 LIGHTS = [2, 3, 4, 5, 6]
@@ -412,9 +416,11 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
                      './bin/benchmark -c ' + str(C) + ' -r ' + str(R) + ' -a http://'+pod_ips[virtual_pod_name] +
                      ':'+str(port) + '/admin-api/rpc ' +
                      ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
-                     '-k=./scripts/insolard/configs/ ' + extra_args + ' | grep Success')
-    if out == 'Successes: '+str(C*R):
+                     '-k=./scripts/insolard/configs/ ' + extra_args)
+    if 'Successes: '+str(C*R) in out:
         return True
+    info("Benchmark run wasn't success: ")
+    info(out)
     return False
 
 
@@ -590,7 +596,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-s')
+    ok = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
 
     for pod in virtual_pods:
@@ -609,7 +615,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-m')
+    ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
@@ -631,7 +637,7 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, api_pod=LIGHTS[0], extra_args='-s')
+    ok = run_benchmark(pod_ips, api_pod=LIGHTS[0], extra_args='-s --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
 
     for pod in virtual_pods:
@@ -646,7 +652,7 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-m')
+    ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
@@ -663,7 +669,7 @@ def test_stop_start_lights(light_pods, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-light")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-s')
+    ok = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
@@ -687,7 +693,7 @@ def test_stop_start_lights(light_pods, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="light-up")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-m')
+    ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
 
     info("==== start/stop light at pods #"+str(light_pods)+" passed! ====")
@@ -700,7 +706,7 @@ def test_stop_start_heavy(heavy_pod, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-heavy")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-s')
+    ok = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
@@ -723,7 +729,7 @@ def test_stop_start_heavy(heavy_pod, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="heavy-up")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-m')
+    ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
 
     info("==== start/stop heavy at pod #"+str(heavy_pod)+" passed! ====")
@@ -874,6 +880,18 @@ pod_ips = k8s_get_pod_ips()
 
 stop_test()
 
+ok = run_benchmark(pod_ips, extra_args="-s --members-file=" + OLD_MEMBERS_FILE)
+check_benchmark(ok)
+members_creted_at = time.time()
+info("Wait for data to save on heavy (top sync pulse must change)")
+pulse_when_members_created = current_pulse()
+finalized_pulse = get_finalized_pulse_from_exporter()
+while pulse_when_members_created != finalized_pulse:
+    wait(1)
+    finalized_pulse = get_finalized_pulse_from_exporter()
+
+info("Data was saved on heavy (top sync pulse changed)")
+
 if args.skip_all_tests:
     notify("Deploy checked, skipping all tests")
     sys.exit(0)
@@ -899,5 +917,15 @@ for test_num in range(0, args.repeat):
     test_stop_start_heavy(HEAVY, pod_ips)
 
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
+
+pulses_pass = (current_pulse() - pulse_when_members_created)//PULSE_DELTA
+while pulses_pass < LIGHT_CHAIN_LIMIT:
+    wait(5)
+    pulses_pass = (current_pulse() - pulse_when_members_created)//PULSE_DELTA
+
+info("Make calls to members, created at the beginning: " + str(pulses_pass) + " pulses ago")
+ok = run_benchmark(pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
+check_benchmark(ok)
+
 
 notify("Test completed!")
