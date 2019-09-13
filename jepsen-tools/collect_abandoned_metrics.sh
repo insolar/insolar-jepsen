@@ -5,10 +5,12 @@ FILE=$DIR/pod_ips
 IPS=$(cat "$FILE")
 PORT=8080
 METRIC_NAME="insolar_requests_abandoned{"
-#METRIC_NAME="insolar_process_open_fds{"
 
 for ip in $IPS
 do
-metric=$(curl -s "$ip":$PORT/metrics | grep $METRIC_NAME)
-echo "$ip":"$metric"
+    metric=$(curl -s "$ip":$PORT/metrics | grep $METRIC_NAME)
+    if [ -n "$metric" ]
+    then
+        echo "$ip":"$metric"
+    fi
 done

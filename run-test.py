@@ -442,47 +442,52 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
 def check_abandoned_requests(nattempts=5, step=15, verbose=False):
     start_test("check_abandoned_requests")
     info("==== start/stop check_abandoned_requests test started ====")
-    abandoned_data = {}
-    abandoned_leak = 0
+
+    # Dict with count of abandoned metric. (key - <node_and_metric_mane>, value - <count>). 
+    # Example: <10.1.0.179:insolar_requests_abandoned{role="heavy_material"} 20>, 
+    #          <10.1.0.180:insolar_requests_abandoned{role="light_material"} 35>, 
+    #          ...
+    abandoned_data = {} 
+    # Difference of abandoned requests count between two steps.
+    abandoned_delta = 0
     errors = ""
+
     for attempt in range(1, nattempts+1):
-        i = 0
-        abandoned_raw_data = get_abandones_metric()
-        debug(abandoned_raw_data)
-        if len(abandoned_raw_data) > 0:
-            for line in abandoned_raw_data.split("\n"):
-                kv = line.split()
-                if len(kv) <= 1:
-                    kv.insert(1, 0)
-                if i in abandoned_data and int(kv[1]) > abandoned_data[i]:
-                    abandoned_leak += 1
-                    errors += "Abandoned increase in " + str(kv[0]) + ". Old:" + str(abandoned_data[i]) + ", new:" + str(kv[1]) + "\n"
-
-                abandoned_data[i] = int(kv[1])
-                i += 1
-
-        if abandoned_leak == 0:
-            if verbose:
-                info("Attempt " + str(attempt) + ". No abandoned requests here.")
-        else:
-            if verbose:
-                info("Attempt " + str(attempt) + ". Count of abandoned requests: " + str(abandoned_leak))
-
-        attempt += 1
         time.sleep(step)
 
-    # If abandoned_leak is 0
+        abandoned_delta = 0
+        abandoned_raw_data = get_abandones_count_from_nodes()
+
+        if len(abandoned_raw_data) == 0:
+            continue
+
+        for line in abandoned_raw_data.split("\n"):
+            kv = line.split()
+            node = kv[0]        # key for abandoned_data dict.
+            count = int(kv[1])  # value for abandoned_data dict.
+            if node in abandoned_data and count > abandoned_data[node]:
+                abandoned_delta += count - abandoned_data[node]
+                errors += "Attempt: " + str(attempt) + "Abandoned increase in " + node + ". Old:" + str(abandoned_data[node]) + ", New:" + str(count) + "\n"
+
+            abandoned_data[node] = count
+
+        if verbose: info("Attempt " + str(attempt) + ". Abandoned requests delta from last attempt: " + str(abandoned_delta))
+
+    # If abandoned_delta is 0
     # we assume, that all of them was processed.
-    check(0 == abandoned_leak, "Unprocessed Abandoned-requests count IS NOT ZERO. Errors:" + errors)
+    check(abandoned_delta == 0, "Unprocessed Abandoned-requests count IS NOT ZERO. Errors:" + errors)
 
     info("==== start/stop check_abandoned_requests test passed! ====")
     stop_test()
 
-# get_abandones_metric returns count of abandoned requests from light node.
-#
-# address - hostname of light node for metric receiving.
-def get_abandones_metric():
-    return ssh_output(TOOLS_POD, 'cd ' + INSPATH + ' && ./jepsen-tools/collect_abandoned_metrics.sh')
+# get_abandones_count_from_nodes returns list of abandoned requests metric from all nodes:
+#   10.1.0.179:insolar_requests_abandoned{role="heavy_material"} 1
+#   10.1.0.180:insolar_requests_abandoned{role="light_material"} 20
+#   ...
+def get_abandones_count_from_nodes():
+    abandoned_data = ssh_output(TOOLS_POD, 'cd ' + INSPATH + ' && ./jepsen-tools/collect_abandoned_metrics.sh')
+    debug(abandoned_data)
+    return abandoned_data
 
 def current_pulse(node_index=HEAVY, ssh_pod=1):
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
@@ -913,10 +918,6 @@ parser.add_argument(
 parser.add_argument(
     '-i', '--image', metavar='IMG', type=str, required=True,
     help='Docker image to test')
-# TODO remove after test
-parser.add_argument(
-    '-a', '--abandones', action="store_true",
-    help='Only check for abandoned requests')
 
 args = parser.parse_args()
 
@@ -924,18 +925,6 @@ NAMESPACE = args.namespace
 DEBUG = args.debug
 start_test("prepare")
 check_dependencies()
-
-# TODO remove after test
-if args.abandones:
-    pod_ips = k8s_get_pod_ips()
-    POD_NODES = k8s_get_pod_nodes()
-    upload_tools(TOOLS_POD, pod_ips)
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
-    check_abandoned_requests(verbose=True)
-    sys.exit(0)
-
-
 k8s_yaml = "jepsen-pods.yaml"
 info("Generating "+k8s_yaml)
 k8s_gen_yaml(k8s_yaml, args.image, "IfNotPresent" if args.ci else "Never")
