@@ -721,8 +721,8 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup = False):
     info("Insolar is down")
     if restore_from_backup:
         info("Restoring heavy from backup...")
-        ssh(HEAVY, "cd go/src/github.com/insolar/insolar/ && "+\
-            "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && "+\
+        ssh(HEAVY, "cd go/src/github.com/insolar/insolar/ && " +
+            "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
             "rm -r data && cp -r heavy_backup data")
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, log_index="after_heavy_" + str(heavy_pod))
