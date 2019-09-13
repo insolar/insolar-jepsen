@@ -268,8 +268,8 @@ def k8s_get_pod_ips():
     """
     Returns a map PodName -> PodIP
     """
-    data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | "+\
-        """jq -r '.items[] | .metadata.name + " " + .status.podIP'""")
+    data = get_output(k8s(), "get pods", "-l app=insolar-jepsen", "-o=json",
+        "|", """jq -r '.items[] | .metadata.name + " " + .status.podIP'""")
     res = {}
     for kv in data.split("\n"):
         [k, v] = kv.split(' ')
@@ -628,17 +628,10 @@ def deploy_insolar():
     pod_ips = k8s_get_pod_ips()
     for pod in NODES:
         pod_path = ins_node_cfg("insolard")
-        # pod_path = path+str(pod)
         ssh(pod, "mkdir", "-p", pod_path)
-        # for k in pod_ips.keys():
-        #     sed_re = f"s/{k.upper()}/{pod_ips[k]}/g"
-        #     ssh(pod,
-        #         "find", path, "-type f", "-print",
-        #         "|", "grep -v .bak",
-        #         "|", "xargs", "sed", "-i.bak", q_escape(sed_re))
         if pod == HEAVY:
-            ssh(pod, "mkdir -p /tmp/heavy/tmp && mkdir -p /tmp/heavy/target && mkdir -p "+ins_node_cfg("data"))
-            scp_to(pod, "/tmp/insolar-jepsen-configs/last_backup_info.json", ins_node_cfg("data/last_backup_info.json"))
+            ssh(pod, "mkdir -p /tmp/heavy/tmp", "&&", "mkdir -p /tmp/heavy/target", "&&", "mkdir -p data")
+            scp_to(pod, "/tmp/insolar-jepsen-configs/last_backup_info.json", "data/last_backup_info.json")
         scp_to(pod, f"/tmp/insolar-jepsen-configs/insolar_{pod}.yaml", pod_path)
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", ins_node_cfg("pulsewatcher.yaml"))
 
