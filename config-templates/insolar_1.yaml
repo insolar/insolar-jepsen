@@ -44,7 +44,7 @@ ledger:
     postprocessbackupcmd:
     - bash
     - -c
-    - touch $INSOLAR_CURRENT_BACKUP_DIR/BACKUPED
+    - ./bin/backupmanager merge -n $INSOLAR_CURRENT_BACKUP_DIR/incr.bkp -t ./heavy_backup && touch $INSOLAR_CURRENT_BACKUP_DIR/BACKUPED
 log:
   level: Debug
   adapter: zerolog
