@@ -26,6 +26,15 @@ import traceback
 START_PORT = 32000
 VIRTUAL_START_PORT = 19000
 INSPATH = "go/src/github.com/insolar/insolar"
+NODE_CFG_DIR = "node-configs"
+INS_BIN_DIR="/home/gopher/bin"
+
+def ins_bin(s: str) -> str:
+    return os.path.join(INS_BIN_DIR, s)
+
+def ins_node_cfg(s: str) -> str:
+    return os.path.join(NODE_CFG_DIR, s)
+
 
 HEAVY = 1
 LIGHTS = [2, 3, 4, 5, 6]
@@ -97,7 +106,9 @@ os.environ["LC_CTYPE"] = "C"
 
 
 def logto(fname, index=""):
-    return ">> " + fname + "_" + index + ".log"
+    if index:
+        fname = fname + "_" + index
+    return ">> " + fname + ".log"
 
 
 def start_test(msg):
@@ -148,7 +159,7 @@ def check_alive(condition):
 
 def check_down(condition):
     if not condition:
-        fail_test("Insolar must be dowm, but its not")
+        fail_test("Insolar must be down, but its not")
 
 
 def check_benchmark(condition):
@@ -161,44 +172,82 @@ def debug(msg):
         return
     print("    "+msg)
 
-def run(cmd):
+def run(cmd, *args):
+    cmd = ' '.join([cmd] + [str(x).lstrip() for x in args])
     debug(cmd)
     code = subprocess.call(cmd, shell=True)
     if code != 0:
-        print("Command `%s` returned non-zero status: %d" %
-              (cmd, code))
+        print("Command `%s` returned non-zero status: %d" % (cmd, code))
         sys.exit(1)
 
-def get_output(cmd):
+def get_output(cmd, *args):
+    cmd = ' '.join([cmd] + [str(x).lstrip() for x in args])
     debug(cmd)
     data = subprocess.check_output(cmd, shell=True)
     data = data.decode('utf-8').strip()
     return data
 
+def q(*args) -> str:
+    s = ' '.join([str(x) for x in args])
+    return f"'{s}'"
+
+def qq(*args) -> str:
+    s = ' '.join([str(x) for x in args])
+    return f'"{s}"'
+
+def q_escape(*args) -> str:
+    s = ' '.join([str(x) for x in args])
+    return s.replace("'", "\\'")
+
+def qq_escape(*args) -> str:
+    s = ' '.join([str(x) for x in args])
+    return s.replace('"', '\\"')
+
+
 def ssh_user_host(pod):
     return "gopher@"+POD_NODES['jepsen-'+str(pod)]
 
-def ssh(pod, cmd):
-	run("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
-        str(START_PORT + pod)+" "+ssh_user_host(pod)+\
-        """ "bash -c 'source ./.bash_profile ; """+\
-        cmd + """ '" 2>/dev/null""")
+def ssh(pod, cmd, *args):
+    cmd = ' '.join([cmd] + [str(x).lstrip() for x in args])
+    run("ssh",
+        "-o", q("StrictHostKeyChecking no"),
+        "-o", q("UserKnownHostsFile=/dev/null"),
+        "-i", "./base-image/id_rsa",
+        "-p", str(START_PORT + pod),
+        ssh_user_host(pod),
+        qq(qq_escape("bash -c "+q("source ./.bash_profile ; "+cmd))),
+        redirect_stderr())
 
-def ssh_output(pod, cmd):
-	return get_output("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
-        str(START_PORT + pod)+" "+ssh_user_host(pod)+\
-        """ "bash -c 'source ./.bash_profile ; """+\
-        cmd + """ '" 2>/dev/null""")
+def ssh_output(pod, cmd, *args):
+    cmd = ' '.join([cmd] + [str(x).lstrip() for x in args])
+    return get_output("ssh",
+        "-o", q("StrictHostKeyChecking no"),
+        "-o", q("UserKnownHostsFile=/dev/null"),
+        "-i", "./base-image/id_rsa -p "+str(START_PORT + pod),
+        ssh_user_host(pod),
+        qq(qq_escape("bash -c "+q("source ./.bash_profile ; "+cmd))),
+        redirect_stderr())
 
 def scp_to(pod, lpath, rpath, flags=''):
-    run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P"+\
-        str(START_PORT + pod)+" "+flags+" " + lpath + " "+ssh_user_host(pod)+\
-        ":"+rpath+" 2>/dev/null")
+    run("scp",
+        "-o", q("StrictHostKeyChecking no"),
+        "-o", q("UserKnownHostsFile=/dev/null"),
+        "-i", "./base-image/id_rsa",
+        "-P", str(START_PORT + pod),
+        flags,
+        lpath,
+        ssh_user_host(pod)+":"+rpath,
+        redirect_stderr())
 
 def scp_from(pod, rpath, lpath, flags=''):
-    run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P"+\
-        str(START_PORT + pod)+" " + flags + " "+ssh_user_host(pod)+\
-        ":"+rpath+" "+lpath+" 2>/dev/null")
+    run("scp",
+        "-o", q("StrictHostKeyChecking no"),
+        "-o", q("UserKnownHostsFile=/dev/null"),
+        " -i ./base-image/id_rsa -P"+str(START_PORT + pod),
+        flags,
+        ssh_user_host(pod)+":"+rpath,
+        lpath,
+        redirect_stderr())
 
 def k8s():
     return "kubectl --namespace "+NAMESPACE+" "
@@ -208,10 +257,12 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
 		for i in ALL_PODS:
 			pod_name = "jepsen-"+str(i)
 			ssh_port = str(32000 + i)
-			descr = K8S_YAML_TEMPLATE.format(
-				pod_name = pod_name, ssh_port = ssh_port,
-				image_name = image_name, pull_policy = pull_policy)
-			f.write(descr)
+			description = K8S_YAML_TEMPLATE.format(
+				pod_name = pod_name,
+                ssh_port = ssh_port,
+				image_name = image_name,
+                pull_policy = pull_policy)
+			f.write(description)
 
 def k8s_get_pod_ips():
     """
@@ -243,7 +294,7 @@ def k8s_get_pod_nodes():
 
 def k8s_stop_pods_if_running(fname):
     info("stopping pods if they are running")
-    run(k8s()+"delete -f "+fname+" 2>/dev/null || true")
+    run(k8s(), "delete -f", fname, redirect_stderr(), "|| true")
     while True:
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | "+\
             "jq -r '.items[].metadata.name' | wc -l")
@@ -255,9 +306,10 @@ def k8s_stop_pods_if_running(fname):
 
 def k8s_start_pods(fname):
     info("starting pods")
-    run(k8s()+"apply -f "+fname)
+    run(k8s(), "apply -f "+fname)
     while True:
-        data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | "+\
+        data = get_output(k8s(),
+            "get pods -l app=insolar-jepsen -o=json |",
             "jq -r '.items[].status.phase' | grep Running | wc -l")
         info("running pods: "+data)
         if data == str(len(ALL_PODS)):
@@ -371,10 +423,14 @@ def network_status_is_ok(network_status, nodes_online):
 
 
 def get_finalized_pulse_from_exporter():
-    cmd = 'grpcurl -import-path /home/gopher/go/src' +\
-          ' -proto /home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto' +\
-          """ -plaintext localhost:5678 exporter.PulseExporter.TopSyncPulse"""
-    out = get_output("kubectl exec -it jepsen-1 -- /bin/bash -c ' " + cmd + " ' ")
+    out = get_output(
+        "kubectl exec -it jepsen-1", "--", "/bin/bash", "-c", q(
+            "grpcurl",
+            "-import-path", "/home/gopher/go/src",
+            "-proto",  "/home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto",
+            "-plaintext", "localhost:5678",
+            "exporter.PulseExporter.TopSyncPulse",
+        ))
     pulse = json.loads(out)["PulseNumber"]
     info("exporter said: " + str(pulse))
     return pulse
@@ -383,29 +439,38 @@ def get_finalized_pulse_from_exporter():
 def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
     virtual_pod_name = 'jepsen-'+str(api_pod)
     port = VIRTUAL_START_PORT + api_pod
-    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
-                     'timelimit -s9 -t20 '+  # timeout: 20 seconds
-                     './bin/benchmark -b -c '+str(C)+' -r '+str(R)+' -a http://'+pod_ips[virtual_pod_name]+':'+str(port)+'/admin-api/rpc '+
-                     ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
-                     '-k=./scripts/insolard/configs/ ' + extra_args + ' | grep Success')
+    out = ssh_output(ssh_pod,
+        'timelimit -s9 -t20', # timeout: 20 seconds
+        ins_bin('benchmark'), '-b',
+        '-c', C, '-r', R,
+        '-a', f"http://{pod_ips[virtual_pod_name]}:{port}/admin-api/rpc",
+        '-p', f"http://{pod_ips[virtual_pod_name]}:{port + 100}/api/rpc",
+        '-k', './scripts/insolard/configs/',
+        extra_args,
+        '|', 'grep Success')
     if out == 'Successes: '+str(C*R):
         return True
     return False
 
 
 def current_pulse(node_index=HEAVY, ssh_pod=1):
-    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
-                     'timelimit -s9 -t10 ' +  # timeout: 10 seconds
-                     './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
+    out = ssh_output(ssh_pod,
+            'timelimit -s9 -t10', # timeout: 10 seconds
+            ins_bin('pulsewatcher'),
+            '--single', '--json',
+            '--config', ins_node_cfg('pulsewatcher.yaml'))
     network_status = json.loads(out)
     pn = network_status[node_index]['PulseNumber']
     return pn
 
 
 def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod = 1):
-    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
-        'timelimit -s9 -t10 '+ # timeout: 10 seconds
-        './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
+    out = ssh_output(ssh_pod,
+        'timelimit -s9 -t10', # timeout: 10 seconds
+        ins_bin('pulsewatcher'),
+        '--single', '--json',
+        '--config', ins_node_cfg('pulsewatcher.yaml'))
+
     network_status = json.loads(out)
     if not network_status_is_ok(network_status, nodes_online):
         return False
@@ -463,17 +528,32 @@ def wait_until_insolar_is_down(nattempts=10, pause_sec=5):
 
 
 def start_insolard(pod, log_index="", extra_args=""):
-    ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +\
-        """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +\
-        "./scripts/insolard/"+str(pod)+\
-        "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json &"+\
-        logto("insolard", str(pod))+"""; bash\\" """)
+    cfg = os.path.join(ins_node_cfg("insolard"), f"insolar_{pod}.yaml")
+
+    ssh(pod,
+        "tmux new-session -d", extra_args,
+        qq(
+            "INSOLAR_LOG_LEVEL="+LOG_LEVEL,
+            ins_bin("insolard"),
+            '--config', cfg,
+            "--heavy-genesis", "scripts/insolard/configs/heavy_genesis.json",
+            logto("insolard", str(pod)),
+            "; bash")
+    )
 
 
 def start_pulsard(log_index="", extra_args=""):
-    ssh(PULSAR, "cd " + INSPATH + """ && tmux new-session -d """+\
-        extra_args+""" \\"./bin/pulsard -c pulsar.yaml &"""+\
-        logto("pulsar") +"""; bash\\" """)
+    print("start_pulsard>")
+    ssh(PULSAR,
+        "tmux new-session -d",
+        extra_args,
+        qq(
+            ins_bin('pulsard'),
+            '-c', ins_node_cfg('pulsar.yaml'),
+            logto("pulsar"),
+            '; bash',
+        ),
+    )
 
 
 def kill(pod, proc_name):
@@ -513,29 +593,37 @@ def prepare_configs():
     pod_ips = k8s_get_pod_ips()
 
     for k in sorted(pod_ips.keys(), reverse=True):
-        run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak "+\
-            "| xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
+        sed_re = f"s/{k.upper()}/{pod_ips[k]}/g"
+        run("find", "/tmp/insolar-jepsen-configs", "-type f", "-print",
+            "|", "grep -v .bak",
+            "|", "xargs", "sed", "-i.bak", q_escape(sed_re),
+        )
 
 
 def deploy_pulsar():
     info("starting pulsar (before anything else, otherwise consensus will not be reached)")
-    ssh(PULSAR, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
-    scp_to(PULSAR, "/tmp/insolar-jepsen-configs/pulsar.yaml", INSPATH+"/pulsar.yaml")
+    # ssh(PULSAR, "mkdir -p "+INSPATH+"/scripts/insolard/configs/")
+    # print("copy pulsar config")
+    scp_to(PULSAR, "/tmp/insolar-jepsen-configs/pulsar.yaml", ins_node_cfg("pulsar.yaml"))
     start_pulsard(log_index="deploy", extra_args="-s pulsard")
 
 
 def deploy_insolar():
     info("copying configs and fixing certificates for discovery nodes")
+    print("NODE_CFG_DIR=", NODE_CFG_DIR)
     pod_ips = k8s_get_pod_ips()
     for pod in NODES:
-        path = INSPATH+"/scripts/insolard/"
-        pod_path = path+str(pod)
-        ssh(pod, "mkdir -p "+pod_path)
-        for k in pod_ips.keys():
-            ssh(pod, "find "+path+" -type f -print "+\
-                " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
-        scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
-        scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
+        pod_path = ins_node_cfg("insolard")
+        # pod_path = path+str(pod)
+        ssh(pod, "mkdir", "-p", pod_path)
+        # for k in pod_ips.keys():
+        #     sed_re = f"s/{k.upper()}/{pod_ips[k]}/g"
+        #     # ssh(pod,
+        #     #     "find", path, "-type f", "-print",
+        #     #     "|", "grep -v .bak",
+        #     #     "|", "xargs", "sed", "-i.bak", q_escape(sed_re))
+        scp_to(pod, f"/tmp/insolar-jepsen-configs/insolar_{pod}.yaml", pod_path)
+        scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", ins_node_cfg("pulsewatcher.yaml"))
 
     start_insolar_net(NODES, pod_ips, log_index="deploy", extra_args_insolard="-s insolard")
 
@@ -818,6 +906,11 @@ parser.add_argument(
     help='Docker image to test')
 
 args = parser.parse_args()
+
+def redirect_stderr() -> str:
+    if args.debug:
+        return ""
+    return " 2>/dev/null"
 
 NAMESPACE = args.namespace
 DEBUG = args.debug
