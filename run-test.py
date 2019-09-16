@@ -207,8 +207,9 @@ def ssh_user_host(pod):
 def ssh(pod, cmd, *args):
     cmd = ' '.join([cmd] + [str(x).lstrip() for x in args])
     run("ssh",
-        "-o", q("StrictHostKeyChecking no"),
-        "-o", q("UserKnownHostsFile=/dev/null"),
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
+        "-o", "LogLevel=error",
         "-i", "./base-image/id_rsa",
         "-p", str(START_PORT + pod),
         ssh_user_host(pod),
@@ -218,8 +219,9 @@ def ssh(pod, cmd, *args):
 def ssh_output(pod, cmd, *args):
     cmd = ' '.join([cmd] + [str(x).lstrip() for x in args])
     return get_output("ssh",
-        "-o", q("StrictHostKeyChecking no"),
-        "-o", q("UserKnownHostsFile=/dev/null"),
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
+        "-o", "LogLevel=error",
         "-i", "./base-image/id_rsa -p "+str(START_PORT + pod),
         ssh_user_host(pod),
         qq(qq_escape("bash -c "+q("source ./.bash_profile ; "+cmd))),
@@ -227,8 +229,9 @@ def ssh_output(pod, cmd, *args):
 
 def scp_to(pod, lpath, rpath, flags=''):
     run("scp",
-        "-o", q("StrictHostKeyChecking no"),
-        "-o", q("UserKnownHostsFile=/dev/null"),
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
+        "-o", "LogLevel=error",
         "-i", "./base-image/id_rsa",
         "-P", str(START_PORT + pod),
         flags,
@@ -239,8 +242,8 @@ def scp_to(pod, lpath, rpath, flags=''):
 
 def scp_from(pod, rpath, lpath, flags=''):
     run("scp",
-        "-o", q("StrictHostKeyChecking no"),
-        "-o", q("UserKnownHostsFile=/dev/null"),
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=/dev/null",
         " -i ./base-image/id_rsa -P"+str(START_PORT + pod),
         flags,
         ssh_user_host(pod)+":"+rpath,
