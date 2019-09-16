@@ -927,14 +927,14 @@ for test_num in range(0, args.repeat):
         t()
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
-pulses_pass = (current_pulse() - pulse_when_members_created)//PULSE_DELTA
-while pulses_pass < LIGHT_CHAIN_LIMIT:
-    wait(5)
+    # The following test should be executed after the rest of the tests
     pulses_pass = (current_pulse() - pulse_when_members_created)//PULSE_DELTA
+    while pulses_pass < LIGHT_CHAIN_LIMIT:
+        wait(5)
+        pulses_pass = (current_pulse() - pulse_when_members_created)//PULSE_DELTA
 
-info("Make calls to members, created at the beginning: " + str(pulses_pass) + " pulses ago")
-ok = run_benchmark(pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
-check_benchmark(ok)
-
+    info("Make calls to members, created at the beginning: " + str(pulses_pass) + " pulses ago")
+    ok = run_benchmark(pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
+    check_benchmark(ok)
 
 notify("Test completed!")
