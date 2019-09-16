@@ -115,12 +115,14 @@ def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
     msg = failure_message \
+        .replace("|", "||") \
         .replace("\n", "|n").replace("\r", "|r") \
-        .replace("[", "|[").replace("]", "|]").replace("|", "||")
+        .replace("[", "|[").replace("]", "|]")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, msg))
-    trace = "".join(traceback.format_stack()[:-1])\
-        .replace("\n", "|n").replace("\r", "|r")\
-        .replace("[", "|[").replace("]", "|]").replace("|", "||")
+    trace = "".join(traceback.format_stack()[:-1]) \
+        .replace("|", "||") \
+        .replace("\n", "|n").replace("\r", "|r") \
+        .replace("[", "|[").replace("]", "|]")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, trace))
     stop_test()
     sys.exit(1)
