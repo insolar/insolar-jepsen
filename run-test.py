@@ -104,6 +104,7 @@ def logto(fname, index=""):
     # `tee` is used to see recent logs in tmux. please keep it!
     return "2>&1 | tee /dev/tty >> " + fname + "_" + index + ".log"
 
+
 def start_test(msg):
     global CURRENT_TEST_NAME
     CURRENT_TEST_NAME = msg
@@ -113,9 +114,14 @@ def start_test(msg):
 def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
-    print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
-    trace = "".join(traceback.format_stack()[:-1])\
-        .replace("\n", "|n").replace("\r", "|r")\
+    msg = failure_message \
+        .replace("|", "||") \
+        .replace("\n", "|n").replace("\r", "|r") \
+        .replace("[", "|[").replace("]", "|]")
+    print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, msg))
+    trace = "".join(traceback.format_stack()[:-1]) \
+        .replace("|", "||") \
+        .replace("\n", "|n").replace("\r", "|r") \
         .replace("[", "|[").replace("]", "|]")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, trace))
     stop_test()
@@ -147,12 +153,16 @@ def check(condition, failure_message):
 
 def check_alive(condition):
     if not condition:
-        fail_test("Insolar must be alive, but its not")
+        out = ssh_output(1, 'cd go/src/github.com/insolar/insolar && ' +
+                                    'timelimit -s9 -t10 ' +  # timeout: 10 seconds
+                                    './bin/pulsewatcher --single --config ./pulsewatcher.yaml')
+        msg = "Insolar must be alive, but its not:\n" + out
+        fail_test(msg)
 
 
 def check_down(condition):
     if not condition:
-        fail_test("Insolar must be dowm, but its not")
+        fail_test("Insolar must be down, but its not")
 
 
 def check_benchmark(condition):
@@ -424,19 +434,20 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
     return False
 
 
-def current_pulse(node_index=HEAVY, ssh_pod=1):
-    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && '+
+def pulsewatcher_output(ssh_pod=1):
+    return ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
                      'timelimit -s9 -t10 ' +  # timeout: 10 seconds
                      './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
-    network_status = json.loads(out)
+
+
+def current_pulse(node_index=HEAVY, ssh_pod=1):
+    network_status = json.loads(pulsewatcher_output(ssh_pod))
     pn = network_status[node_index]['PulseNumber']
     return pn
 
 
-def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod = 1):
-    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
-        'timelimit -s9 -t10 ' +  # timeout: 10 seconds
-        './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
+def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod=1):
+    out = pulsewatcher_output(ssh_pod)
     network_status = json.loads(out)
     if not network_status_is_ok(network_status, nodes_online):
         return False
