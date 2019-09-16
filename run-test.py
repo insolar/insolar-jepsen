@@ -7,6 +7,7 @@ import subprocess
 import argparse
 import json
 import time
+import random
 import traceback
 
 # Roles:
@@ -903,27 +904,27 @@ if args.skip_all_tests:
     notify("Deploy checked, skipping all tests")
     sys.exit(0)
 
+tests = [
+    # lambda: test_network_slow_down_speed_up(pod_ips), TODO: this test hangs on CI, fix it
+    # lambda: test_virtuals_slow_down_speed_up(pod_ips), TODO: this test hangs on CI, fix it
+    # lambda: test_small_mtu(pod_ips), # TODO: this test hangs @ DigitalOcean, fix it
+    lambda: test_stop_start_pulsar(pod_ips, test_num),
+    # lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: make this test pass, see INS-2125
+    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
+    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
+    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
+    lambda: test_stop_start_lights(LIGHTS, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup = True),
+    ]
+
 for test_num in range(0, args.repeat):
-    # TODO: implement a flag that runs tests in random order
-    # test_network_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
-    # test_virtuals_slow_down_speed_up(pod_ips) TODO: this test hangs on CI, fix it
-    # test_small_mtu(pod_ips) # TODO: this test hangs @ DigitalOcean, fix it
-    test_stop_start_pulsar(pod_ips, test_num)
-    # test_netsplit_single_virtual(VIRTUALS[0], pod_ips) # TODO: make this test pass, see INS-2125
-
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips)
-    test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips)
-
-    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips)
-    test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips)
-
-    test_stop_start_lights([LIGHTS[0]], pod_ips)
-    test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips)
-    test_stop_start_lights(LIGHTS, pod_ips)
-
-    test_stop_start_heavy(HEAVY, pod_ips)
-    test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup = True)
-
+    random.shuffle(tests)
+    for t in tests:
+        t()
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
 pulses_pass = (current_pulse() - pulse_when_members_created)//PULSE_DELTA
