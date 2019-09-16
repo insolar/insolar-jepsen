@@ -152,7 +152,7 @@ def check(condition, failure_message):
 
 
 def check_alive(condition):
-    if not condition or CURRENT_TEST_NAME == "test_stop_start_pulsar":
+    if not condition:
         out = ssh_output(1, 'cd go/src/github.com/insolar/insolar && ' +
                                     'timelimit -s9 -t10 ' +  # timeout: 10 seconds
                                     './bin/pulsewatcher --single --config ./pulsewatcher.yaml')
