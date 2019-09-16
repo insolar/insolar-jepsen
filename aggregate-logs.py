@@ -45,19 +45,22 @@ hostname = k8s_hostname()
 
 print("Info: k8s hostname = "+hostname)
 
+run("""rm -f """+copy_to_dir+"""all_errors.log""")
+run("""rm -f """+copy_to_dir+"""filtered_errors.log""")
+
 for port in range(START_PORT, END_PORT+1):
     node_dir = copy_to_dir + str(port) + "/"
     run("""rm -rf """+node_dir)
     run("""mkdir -p """+node_dir+""" || true """)
     if port == START_PORT:
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/members.txt """+node_dir+""" 2>/dev/null || true""")
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/* """+node_dir+""" 2>/dev/null  || true""")
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
         """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log """+node_dir+""" 2>/dev/null """)
 
-run("""grep -rn " ERR " """ + copy_to_dir +
+run("""grep -rn " ERR \|panic\|FTL" """ + copy_to_dir +
     """ | sort > """ + copy_to_dir + """all_errors.log""")
 
-run("""grep -rn " ERR " """ + copy_to_dir + """*/*.log""" +
+run("""grep -rn " ERR \|panic\|FTL" """ + copy_to_dir + """*/*.log""" +
     """ | grep -v "TraceID already set" | grep -v "Failed to process packet" | sort > """ +
     copy_to_dir + """filtered_errors.log""")
