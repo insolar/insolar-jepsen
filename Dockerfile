@@ -40,9 +40,6 @@ RUN sudo chown gopher:gopher ./.ssh/authorized_keys
 # STEP 2: Prepare files for Jepsen tests
 COPY --chown=gopher --from=insolar-base \
   "/go/src/github.com/insolar/insolar/bin/" "/home/gopher/bin"
-COPY --chown=gopher --from=insolar-base \
-    "/go/src/github.com/insolar/insolar/scripts/" \
-    "/home/gopher/go/src/github.com/insolar/insolar/scripts/"
 
 # Configure insolar
 RUN mkdir -p node-configs \
@@ -76,7 +73,7 @@ RUN ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml \
 COPY --chown=gopher --from=gotools "/go/bin/grpcurl" "/home/gopher/bin/grpcurl"
 COPY --chown=gopher --from=insolar-base \
     "/go/src/github.com/insolar/insolar/vendor/github.com/gogo/protobuf/" \
-                          "/home/gopher/go/src/github.com/gogo/protobuf";
+                          "/home/gopher/go/src/github.com/gogo/protobuf"
 # add proto files for grpcurl
 COPY --chown=gopher --from=insolar-base \
                 "/go/src/github.com/insolar/insolar/insolar/" \
@@ -84,11 +81,6 @@ COPY --chown=gopher --from=insolar-base \
 COPY --chown=gopher --from=insolar-base \
                 "/go/src/github.com/insolar/insolar/ledger/heavy/exporter/" \
     "/home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/"
-
-# fix permissions on insolar files
-# USER root
-# RUN chown -R gopher: /home/gopher/
-# USER gopher
 
 EXPOSE 22
 CMD ["/usr/bin/sudo", "/usr/sbin/sshd", "-D"]

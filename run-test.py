@@ -627,11 +627,17 @@ def deploy_pulsar():
 
 def deploy_insolar():
     info("copying configs and fixing certificates for discovery nodes")
-    print("NODE_CFG_DIR=", NODE_CFG_DIR)
     pod_ips = k8s_get_pod_ips()
     for pod in NODES:
         pod_path = ins_node_cfg("insolard")
         ssh(pod, "mkdir", "-p", pod_path)
+        for k in sorted(pod_ips.keys(), reverse=True):
+            sed_re = f"s/{k.upper()}/{pod_ips[k]}/g"
+            ssh(pod, "find", "scripts/insolard/", "-type f", "-print",
+                "|", "grep -v .bak",
+                "|", "xargs", "sed", "-i.bak", q_escape(sed_re),
+            )
+
         if pod == HEAVY:
             ssh(pod, "mkdir -p /tmp/heavy/tmp", "&&", "mkdir -p /tmp/heavy/target", "&&", "mkdir -p data")
             scp_to(pod, "/tmp/insolar-jepsen-configs/last_backup_info.json", "data/last_backup_info.json")
