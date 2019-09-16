@@ -104,6 +104,7 @@ def logto(fname, index=""):
     # `tee` is used to see recent logs in tmux. please keep it!
     return "2>&1 | tee /dev/tty >> " + fname + "_" + index + ".log"
 
+
 def start_test(msg):
     global CURRENT_TEST_NAME
     CURRENT_TEST_NAME = msg
@@ -113,10 +114,13 @@ def start_test(msg):
 def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
-    print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, failure_message))
+    msg = failure_message \
+        .replace("\n", "|n").replace("\r", "|r") \
+        .replace("[", "|[").replace("]", "|]").replace("|", "||")
+    print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, msg))
     trace = "".join(traceback.format_stack()[:-1])\
         .replace("\n", "|n").replace("\r", "|r")\
-        .replace("[", "|[").replace("]", "|]")
+        .replace("[", "|[").replace("]", "|]").replace("|", "||")
     print("##teamcity[testFailed name='%s' message='%s']" % (CURRENT_TEST_NAME, trace))
     stop_test()
     sys.exit(1)
