@@ -486,10 +486,22 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
     return nalive >= min_nalive
 
 
-def start_insolar_net(nodes, pod_ips, extra_args_insolard=""):
-    info("Starting insolar net")
-    for pod in nodes:
-        start_insolard(pod, extra_args=extra_args_insolard)
+def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step=""):
+    alive = False
+
+    for attempt in range(1, 4):
+        info("Insolar net not alive, kill all for clear start")
+        for node in NODES:
+            kill(node, "insolard")
+        info("Starting insolar net (attempt %s)" % str(attempt))
+        for pod in nodes:
+            start_insolard(pod, extra_args=extra_args_insolard)
+        info("Check insolar net alive")
+        alive = wait_until_insolar_is_alive(pod_ips, NODES, step=step, nattempts=10)
+        if alive:
+            break
+
+    check_alive(alive)
 
 
 def wait_until_insolar_is_down(nattempts=10, pause_sec=5):
@@ -586,10 +598,7 @@ def deploy_insolar():
         scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_"+str(pod)+".yaml", pod_path)
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml", INSPATH+"/pulsewatcher.yaml")
 
-    start_insolar_net(NODES, pod_ips, extra_args_insolard="-s insolard")
-
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="starting", nattempts=20)
-    check_alive(alive)
+    start_insolar_net(NODES, pod_ips, step="starting")
     info("==== Insolar started! ====")
 
 
@@ -659,10 +668,7 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     down = wait_until_insolar_is_down()
     check_down(down)
     info("Insolar is down. Re-launching nodes")
-    start_insolar_net(NODES, pod_ips)
-
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
-    check_alive(alive)
+    start_insolar_net(NODES, pod_ips, step="virtual-up")
 
     ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
@@ -700,10 +706,7 @@ def test_stop_start_lights(light_pods, pod_ips):
     down = wait_until_insolar_is_down()
     check_down(down)
     info("Insolar is down. Re-launching nodes")
-    start_insolar_net(NODES, pod_ips)
-
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="light-up")
-    check_alive(alive)
+    start_insolar_net(NODES, pod_ips, step="light-up")
 
     ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
@@ -742,10 +745,7 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup = False):
             "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
             "rm -r data && cp -r heavy_backup data")
     info("Re-launching nodes")
-    start_insolar_net(NODES, pod_ips)
-
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="heavy-up")
-    check_alive(alive)
+    start_insolar_net(NODES, pod_ips, step="heavy-up")
 
     ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
@@ -812,9 +812,7 @@ def test_stop_start_pulsar(pod_ips, test_num):
     info("Starting pulsar")
     start_pulsard()
 
-    start_insolar_net(NODES, pod_ips, extra_args_insolard="-s insolard_after_pulsar_"+str(test_num))
-    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="pulsar-up")
-    check_alive(alive)
+    start_insolar_net(NODES, pod_ips, step="pulsar-up")
     info("==== start/stop pulsar test passed! ====")
     stop_test()
 
