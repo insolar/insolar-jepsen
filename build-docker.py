@@ -23,13 +23,14 @@ from contextlib import contextmanager
 def parse_args() -> dict:
     parser = argparse.ArgumentParser(description='Build jepsen docker image.')
     parser.add_argument('--insolar-sources', '-s', dest='co_dir', type=str, required=True,
-        help='path where to checkout insolar sources')
+        help='path to insolar sources')
+    parser.add_argument('--image-name', '-i', default="insolar-jepsen", dest='jepsen_image', type=str,
+        help='jepsen image name')
 
     checkout_group = parser.add_mutually_exclusive_group(required=True)
 
-    checkout_group.add_argument('--disable-checkout', action='store_true',
-        help='just use insolar sources dir')
-
+    checkout_group.add_argument('--disable-checkout', '-dc', action='store_true',
+        help='just use insolar sources dir as is')
     git_group = checkout_group.add_mutually_exclusive_group()
     git_group.add_argument('--branch', '-b', type=str, help='insolar branch')
     git_group.add_argument('--tag', '-t', type=str, help='insolar tag')
@@ -49,8 +50,8 @@ def main():
         checkout_insolar(args.co_dir, git_ref, is_tag)
 
     build_insolar_base_image(args.co_dir)
-    build_jepsen_image()
-    notify("Docker build completed")
+    build_jepsen_image(args.jepsen_image)
+    notify(f"Docker image {args.jepsen_image} build completed")
 
 def checkout_insolar(code_dir: str, ref: str, is_tag: bool):
     with timing("Fetch git took"):
@@ -68,13 +69,13 @@ def build_insolar_base_image(code_dir: str):
         with cd(code_dir):
             run(f"make docker_base_build")
 
-def build_jepsen_image():
+def build_jepsen_image(image: str):
     with timing("Build jepsen image took"):
-        run("docker build -t insolar-jepsen .")
+        run(f"docker build -t {image} .")
 
 # helpers
 def notify(message):
-    run("""which osascript && osascript -e 'display notification " """ + message + """ " with title "Jepsen"' || true""")
+    run(f"""which osascript && osascript -e 'display notification "{message}" with title "Jepsen"' || true""")
 
 def run(cmd):
     log("CALL: "+cmd)
