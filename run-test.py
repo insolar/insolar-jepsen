@@ -197,14 +197,14 @@ def ssh_user_host(pod):
 
 
 def ssh(pod, cmd):
-    run("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p" +
+    run("ssh -tt -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p" +
         str(START_PORT + pod)+" "+ssh_user_host(pod) +
         """ "bash -c 'source ./.bash_profile ; """ +
         cmd + """ '" 2>/dev/null""")
 
 
 def ssh_output(pod, cmd):
-    return get_output("ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
+    return get_output("ssh -tt -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p"+\
         str(START_PORT + pod)+" "+ssh_user_host(pod)+\
         """ "bash -c 'source ./.bash_profile ; """+\
         cmd + """ '" 2>/dev/null""")
