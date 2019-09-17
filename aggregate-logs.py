@@ -16,17 +16,19 @@ def debug(msg):
 
 def run(cmd):
     debug(cmd)
-    code = subprocess.call(cmd, shell=True)
-    if code != 0:
-        print("Command `%s` returned non-zero status: %d" %
-              (cmd, code))
+    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if proc.returncode != 0:
+        print("Command `%s` returned non-zero status: %d, output: %s" %
+              (cmd, proc.returncode, str(proc.stdout)))
         sys.exit(1)
+
 
 def get_output(cmd):
     debug(cmd)
     data = subprocess.check_output(cmd, shell=True)
     data = data.decode('utf-8').strip()
     return data
+
 
 def k8s_hostname():
     v = get_output("kubectl get nodes -o json | jq -r '.items[] | .metadata.name' | head -n 1")
@@ -35,6 +37,7 @@ def k8s_hostname():
     if v == "docker-desktop": # Docker Desktop 2.1, k8s 1.14, docker 19.03
         v = "localhost"
     return v
+
 
 if len(sys.argv) < 2:
     print("Usage: {} <copy_to_directory>".format(sys.argv[0]), file=sys.stderr)
@@ -54,9 +57,9 @@ for port in range(START_PORT, END_PORT+1):
     run("""mkdir -p """+node_dir+""" || true """)
     if port == START_PORT:
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/* """+node_dir+""" 2>/dev/null  || true""")
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/* """+node_dir+""" || true""")
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-        """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log """+node_dir+""" 2>/dev/null """)
+        """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log """+node_dir)
 
 run("""grep -rn " ERR \|panic\|FTL" """ + copy_to_dir +
     """ | sort > """ + copy_to_dir + """all_errors.log""")
