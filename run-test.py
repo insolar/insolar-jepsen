@@ -419,12 +419,12 @@ def get_finalized_pulse_from_exporter():
     return pulse
 
 
-def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args=""):
+def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c = C, r = R, timeout = 30):
     virtual_pod_name = 'jepsen-'+str(api_pod)
     port = VIRTUAL_START_PORT + api_pod
     out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
-                     'timelimit -s9 -t30 ' +  # timeout: 30 seconds
-                     './bin/benchmark -c ' + str(C) + ' -r ' + str(R) + ' -a http://'+pod_ips[virtual_pod_name] +
+                     'timelimit -s9 -t'+str(timeout)+' ' +
+                     './bin/benchmark -c ' + str(c) + ' -r ' + str(r) + ' -a http://'+pod_ips[virtual_pod_name] +
                      ':'+str(port) + '/admin-api/rpc ' +
                      ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
                      '-k=./scripts/insolard/configs/ ' + extra_args)
@@ -718,7 +718,7 @@ def test_stop_start_lights(light_pods, pod_ips):
 # TODO: also test without waiting for a sync!
 def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup = False):
     start_test("test_stop_start_heavy" + ("_restore_from_backup" if restore_from_backup else ""))
-    info("==== start/stop heavy at pod #"+str(heavy_pod)+" test started ====")
+    info("==== start/stop heavy at pod #"+str(heavy_pod)+(" with restore from backup" if restore_from_backup else "")+" test started ====")
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-heavy")
     check_alive(alive)
 
@@ -742,7 +742,7 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup = False):
     info("Insolar is down")
     if restore_from_backup:
         info("Restoring heavy from backup...")
-        ssh(HEAVY, "cd go/src/github.com/insolar/insolar/ && " +
+        ssh(heavy_pod, "cd go/src/github.com/insolar/insolar/ && " +
             "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
             "rm -r data && cp -r heavy_backup data")
     info("Re-launching nodes")
@@ -751,9 +751,38 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup = False):
     ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok)
 
-    info("==== start/stop heavy at pod #"+str(heavy_pod)+" passed! ====")
+    info("==== start/stop heavy at pod #"+str(heavy_pod)+(" with restore from backup" if restore_from_backup else "")+" passed! ====")
     stop_test()
 
+def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup = False):
+    start_test("test_kill_backupmanager" + ("_restore_from_backup" if restore_from_backup else ""))
+    info("==== kill backupmanager "+("with restore from backup " if restore_from_backup else "")+"test started ====")
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-backupmanager")
+    check_alive(alive)
+
+    info("Running benchmark and trying to kill backupmanager on pod #"+str(heavy_pod))
+    ssh(heavy_pod, "tmux new-session -d  " +
+        """\\"while true; date; do killall -9 -r backupmanager; if [[ \\\\\\$? == 0 ]]; then echo DONE; break; fi; sleep 0.1; done""" +
+        """; bash\\" """)
+    ok = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE, r=100, timeout=100)
+    check(not ok, "Benchmark should fail while killing backupmanager (increase -c or -r?)")
+
+    down = wait_until_insolar_is_down()
+    check_down(down)
+    info("Insolar is down")
+    if restore_from_backup:
+        info("Restoring heavy from backup...")
+        ssh(heavy_pod, "cd go/src/github.com/insolar/insolar/ && " +
+            "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
+            "rm -r data && cp -r heavy_backup data")
+    info("Re-launching nodes")
+    start_insolar_net(NODES, pod_ips, step="heavy-up")
+
+    ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok)
+
+    info("==== kill backupmanager "+("with restore from backup " if restore_from_backup else "")+"passed! ====")
+    stop_test()
 
 def test_network_slow_down_speed_up(pod_ips):
     start_test("test_network_slow_down_speed_up")
@@ -917,17 +946,19 @@ tests = [
     # lambda: test_network_slow_down_speed_up(pod_ips), TODO: this test hangs on CI, fix it
     # lambda: test_virtuals_slow_down_speed_up(pod_ips), TODO: this test hangs on CI, fix it
     # lambda: test_small_mtu(pod_ips), # TODO: this test hangs @ DigitalOcean, fix it
-    lambda: test_stop_start_pulsar(pod_ips, test_num),
+#    lambda: test_stop_start_pulsar(pod_ips, test_num),
     # lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: make this test pass, see INS-2125
-    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
-    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
-    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
-    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
-    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
-    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
-    lambda: test_stop_start_lights(LIGHTS, pod_ips),
-    lambda: test_stop_start_heavy(HEAVY, pod_ips),
-    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup = True),
+#    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
+#    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
+#    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
+#    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
+#    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
+#    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
+#    lambda: test_stop_start_lights(LIGHTS, pod_ips),
+#    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+#    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup = True),
+    lambda: test_kill_backupmanager(HEAVY, pod_ips),
+    lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup = True),
     ]
 
 for test_num in range(0, args.repeat):
