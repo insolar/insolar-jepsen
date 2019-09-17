@@ -19,7 +19,7 @@ def run(cmd):
     proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if proc.returncode != 0:
         print("Command `%s` returned non-zero status: %d, output: %s" %
-              (cmd, proc.returncode, proc.stdout))
+              (cmd, proc.returncode, str(proc.stdout)))
         sys.exit(1)
 
 
