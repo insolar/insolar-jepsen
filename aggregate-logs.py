@@ -54,9 +54,9 @@ for port in range(START_PORT, END_PORT+1):
     run("""mkdir -p """+node_dir+""" || true """)
     if port == START_PORT:
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/* """+node_dir+""" 2>/dev/null  || true""")
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/* """+node_dir+""" || true""")
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-        """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log """+node_dir+""" 2>/dev/null """)
+        """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log """+node_dir)
 
 run("""grep -rn " ERR \|panic\|FTL" """ + copy_to_dir +
     """ | sort > """ + copy_to_dir + """all_errors.log""")
