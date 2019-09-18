@@ -413,7 +413,7 @@ def get_finalized_pulse_from_exporter():
     cmd = 'grpcurl -import-path /home/gopher/go/src' +\
           ' -proto /home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto' +\
           """ -plaintext localhost:5678 exporter.PulseExporter.TopSyncPulse"""
-    out = get_output("kubectl exec -it jepsen-1 -- /bin/bash -c ' " + cmd + " ' ")
+    out = ssh_output(HEAVY, cmd)
     pulse = json.loads(out)["PulseNumber"]
     info("exporter said: " + str(pulse))
     return pulse
