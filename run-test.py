@@ -432,7 +432,7 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c = C,
                          '-k=./scripts/insolard/configs/ ' + extra_args)
     except Exception as e:
         print(e)
-        out = "ssh_output() throwed an exception (non-zero return code)"
+        out = "ssh_output() throwed an exception (non-zero return code): "+str(e)
     if 'Successes: '+str(C*R) in out:
         return True
     info("Benchmark run wasn't success: ")
@@ -768,7 +768,7 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup = False):
     ssh(heavy_pod, "tmux new-session -d -s backupmanager-killer " +
         """\\"while true; do killall -9 -r backupmanager; sleep 0.1; done""" +
         """; bash\\" """)
-    ok = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE, r=100, timeout=100)
+    ok = run_benchmark(pod_ips, r=100, timeout=100)
     check(not ok, "Benchmark should fail while killing backupmanager (increase -c or -r?)")
 
     info("Shutting down backupmanager-killer")
