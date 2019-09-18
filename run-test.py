@@ -433,7 +433,7 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r
     out = ""
     try:
         out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
-                        ("tmux new-session -d \"" if background else "") +
+                         ("tmux new-session -d \"" if background else "") +
                          'timelimit -s9 -t'+str(timeout)+' ' +
                          './bin/benchmark -c ' + str(c) + ' -r ' + str(r) + ' -a http://'+pod_ips[virtual_pod_name] +
                          ':'+str(port) + '/admin-api/rpc ' +
@@ -794,6 +794,7 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
          (" with restore from backup" if restore_from_backup else "")+" passed! ====")
     stop_test()
 
+
 def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     start_test("test_kill_heavy_under_load" +
                ("_restore_from_backup" if restore_from_backup else ""))
@@ -804,7 +805,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     check_alive(alive)
 
     info("Starting benchmark in the background")
-    run_benchmark(pod_ips, r = 100, timeout = 100, background=True)
+    run_benchmark(pod_ips, r=100, timeout=100, background=True)
     info("Killing heavy on pod #"+str(heavy_pod))
     kill(heavy_pod, "insolard")
 
@@ -1045,7 +1046,8 @@ tests = [
     lambda: test_stop_start_heavy(HEAVY, pod_ips),
     lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
     lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
-    lambda: test_kill_heavy_under_load(HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_heavy_under_load(
+        HEAVY, pod_ips, restore_from_backup=True),
     lambda: test_kill_backupmanager(HEAVY, pod_ips),
     lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
 ]
