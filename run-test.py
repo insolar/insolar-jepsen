@@ -89,11 +89,6 @@ spec:
             - NET_ADMIN
       ports:
         - containerPort: 22
-      resources:
-        requests:
-          ephemeral-storage: "2Gi"
-        limits:
-          ephemeral-storage: "4Gi"
   nodeSelector:
     jepsen: "true"
 ---
@@ -820,6 +815,7 @@ def test_stop_start_pulsar(pod_ips, test_num):
 
     start_insolar_net(NODES, pod_ips, step="pulsar-up")
     info("==== start/stop pulsar test passed! ====")
+    fail_test("lol kek")
     stop_test()
 
 
@@ -950,5 +946,10 @@ for test_num in range(0, args.repeat):
     info("Make calls to members, created at the beginning: " + str(pulses_pass) + " pulses ago")
     ok = run_benchmark(pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
     check_benchmark(ok)
+
+    info("Clear logs")
+    for pod in NODES:
+        ssh(pod, "cd " + INSPATH + " && rm insolard" + "_" + str(pod) + ".log")
+
 
 notify("Test completed!")
