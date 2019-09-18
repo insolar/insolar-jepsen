@@ -745,8 +745,6 @@ def test_stop_start_lights(light_pods, pod_ips):
     info("==== start/stop light at pods #"+str(light_pods)+" passed! ====")
     stop_test()
 
-# TODO: also test without waiting for a sync!
-
 
 def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
     start_test("test_stop_start_heavy" +
