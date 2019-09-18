@@ -48,7 +48,7 @@ ledger:
 log:
   level: Debug
   adapter: zerolog
-  formatter: text
+  formatter: json
 metrics:
   listenaddress: JEPSEN-1:8080
   namespace: insolar
