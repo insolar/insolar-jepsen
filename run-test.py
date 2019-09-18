@@ -274,26 +274,30 @@ def k8s_get_pod_nodes():
 def k8s_stop_pods_if_running(fname):
     info("stopping pods if they are running")
     run(k8s()+"delete -f "+fname+" 2>/dev/null || true")
-    while True:
+    for n in range(60):
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | " +
                           "jq -r '.items[].metadata.name' | wc -l")
         info("running pods: "+data)
         if data == "0":
             break
         wait(1)
+    else:
+        fail_test("k8s_stop_pods_if_running no attempts left")
     wait(10)  # make sure services and everything else are gone as well
 
 
 def k8s_start_pods(fname):
     info("starting pods")
     run(k8s()+"apply -f "+fname)
-    while True:
+    for n in range(60):
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | " +
                           "jq -r '.items[].status.phase' | grep Running | wc -l")
         info("running pods: "+data)
         if data == str(len(ALL_PODS)):
             break
         wait(1)
+    else:
+        fail_test("k8s_start_pods no attempts left")
 
 
 def set_network_speed(pod, speed):
@@ -316,7 +320,6 @@ def create_simple_netsplit(pod, pod_ips):
     """
     Simulates simplest netsplit: one node is cut-off from the rest of the network
     """
-    pod_name = 'jepsen-'+str(pod)
     for current_pod in ALL_PODS:
         if current_pod == pod:
             continue
@@ -329,7 +332,6 @@ def fix_simple_netsplit(pod, pod_ips):
     """
     Rolls back an effect of create_simple_netsplit()
     """
-    pod_name = 'jepsen-'+str(pod)
     for current_pod in ALL_PODS:
         if current_pod == pod:
             continue
