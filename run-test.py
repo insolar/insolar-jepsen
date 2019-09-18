@@ -233,11 +233,14 @@ def k8s():
 def k8s_gen_yaml(fname, image_name, pull_policy):
     with open(fname, "w") as f:
         for i in ALL_PODS:
-            pod_name = "jepsen-"+str(i)
+            pod_name = "jepsen-" + str(i)
             ssh_port = str(32000 + i)
             descr = K8S_YAML_TEMPLATE.format(
-                pod_name=pod_name, ssh_port=ssh_port,
-                image_name=image_name, pull_policy=pull_policy)
+                pod_name=pod_name,
+                ssh_port=ssh_port,
+                image_name=image_name,
+                pull_policy=pull_policy
+            )
             f.write(descr)
 
 
@@ -925,15 +928,88 @@ def test_netsplit_single_virtual(pod, pod_ips):
     stop_test()
 
 
+# check_abandoned_requests calculates abandoned requests leak.
+#
+# nattempts - number of attempts for checking abandoned requests metric from nodes.
+# step - time in seconds between two attempts.
+# verbose - flag for additional logging.
+def check_abandoned_requests_not_increasing(nattempts=5, step=15, verbose=False):
+    start_test("check_abandoned_requests")
+    info("==== start/stop check_abandoned_requests test started ====")
+
+    # Dict with count of abandoned metric. (key - <node_and_metric_mane>, value - <count>).
+    # Example: <10.1.0.179:insolar_requests_abandoned{role="heavy_material"} 20>,
+    #          <10.1.0.180:insolar_requests_abandoned{role="light_material"} 35>,
+    #          ...
+    abandoned_data = {}
+    # Difference of abandoned requests count between all steps.
+    abandoned_delta = 0
+    errors = ""
+
+    for attempt in range(1, nattempts+1):
+        time.sleep(step)
+        # node id for investigations
+        i = 0
+        abandoned_raw_data = get_abandones_count_from_nodes()
+
+        if len(abandoned_raw_data) == 0:
+            continue
+
+        for line in abandoned_raw_data.split("\n"):
+            kv = line.split()
+            if len(kv) <= 1:
+                # set starting value
+                kv.insert(1, 0)
+
+            node = str(i) + ":" + kv[0]        # key for abandoned_data dict, consists from <node_id:node_ip>
+            count = int(kv[1])                 # value for abandoned_data dict.
+            if node in abandoned_data and count > abandoned_data[node]:
+                abandoned_delta += count - abandoned_data[node]
+                errors += "Attempt: " + str(attempt) + ". Abandoned increased in " + node + \
+                          ". Old:" + str(abandoned_data[node]) + ", New:" + str(count) + os.linesep
+
+            abandoned_data[node] = count
+            i += 1
+
+        if verbose:
+            info("Attempt " + str(attempt) + ". Abandoned requests delta: " + str(abandoned_delta))
+
+    # If abandoned_delta is 0
+    # we assume, that all of them was processed.
+    if abandoned_delta != 0:
+        info(errors)
+    check(abandoned_delta == 0, "Unprocessed Abandoned-requests count IS NOT ZERO.")
+
+
+    info("==== start/stop check_abandoned_requests test passed! ====")
+    stop_test()
+
+# get_abandones_count_from_nodes returns list of abandoned requests metric from all nodes:
+#   10.1.0.179:insolar_requests_abandoned{role="heavy_material"} 1
+#   10.1.0.180:insolar_requests_abandoned{role="light_material"} 20
+#   ...
+def get_abandones_count_from_nodes():
+    abandoned_data = ssh_output(HEAVY, 'cd ' + INSPATH + ' && ./jepsen-tools/collect_abandoned_metrics.py')
+    debug(abandoned_data)
+    return abandoned_data
+
+
 def check_dependencies():
     info("Checking dependencies...")
     for d in DEPENDENCIES:
         run('which ' + d)
     info("All dependencies found.")
 
+def upload_tools(pod, pod_ips):
+    info("Uploading tools ...")
+    ips = ' '.join(pod_ips.values())
+    ssh(pod, "mkdir -p "+INSPATH+"/jepsen-tools/ && echo " + ips + " > "+INSPATH+"/jepsen-tools/pod_ips")
+    scp_to(pod, "./jepsen-tools/*", INSPATH+"/jepsen-tools/")
+
 
 parser = argparse.ArgumentParser(
     description='Test Insolar using Jepsen-like tests')
+
 parser.add_argument(
     '-d', '--debug', action="store_true",
     help='enable debug output')
@@ -967,13 +1043,18 @@ k8s_stop_pods_if_running(k8s_yaml)
 k8s_start_pods(k8s_yaml)
 POD_NODES = k8s_get_pod_nodes()
 wait_until_ssh_is_up_on_pods()
+pod_ips = k8s_get_pod_ips()
+upload_tools(HEAVY, pod_ips)
 
 prepare_configs()
 deploy_pulsar()
 deploy_insolar()
-pod_ips = k8s_get_pod_ips()
 
 stop_test()
+
+if args.skip_all_tests:
+    notify("Deploy checked, skipping all tests")
+    sys.exit(0)
 
 ok = run_benchmark(pod_ips, extra_args="-s --members-file=" + OLD_MEMBERS_FILE)
 check_benchmark(ok)
@@ -986,10 +1067,6 @@ while pulse_when_members_created != finalized_pulse:
     finalized_pulse = get_finalized_pulse_from_exporter()
 
 info("Data was saved on heavy (top sync pulse changed)")
-
-if args.skip_all_tests:
-    notify("Deploy checked, skipping all tests")
-    sys.exit(0)
 
 tests = [
     # lambda: test_network_slow_down_speed_up(pod_ips), TODO: this test hangs on CI, fix it
@@ -1014,6 +1091,7 @@ for test_num in range(0, args.repeat):
     random.shuffle(tests)
     for t in tests:
         t()
+    check_abandoned_requests_not_increasing(verbose=True)
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
     # The following test should be executed after the rest of the tests
