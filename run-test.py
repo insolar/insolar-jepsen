@@ -804,7 +804,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     check_alive(alive)
 
     info("Starting benchmark in the background")
-    run_benchmark(pod_ips, r = 100, timout = 100, background=True)
+    run_benchmark(pod_ips, r = 100, timeout = 100, background=True)
     info("Killing heavy on pod #"+str(heavy_pod))
     kill(heavy_pod, "insolard")
 
