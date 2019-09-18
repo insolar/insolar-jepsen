@@ -1033,21 +1033,21 @@ tests = [
     # lambda: test_network_slow_down_speed_up(pod_ips), TODO: this test hangs on CI, fix it
     # lambda: test_virtuals_slow_down_speed_up(pod_ips), TODO: this test hangs on CI, fix it
     # lambda: test_small_mtu(pod_ips), # TODO: this test hangs @ DigitalOcean, fix it
-#    lambda: test_stop_start_pulsar(pod_ips, test_num),
+    lambda: test_stop_start_pulsar(pod_ips, test_num),
     # lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: make this test pass, see INS-2125
-#    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
-#    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
-#    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
-#    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
-#    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
-#    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
-#    lambda: test_stop_start_lights(LIGHTS, pod_ips),
-#    lambda: test_stop_start_heavy(HEAVY, pod_ips),
-#    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
+    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
+    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
+    lambda: test_stop_start_lights(LIGHTS, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
     lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
     lambda: test_kill_heavy_under_load(HEAVY, pod_ips, restore_from_backup=True),
-#    lambda: test_kill_backupmanager(HEAVY, pod_ips),
-#    lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_backupmanager(HEAVY, pod_ips),
+    lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
 ]
 
 for test_num in range(0, args.repeat):
