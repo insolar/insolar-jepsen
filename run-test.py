@@ -422,18 +422,22 @@ def get_finalized_pulse_from_exporter():
 def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c = C, r = R, timeout = 30):
     virtual_pod_name = 'jepsen-'+str(api_pod)
     port = VIRTUAL_START_PORT + api_pod
-    out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
-                     'timelimit -s9 -t'+str(timeout)+' ' +
-                     './bin/benchmark -c ' + str(c) + ' -r ' + str(r) + ' -a http://'+pod_ips[virtual_pod_name] +
-                     ':'+str(port) + '/admin-api/rpc ' +
-                     ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
-                     '-k=./scripts/insolard/configs/ ' + extra_args)
+    out = ""
+    try:
+        out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
+                         'timelimit -s9 -t'+str(timeout)+' ' +
+                         './bin/benchmark -c ' + str(c) + ' -r ' + str(r) + ' -a http://'+pod_ips[virtual_pod_name] +
+                         ':'+str(port) + '/admin-api/rpc ' +
+                         ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
+                         '-k=./scripts/insolard/configs/ ' + extra_args)
+    except Exception as e:
+        print(e)
+        out = "ssh_output() throwed an exception (non-zero return code)"
     if 'Successes: '+str(C*R) in out:
         return True
     info("Benchmark run wasn't success: ")
     info(out)
     return False
-
 
 def pulsewatcher_output(ssh_pod=1):
     return ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
@@ -761,11 +765,14 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup = False):
     check_alive(alive)
 
     info("Running benchmark and trying to kill backupmanager on pod #"+str(heavy_pod))
-    ssh(heavy_pod, "tmux new-session -d  " +
-        """\\"while true; date; do killall -9 -r backupmanager; if [[ \\\\\\$? == 0 ]]; then echo DONE; break; fi; sleep 0.1; done""" +
+    ssh(heavy_pod, "tmux new-session -d -s backupmanager-killer " +
+        """\\"while true; do killall -9 -r backupmanager; sleep 0.1; done""" +
         """; bash\\" """)
     ok = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE, r=100, timeout=100)
     check(not ok, "Benchmark should fail while killing backupmanager (increase -c or -r?)")
+
+    info("Shutting down backupmanager-killer")
+    ssh(heavy_pod, "tmux kill-session -t backupmanager-killer")
 
     down = wait_until_insolar_is_down()
     check_down(down)
@@ -778,7 +785,7 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup = False):
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="heavy-up")
 
-    ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    ok = run_benchmark(pod_ips)
     check_benchmark(ok)
 
     info("==== kill backupmanager "+("with restore from backup " if restore_from_backup else "")+"passed! ====")
