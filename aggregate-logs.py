@@ -59,7 +59,7 @@ for port in range(START_PORT, END_PORT+1):
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
             """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/* """+node_dir+""" || true""")
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-        """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log """+node_dir)
+        """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log.gz """+node_dir)
 
 run("""grep -rn " ERR \|panic\|FTL" """ + copy_to_dir +
     """ | sort > """ + copy_to_dir + """all_errors.log""")

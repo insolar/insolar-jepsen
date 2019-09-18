@@ -103,7 +103,8 @@ os.environ["LC_CTYPE"] = "C"
 
 def logto(fname, index=""):
     # `tee` is used to see recent logs in tmux. please keep it!
-    return "2>&1 | tee /dev/tty >> " + fname + "_" + index + ".log"
+    return "2>&1 | tee /dev/tty | gzip --stdout >> " + fname + "_" + index + ".log.gz"
+
 
 
 def start_test(msg):
@@ -815,7 +816,6 @@ def test_stop_start_pulsar(pod_ips, test_num):
 
     start_insolar_net(NODES, pod_ips, step="pulsar-up")
     info("==== start/stop pulsar test passed! ====")
-    fail_test("lol kek")
     stop_test()
 
 
@@ -946,10 +946,5 @@ for test_num in range(0, args.repeat):
     info("Make calls to members, created at the beginning: " + str(pulses_pass) + " pulses ago")
     ok = run_benchmark(pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
     check_benchmark(ok)
-
-    info("Clear logs")
-    for pod in NODES:
-        ssh(pod, "cd " + INSPATH + " && rm insolard" + "_" + str(pod) + ".log")
-
 
 notify("Test completed!")
