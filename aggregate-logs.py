@@ -20,7 +20,6 @@ def run(cmd):
     if proc.returncode != 0:
         print("Command `%s` returned non-zero status: %d, output: %s" %
               (cmd, proc.returncode, str(proc.stdout)))
-        sys.exit(1)
 
 
 def get_output(cmd):
@@ -59,11 +58,11 @@ for port in range(START_PORT, END_PORT+1):
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
             """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/* """+node_dir+""" || true""")
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-        """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log """+node_dir)
+        """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log.gz """+node_dir)
 
-run("""egrep -nr '"level":"(error|fatal|panic)"' """ + copy_to_dir +
+run("""gzcat """ + copy_to_dir + """*/*.log.gz | egrep -nr '"level":"(error|fatal|panic)"' """ +
     """ | sort > """ + copy_to_dir + """all_errors.log""")
 
-run("""egrep -nr '"level":"(error|fatal|panic)"' """ + copy_to_dir + """*/*.log""" +
+run("""gzcat """ + copy_to_dir + """*/*.log.gz | egrep -nr '"level":"(error|fatal|panic)"' """ +
     """ | grep -v "TraceID already set" | grep -v "Failed to process packet" | sort > """ +
     copy_to_dir + """filtered_errors.log""")

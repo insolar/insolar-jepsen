@@ -103,7 +103,7 @@ os.environ["LC_CTYPE"] = "C"
 
 def logto(fname, index=""):
     # `tee` is used to see recent logs in tmux. please keep it!
-    return "2>&1 | tee /dev/tty >> " + fname + "_" + index + ".log"
+    return "2>&1 | tee /dev/tty | gzip --stdout > " + fname + "_" + index + ".log.gz"
 
 
 def start_test(msg):
@@ -128,6 +128,11 @@ def fail_test(failure_message):
     print("##teamcity[testFailed name='%s' message='%s']" %
           (CURRENT_TEST_NAME, trace))
     stop_test()
+    info("Stops nodes after fail")
+    for node in NODES:
+        kill(node, "insolard")
+    kill(PULSAR, "pulsard")
+    wait_until_insolar_is_down()
     sys.exit(1)
 
 
@@ -186,6 +191,11 @@ def run(cmd):
     if code != 0:
         print("Command `%s` returned non-zero status: %d" %
               (cmd, code))
+        info("Stops nodes after fail")
+        for node in NODES:
+            kill(node, "insolard")
+        kill(PULSAR, "pulsard")
+        wait_until_insolar_is_down()
         sys.exit(1)
 
 
@@ -969,6 +979,28 @@ def test_netsplit_single_virtual(pod, pod_ips):
     stop_test()
 
 
+def clear_logs_after_repetition(test_num):
+    info("Stop nodes and clear logs before next repetition")
+    for node in NODES:
+        kill(node, "insolard")
+    kill(PULSAR, "pulsard")
+
+    down = wait_until_insolar_is_down()
+    check_down(down)
+    info("Insolar is down")
+    info("Clear logs before next repetition")
+    for pod in NODES:
+        ssh(pod, "cd " + INSPATH + " && rm insolard" + "_" + str(pod) + ".log.gz")
+
+    if test_num+1 < args.repeat:
+        info("Starting pulsar for next repetition")
+        start_pulsard()
+        info("Re-launching nodes for next repetition")
+        start_insolar_net(NODES, pod_ips)
+        ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+        check_benchmark(ok)
+
+
 # check_abandoned_requests calculates abandoned requests leak.
 #
 # nattempts - number of attempts for checking abandoned requests metric from nodes.
@@ -1151,4 +1183,10 @@ for test_num in range(0, args.repeat):
         pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
     check_benchmark(ok)
 
+    clear_logs_after_repetition(test_num)
+
 notify("Test completed!")
+info("Stop nodes")
+for node in NODES:
+    kill(node, "insolard")
+kill(PULSAR, "pulsard")
