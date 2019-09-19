@@ -733,6 +733,9 @@ def test_stop_start_lights(light_pods, pod_ips):
         light_pods_indexes = light_pods_indexes + str(pod) + "_"
 
     start_test(light_pods_indexes + "test_stop_start_light")
+
+    fail_test("Custom reason, just cheking")
+
     info("==== start/stop light at pods #" +
          light_pods_indexes+" test started ====")
     alive = wait_until_insolar_is_alive(
