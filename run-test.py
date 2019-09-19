@@ -105,7 +105,6 @@ def logto(fname, index=""):
     return "2>&1 | tee /dev/tty | gzip --stdout > " + fname + "_" + index + ".log.gz"
 
 
-
 def start_test(msg):
     global CURRENT_TEST_NAME
     CURRENT_TEST_NAME = msg
@@ -132,6 +131,7 @@ def fail_test(failure_message):
     for node in NODES:
         kill(node, "insolard")
     kill(PULSAR, "pulsard")
+    wait_until_insolar_is_down()
     sys.exit(1)
 
 
@@ -194,6 +194,7 @@ def run(cmd):
         for node in NODES:
             kill(node, "insolard")
         kill(PULSAR, "pulsard")
+        wait_until_insolar_is_down()
         sys.exit(1)
 
 
