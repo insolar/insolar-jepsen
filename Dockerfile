@@ -20,11 +20,11 @@ RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/migration_admin_member
 RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/funds_and_enterprise_member_keys.json
 RUN for m in $(seq 0 9); do ./bin/insolar gen-key-pair > \
   scripts/insolard/configs/migration_daemon_${m}_member_keys.json; done
-RUN for m in $(seq 0 29); do ./bin/insolar gen-key-pair > \
+RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
   scripts/insolard/configs/network_incentives_${m}_member_keys.json; done
-RUN for m in $(seq 0 29); do ./bin/insolar gen-key-pair > \
+RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
   scripts/insolard/configs/application_incentives_${m}_member_keys.json; done
-RUN for m in $(seq 0 29); do ./bin/insolar gen-key-pair > \
+RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
   scripts/insolard/configs/foundation_${m}_member_keys.json; done
 RUN for m in $(seq 0 1); do ./bin/insolar gen-key-pair > \
     scripts/insolard/configs/funds_${m}_member_keys.json; done
