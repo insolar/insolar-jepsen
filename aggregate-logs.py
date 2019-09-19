@@ -20,7 +20,6 @@ def run(cmd):
     if proc.returncode != 0:
         print("Command `%s` returned non-zero status: %d, output: %s" %
               (cmd, proc.returncode, str(proc.stdout)))
-        sys.exit(1)
 
 
 def get_output(cmd):
