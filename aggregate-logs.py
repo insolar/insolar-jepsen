@@ -61,9 +61,9 @@ for port in range(START_PORT, END_PORT+1):
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
         """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log """+node_dir)
 
-run("""grep -nr '"level":"error"' """ + copy_to_dir +
+run("""egrep -nr '"level":"(error|fatal|panic)"' """ + copy_to_dir +
     """ | sort > """ + copy_to_dir + """all_errors.log""")
 
-run("""grep -nre '"level":"error"' """ + copy_to_dir + """*/*.log""" +
+run("""egrep -nr '"level":"(error|fatal|panic)"' """ + copy_to_dir + """*/*.log""" +
     """ | grep -v "TraceID already set" | grep -v "Failed to process packet" | sort > """ +
     copy_to_dir + """filtered_errors.log""")
