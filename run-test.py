@@ -51,6 +51,7 @@ FAST_NETWORK_SPEED = '1000mbps'
 SMALL_MTU = 1400
 NORMAL_MTU = 1500
 DEBUG = False
+POD_NODES = dict()  # is filled below
 DEPENDENCIES = ['docker', 'kubectl', 'jq']
 C = 5
 R = 1
@@ -444,6 +445,7 @@ def get_finalized_pulse_from_exporter():
 def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
     virtual_pod_name = 'jepsen-'+str(api_pod)
     port = VIRTUAL_START_PORT + api_pod
+    out = ""
     try:
         out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
                          ("tmux new-session -d \"" if background else "") +
