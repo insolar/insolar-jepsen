@@ -103,7 +103,7 @@ os.environ["LC_CTYPE"] = "C"
 
 def logto(fname, index=""):
     # `tee` is used to see recent logs in tmux. please keep it!
-    return "2>&1 | tee /dev/tty >> " + fname + "_" + index + ".log"
+    return "2>&1 | tee /dev/tty | gzip --stdout > " + fname + "_" + index + ".log.gz"
 
 
 def start_test(msg):
@@ -116,18 +116,23 @@ def fail_test(failure_message):
     global CURRENT_TEST_NAME
     notify("Test failed")
     msg = failure_message \
-        .replace("|", "||") \
+        .replace("|", "||").replace("'", "|'") \
         .replace("\n", "|n").replace("\r", "|r") \
         .replace("[", "|[").replace("]", "|]")
     print("##teamcity[testFailed name='%s' message='%s']" %
           (CURRENT_TEST_NAME, msg))
     trace = "".join(traceback.format_stack()[:-1]) \
-        .replace("|", "||") \
+        .replace("|", "||").replace("'", "|'") \
         .replace("\n", "|n").replace("\r", "|r") \
         .replace("[", "|[").replace("]", "|]")
     print("##teamcity[testFailed name='%s' message='%s']" %
           (CURRENT_TEST_NAME, trace))
     stop_test()
+    info("Stops nodes after fail")
+    for node in NODES:
+        kill(node, "insolard")
+    kill(PULSAR, "pulsard")
+    wait_until_insolar_is_down()
     sys.exit(1)
 
 
@@ -169,9 +174,9 @@ def check_down(condition):
         fail_test("Insolar must be down, but its not")
 
 
-def check_benchmark(condition):
+def check_benchmark(condition, out):
     if not condition:
-        fail_test("Benchmark return error")
+        fail_test("Benchmark return error: \n" + out)
 
 
 def debug(msg):
@@ -182,17 +187,26 @@ def debug(msg):
 
 def run(cmd):
     debug(cmd)
-    code = subprocess.call(cmd, shell=True)
-    if code != 0:
-        print("Command `%s` returned non-zero status: %d" %
-              (cmd, code))
+    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if proc.returncode != 0:
+        print("Command `%s` returned non-zero status: %d, output: %s" %
+            (cmd, proc.returncode, str(proc.stdout)))
+        info("Stops nodes after fail")
+        for node in NODES:
+            kill(node, "insolard")
+        kill(PULSAR, "pulsard")
+        wait_until_insolar_is_down()
         sys.exit(1)
 
 
 def get_output(cmd):
     debug(cmd)
-    data = subprocess.check_output(cmd, shell=True)
-    data = data.decode('utf-8').strip()
+    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if proc.returncode != 0:
+        print("Command `%s` returned non-zero status: %d, output: %s, error: %s" %
+              (cmd, proc.returncode, str(proc.stdout), str(proc.stderr)))
+    out = proc.stdout
+    data = out.decode('utf-8').strip()
     return data
 
 
@@ -204,26 +218,26 @@ def ssh(pod, cmd):
     run("ssh -tt -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p" +
         str(START_PORT + pod)+" "+ssh_user_host(pod) +
         """ "bash -c 'source ./.bash_profile ; """ +
-        cmd + """ '" 2>/dev/null""")
+        cmd + """ '" """)
 
 
 def ssh_output(pod, cmd):
     return get_output("ssh -tt -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p" +
                       str(START_PORT + pod)+" "+ssh_user_host(pod) +
                       """ "bash -c 'source ./.bash_profile ; """ +
-                      cmd + """ '" 2>/dev/null""")
+                      cmd + """ '" """)
 
 
 def scp_to(pod, lpath, rpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P" +
         str(START_PORT + pod)+" "+flags+" " + lpath + " "+ssh_user_host(pod) +
-        ":"+rpath+" 2>/dev/null")
+        ":"+rpath)
 
 
 def scp_from(pod, rpath, lpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P" +
         str(START_PORT + pod)+" " + flags + " "+ssh_user_host(pod) +
-        ":"+rpath+" "+lpath+" 2>/dev/null")
+        ":"+rpath+" "+lpath)
 
 
 def k8s():
@@ -233,11 +247,14 @@ def k8s():
 def k8s_gen_yaml(fname, image_name, pull_policy):
     with open(fname, "w") as f:
         for i in ALL_PODS:
-            pod_name = "jepsen-"+str(i)
+            pod_name = "jepsen-" + str(i)
             ssh_port = str(32000 + i)
             descr = K8S_YAML_TEMPLATE.format(
-                pod_name=pod_name, ssh_port=ssh_port,
-                image_name=image_name, pull_policy=pull_policy)
+                pod_name=pod_name,
+                ssh_port=ssh_port,
+                image_name=image_name,
+                pull_policy=pull_policy
+            )
             f.write(descr)
 
 
@@ -429,25 +446,29 @@ def get_finalized_pulse_from_exporter():
     return pulse
 
 
-def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30):
+def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
     virtual_pod_name = 'jepsen-'+str(api_pod)
     port = VIRTUAL_START_PORT + api_pod
     out = ""
     try:
         out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
+                         ("tmux new-session -d \"" if background else "") +
                          'timelimit -s9 -t'+str(timeout)+' ' +
                          './bin/benchmark -c ' + str(c) + ' -r ' + str(r) + ' -a http://'+pod_ips[virtual_pod_name] +
                          ':'+str(port) + '/admin-api/rpc ' +
                          ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
-                         '-k=./scripts/insolard/configs/ ' + extra_args)
+                         '-k=./scripts/insolard/configs/ ' + extra_args +
+                         ("\"" if background else ""))
     except Exception as e:
         print(e)
         out = "ssh_output() throwed an exception (non-zero return code): "+str(e)
+
+    if background:
+        return True, out
+
     if 'Successes: '+str(C*R) in out:
-        return True
-    info("Benchmark run wasn't success: ")
-    info(out)
-    return False
+        return True, out
+    return False, out
 
 
 def pulsewatcher_output(ssh_pod=1):
@@ -466,13 +487,14 @@ def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod=1):
     out = pulsewatcher_output(ssh_pod)
     network_status = json.loads(out)
     if not network_status_is_ok(network_status, nodes_online):
+        info('insolar_is_alive() is false, out = "'+out+'"')
         return False
 
-    ok = run_benchmark(pod_ips, virtual_pod, ssh_pod)
+    ok, out = run_benchmark(pod_ips, virtual_pod, ssh_pod)
     if ok:
         return True
     else:
-        info('insolar_is_alive() is false, out = "'+out+'"')
+        info("Benchmark run wasn't success: " + out)
         return False
 
 
@@ -643,8 +665,8 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
         pod_ips, NODES, step="before-killing-virtual")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
-    check_benchmark(ok)
+    ok, bench_out = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
 
     for pod in virtual_pods:
         info("Killing virtual on pod #"+str(pod))
@@ -663,8 +685,8 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
-    check_benchmark(ok)
+    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
     stop_test()
@@ -688,9 +710,9 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
         pod_ips, NODES, step="before-killing-virtual")
     check_alive(alive)
 
-    ok = run_benchmark(
+    ok, bench_out = run_benchmark(
         pod_ips, api_pod=LIGHTS[0], extra_args='-s --members-file=' + MEMBERS_FILE)
-    check_benchmark(ok)
+    check_benchmark(ok, bench_out)
 
     for pod in virtual_pods:
         info("Killing virtual on pod #"+str(pod))
@@ -701,8 +723,8 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     info("Insolar is down. Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="virtual-up")
 
-    ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
-    check_benchmark(ok)
+    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
     stop_test()
@@ -720,8 +742,8 @@ def test_stop_start_lights(light_pods, pod_ips):
         pod_ips, NODES, step="before-killing-light")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
-    check_benchmark(ok)
+    ok, bench_out = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
     pulse = current_pulse()
@@ -741,8 +763,8 @@ def test_stop_start_lights(light_pods, pod_ips):
     info("Insolar is down. Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="light-up")
 
-    ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
-    check_benchmark(ok)
+    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
 
     info("==== start/stop light at pods #"+str(light_pods)+" passed! ====")
     stop_test()
@@ -757,8 +779,8 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
         pod_ips, NODES, step="before-killing-heavy")
     check_alive(alive)
 
-    ok = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
-    check_benchmark(ok)
+    ok, bench_out = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
     pulse = current_pulse()
@@ -783,10 +805,43 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="heavy-up")
 
-    ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
-    check_benchmark(ok)
+    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
 
     info("==== start/stop heavy at pod #"+str(heavy_pod) +
+         (" with restore from backup" if restore_from_backup else "")+" passed! ====")
+    stop_test()
+
+
+def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
+    start_test("test_kill_heavy_under_load" +
+               ("_restore_from_backup" if restore_from_backup else ""))
+    info("==== kill heavy under load at pod #"+str(heavy_pod) +
+         (" with restore from backup" if restore_from_backup else "")+" test started ====")
+    alive = wait_until_insolar_is_alive(
+        pod_ips, NODES, step="before-killing-heavy")
+    check_alive(alive)
+
+    info("Starting benchmark in the background")
+    run_benchmark(pod_ips, r=100, timeout=100, background=True)
+    info("Killing heavy on pod #"+str(heavy_pod))
+    kill(heavy_pod, "insolard")
+
+    down = wait_until_insolar_is_down()
+    check_down(down)
+    info("Insolar is down")
+    if restore_from_backup:
+        info("Restoring heavy from backup...")
+        ssh(heavy_pod, "cd go/src/github.com/insolar/insolar/ && " +
+            "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
+            "rm -r data && cp -r heavy_backup data")
+    info("Re-launching nodes")
+    start_insolar_net(NODES, pod_ips, step="heavy-up")
+
+    ok, bench_out = run_benchmark(pod_ips)
+    check_benchmark(ok, bench_out)
+
+    info("==== kill heavy under load at pod #"+str(heavy_pod) +
          (" with restore from backup" if restore_from_backup else "")+" passed! ====")
     stop_test()
 
@@ -804,8 +859,8 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False):
     ssh(heavy_pod, "tmux new-session -d -s backupmanager-killer " +
         """\\"while true; do killall -9 -r backupmanager; sleep 0.1; done""" +
         """; bash\\" """)
-    ok = run_benchmark(pod_ips, r=100, timeout=100)
-    check(not ok, "Benchmark should fail while killing backupmanager (increase -c or -r?)")
+    ok, bench_out = run_benchmark(pod_ips, r=100, timeout=100)
+    check(not ok, "Benchmark should fail while killing backupmanager (increase -c or -r?), but it was successfull:\n" + bench_out)
 
     info("Shutting down backupmanager-killer")
     ssh(heavy_pod, "tmux kill-session -t backupmanager-killer")
@@ -821,8 +876,8 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False):
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="heavy-up")
 
-    ok = run_benchmark(pod_ips)
-    check_benchmark(ok)
+    ok, bench_out = run_benchmark(pod_ips)
+    check_benchmark(ok, bench_out)
 
     info("==== kill backupmanager " +
          ("with restore from backup " if restore_from_backup else "")+"passed! ====")
@@ -927,15 +982,110 @@ def test_netsplit_single_virtual(pod, pod_ips):
     stop_test()
 
 
+def clear_logs_after_repetition(test_num):
+    info("Stop nodes and clear logs before next repetition")
+    for node in NODES:
+        kill(node, "insolard")
+    kill(PULSAR, "pulsard")
+
+    down = wait_until_insolar_is_down()
+    check_down(down)
+    info("Insolar is down")
+    info("Clear logs before next repetition")
+    for pod in NODES:
+        ssh(pod, "cd " + INSPATH + " && rm insolard" + "_" + str(pod) + ".log.gz")
+
+    if test_num+1 < args.repeat:
+        info("Starting pulsar for next repetition")
+        start_pulsard()
+        info("Re-launching nodes for next repetition")
+        start_insolar_net(NODES, pod_ips)
+        ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+        check_benchmark(ok, bench_out)
+
+
+# check_abandoned_requests calculates abandoned requests leak.
+#
+# nattempts - number of attempts for checking abandoned requests metric from nodes.
+# step - time in seconds between two attempts.
+# verbose - flag for additional logging.
+def check_abandoned_requests_not_increasing(nattempts=5, step=15, verbose=False):
+    start_test("check_abandoned_requests")
+    info("==== start/stop check_abandoned_requests test started ====")
+
+    # Dict with count of abandoned metric. (key - <node_and_metric_mane>, value - <count>).
+    # Example: <10.1.0.179:insolar_requests_abandoned{role="heavy_material"} 20>,
+    #          <10.1.0.180:insolar_requests_abandoned{role="light_material"} 35>,
+    #          ...
+    abandoned_data = {}
+    # Difference of abandoned requests count between all steps.
+    abandoned_delta = 0
+    errors = ""
+
+    for attempt in range(1, nattempts+1):
+        time.sleep(step)
+        # node id for investigations
+        i = 0
+        abandoned_raw_data = get_abandones_count_from_nodes()
+
+        if len(abandoned_raw_data) == 0:
+            continue
+
+        for line in abandoned_raw_data.split("\n"):
+            kv = line.split()
+            if len(kv) <= 1:
+                # set starting value
+                kv.insert(1, 0)
+
+            node = str(i) + ":" + kv[0]        # key for abandoned_data dict, consists from <node_id:node_ip>
+            count = int(kv[1])                 # value for abandoned_data dict.
+            if node in abandoned_data and count > abandoned_data[node]:
+                abandoned_delta += count - abandoned_data[node]
+                errors += "Attempt: " + str(attempt) + ". Abandoned increased in " + node + \
+                          ". Old:" + str(abandoned_data[node]) + ", New:" + str(count) + os.linesep
+
+            abandoned_data[node] = count
+            i += 1
+
+        if verbose:
+            info("Attempt " + str(attempt) + ". Abandoned requests delta: " + str(abandoned_delta))
+
+    # If abandoned_delta is 0
+    # we assume, that all of them was processed.
+    if abandoned_delta != 0:
+        info(errors)
+    check(abandoned_delta == 0, "Unprocessed Abandoned-requests count IS NOT ZERO.")
+
+
+    info("==== start/stop check_abandoned_requests test passed! ====")
+    stop_test()
+
+# get_abandones_count_from_nodes returns list of abandoned requests metric from all nodes:
+#   10.1.0.179:insolar_requests_abandoned{role="heavy_material"} 1
+#   10.1.0.180:insolar_requests_abandoned{role="light_material"} 20
+#   ...
+def get_abandones_count_from_nodes():
+    abandoned_data = ssh_output(HEAVY, 'cd ' + INSPATH + ' && ./jepsen-tools/collect_abandoned_metrics.py')
+    debug(abandoned_data)
+    return abandoned_data
+
+
 def check_dependencies():
     info("Checking dependencies...")
     for d in DEPENDENCIES:
         run('which ' + d)
     info("All dependencies found.")
 
+def upload_tools(pod, pod_ips):
+    info("Uploading tools ...")
+    ips = ' '.join(pod_ips.values())
+    ssh(pod, "mkdir -p "+INSPATH+"/jepsen-tools/ && echo " + ips + " > "+INSPATH+"/jepsen-tools/pod_ips")
+    scp_to(pod, "./jepsen-tools/*", INSPATH+"/jepsen-tools/")
+
 
 parser = argparse.ArgumentParser(
     description='Test Insolar using Jepsen-like tests')
+
 parser.add_argument(
     '-d', '--debug', action="store_true",
     help='enable debug output')
@@ -969,16 +1119,21 @@ k8s_stop_pods_if_running(k8s_yaml)
 k8s_start_pods(k8s_yaml)
 POD_NODES = k8s_get_pod_nodes()
 wait_until_ssh_is_up_on_pods()
+pod_ips = k8s_get_pod_ips()
+upload_tools(HEAVY, pod_ips)
 
 prepare_configs()
 deploy_pulsar()
 deploy_insolar()
-pod_ips = k8s_get_pod_ips()
 
 stop_test()
 
-ok = run_benchmark(pod_ips, extra_args="-s --members-file=" + OLD_MEMBERS_FILE)
-check_benchmark(ok)
+if args.skip_all_tests:
+    notify("Deploy checked, skipping all tests")
+    sys.exit(0)
+
+ok, bench_out = run_benchmark(pod_ips, extra_args="-s --members-file=" + OLD_MEMBERS_FILE)
+check_benchmark(ok, bench_out)
 members_creted_at = time.time()
 info("Wait for data to save on heavy (top sync pulse must change)")
 pulse_when_members_created = current_pulse()
@@ -988,10 +1143,6 @@ while pulse_when_members_created != finalized_pulse:
     finalized_pulse = get_finalized_pulse_from_exporter()
 
 info("Data was saved on heavy (top sync pulse changed)")
-
-if args.skip_all_tests:
-    notify("Deploy checked, skipping all tests")
-    sys.exit(0)
 
 tests = [
     # lambda: test_network_slow_down_speed_up(pod_ips), TODO: this test hangs on CI, fix it
@@ -1008,6 +1159,9 @@ tests = [
     lambda: test_stop_start_lights(LIGHTS, pod_ips),
     lambda: test_stop_start_heavy(HEAVY, pod_ips),
     lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
+    lambda: test_kill_heavy_under_load(
+        HEAVY, pod_ips, restore_from_backup=True),
     lambda: test_kill_backupmanager(HEAVY, pod_ips),
     lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
 ]
@@ -1023,6 +1177,7 @@ for test_num in range(0, args.repeat):
     random.shuffle(tests)
     for t in simple_tests:
         t()
+    check_abandoned_requests_not_increasing(verbose=True)
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
     # The following test should be executed after the rest of the tests
@@ -1034,8 +1189,14 @@ for test_num in range(0, args.repeat):
 
     info("Make calls to members, created at the beginning: " +
          str(pulses_pass) + " pulses ago")
-    ok = run_benchmark(
+    ok, bench_out = run_benchmark(
         pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
-    check_benchmark(ok)
+    check_benchmark(ok, bench_out)
+
+    clear_logs_after_repetition(test_num)
 
 notify("Test completed!")
+info("Stop nodes")
+for node in NODES:
+    kill(node, "insolard")
+kill(PULSAR, "pulsard")
