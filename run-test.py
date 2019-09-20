@@ -187,10 +187,10 @@ def debug(msg):
 
 def run(cmd):
     debug(cmd)
-    code = subprocess.call(cmd, shell=True)
-    if code != 0:
-        print("Command `%s` returned non-zero status: %d" %
-              (cmd, code))
+    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if proc.returncode != 0:
+        print("Command `%s` returned non-zero status: %d, output: %s" %
+            (cmd, proc.returncode, str(proc.stdout)))
         info("Stops nodes after fail")
         for node in NODES:
             kill(node, "insolard")
@@ -201,8 +201,12 @@ def run(cmd):
 
 def get_output(cmd):
     debug(cmd)
-    data = subprocess.check_output(cmd, shell=True)
-    data = data.decode('utf-8').strip()
+    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if proc.returncode != 0:
+        print("Command `%s` returned non-zero status: %d, output: %s, error: %s" %
+              (cmd, proc.returncode, str(proc.stdout), str(proc.stderr)))
+    out = proc.stdout
+    data = out.decode('utf-8').strip()
     return data
 
 
@@ -214,26 +218,26 @@ def ssh(pod, cmd):
     run("ssh -tt -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p" +
         str(START_PORT + pod)+" "+ssh_user_host(pod) +
         """ "bash -c 'source ./.bash_profile ; """ +
-        cmd + """ '" 2>/dev/null""")
+        cmd + """ '" """)
 
 
 def ssh_output(pod, cmd):
     return get_output("ssh -tt -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p" +
                       str(START_PORT + pod)+" "+ssh_user_host(pod) +
                       """ "bash -c 'source ./.bash_profile ; """ +
-                      cmd + """ '" 2>/dev/null""")
+                      cmd + """ '" """)
 
 
 def scp_to(pod, lpath, rpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P" +
         str(START_PORT + pod)+" "+flags+" " + lpath + " "+ssh_user_host(pod) +
-        ":"+rpath+" 2>/dev/null")
+        ":"+rpath)
 
 
 def scp_from(pod, rpath, lpath, flags=''):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P" +
         str(START_PORT + pod)+" " + flags + " "+ssh_user_host(pod) +
-        ":"+rpath+" "+lpath+" 2>/dev/null")
+        ":"+rpath+" "+lpath)
 
 
 def k8s():
@@ -462,7 +466,7 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r
     if background:
         return True
 
-    if 'Successes: '+str(C*R) in out:
+    if 'Failers: '+str(C*R) in out:
         return True
     info("Benchmark run wasn't success: ")
     info(out)
