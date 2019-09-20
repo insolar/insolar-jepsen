@@ -63,6 +63,6 @@ for port in range(START_PORT, END_PORT+1):
 run("""gzcat """ + copy_to_dir + """*/*.log.gz | egrep -nr '"level":"(error|fatal|panic)"' """ +
     """ | sort > """ + copy_to_dir + """all_errors.log""")
 
-run("""gzcat """ + copy_to_dir + """*/*.log.gz | egrep -nr '"level":"(error|fatal|panic)"' """ +
+run("""cat """ + copy_to_dir + """all_errors.log """ +
     """ | grep -v "TraceID already set" | grep -v "Failed to process packet" | sort > """ +
     copy_to_dir + """filtered_errors.log""")
