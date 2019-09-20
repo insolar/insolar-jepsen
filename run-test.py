@@ -103,7 +103,7 @@ os.environ["LC_CTYPE"] = "C"
 
 def logto(fname, index=""):
     # `tee` is used to see recent logs in tmux. please keep it!
-    return "2>&1 | tee /dev/tty | gzip --stdout > " + fname + "_" + index + ".log.gz"
+    return "2>&1 | tee /dev/tty | gzip --stdout > " + fname + "_`date +%s`.log.gz"
 
 
 def start_test(msg):
@@ -560,7 +560,7 @@ def start_insolard(pod, extra_args=""):
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +
         "./scripts/insolard/"+str(pod) +
         "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json " +
-        logto("insolard", str(pod))+"""; bash\\" """)
+        logto("insolard")+"""; bash\\" """)
 
 
 def start_pulsard(extra_args=""):
@@ -990,7 +990,7 @@ def clear_logs_after_repetition(test_num):
     info("Insolar is down")
     info("Clear logs before next repetition")
     for pod in NODES:
-        ssh(pod, "cd " + INSPATH + " && rm insolard" + "_" + str(pod) + ".log.gz")
+        ssh(pod, "cd " + INSPATH + " && rm insolard_*.log.gz")
 
     if test_num+1 < args.repeat:
         info("Starting pulsar for next repetition")
