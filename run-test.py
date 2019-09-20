@@ -1164,6 +1164,7 @@ tests = [
 ]
 
 for test_num in range(0, args.repeat):
+    clear_logs_after_repetition(test_num)
     random.shuffle(tests)
     for t in tests:
         t()
@@ -1182,8 +1183,6 @@ for test_num in range(0, args.repeat):
     ok = run_benchmark(
         pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
     check_benchmark(ok)
-
-    clear_logs_after_repetition(test_num)
 
 notify("Test completed!")
 info("Stop nodes")
