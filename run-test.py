@@ -468,7 +468,7 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r
     if background:
         return True, out
 
-    if 'Successes: '+str(C*R) in out:
+    if 'Successes: '+str(c*r) in out:
         return True, out
     return False, out
 
