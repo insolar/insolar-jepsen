@@ -103,7 +103,7 @@ os.environ["LC_CTYPE"] = "C"
 
 def logto(fname, index=""):
     # `tee` is used to see recent logs in tmux. please keep it!
-    return "2>&1 | tee /dev/tty | gzip --stdout > " + fname + "_" + index + ".log.gz"
+    return "2>&1 | tee /dev/tty | gzip --stdout > " + fname + "_`date +%s`.log.gz"
 
 
 def start_test(msg):
@@ -187,10 +187,11 @@ def debug(msg):
 
 def run(cmd):
     debug(cmd)
-    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if proc.returncode != 0:
         print("Command `%s` returned non-zero status: %d, output: %s" %
-            (cmd, proc.returncode, str(proc.stdout)))
+              (cmd, proc.returncode, str(proc.stdout)))
         info("Stops nodes after fail")
         for node in NODES:
             kill(node, "insolard")
@@ -201,7 +202,8 @@ def run(cmd):
 
 def get_output(cmd):
     debug(cmd)
-    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if proc.returncode != 0:
         print("Command `%s` returned non-zero status: %d, output: %s, error: %s" %
               (cmd, proc.returncode, str(proc.stdout), str(proc.stderr)))
@@ -563,7 +565,7 @@ def start_insolard(pod, extra_args=""):
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +
         "./scripts/insolard/"+str(pod) +
         "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json " +
-        logto("insolard", str(pod))+"""; bash\\" """)
+        logto("insolard")+"""; bash\\" """)
 
 
 def start_pulsard(extra_args=""):
@@ -665,7 +667,8 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
         pod_ips, NODES, step="before-killing-virtual")
     check_alive(alive)
 
-    ok, bench_out = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
 
     for pod in virtual_pods:
@@ -685,7 +688,8 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
     check_alive(alive)
 
-    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
@@ -723,7 +727,8 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     info("Insolar is down. Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="virtual-up")
 
-    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
@@ -742,7 +747,8 @@ def test_stop_start_lights(light_pods, pod_ips):
         pod_ips, NODES, step="before-killing-light")
     check_alive(alive)
 
-    ok, bench_out = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
@@ -763,7 +769,8 @@ def test_stop_start_lights(light_pods, pod_ips):
     info("Insolar is down. Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="light-up")
 
-    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
 
     info("==== start/stop light at pods #"+str(light_pods)+" passed! ====")
@@ -779,7 +786,8 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
         pod_ips, NODES, step="before-killing-heavy")
     check_alive(alive)
 
-    ok, bench_out = run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
@@ -805,7 +813,8 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="heavy-up")
 
-    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
 
     info("==== start/stop heavy at pod #"+str(heavy_pod) +
@@ -982,7 +991,7 @@ def test_netsplit_single_virtual(pod, pod_ips):
     stop_test()
 
 
-def clear_logs_after_repetition(test_num):
+def clear_logs_after_repetition_and_restart():
     info("Stop nodes and clear logs before next repetition")
     for node in NODES:
         kill(node, "insolard")
@@ -993,15 +1002,15 @@ def clear_logs_after_repetition(test_num):
     info("Insolar is down")
     info("Clear logs before next repetition")
     for pod in NODES:
-        ssh(pod, "cd " + INSPATH + " && rm insolard" + "_" + str(pod) + ".log.gz")
+        ssh(pod, "cd " + INSPATH + " && rm insolard_*.log.gz")
 
-    if test_num+1 < args.repeat:
-        info("Starting pulsar for next repetition")
-        start_pulsard()
-        info("Re-launching nodes for next repetition")
-        start_insolar_net(NODES, pod_ips)
-        ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
-        check_benchmark(ok, bench_out)
+    info("Starting pulsar for next repetition")
+    start_pulsard()
+    info("Re-launching nodes for next repetition")
+    start_insolar_net(NODES, pod_ips)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
 
 
 # check_abandoned_requests calculates abandoned requests leak.
@@ -1037,25 +1046,28 @@ def check_abandoned_requests_not_increasing(nattempts=5, step=15, verbose=False)
                 # set starting value
                 kv.insert(1, 0)
 
-            node = str(i) + ":" + kv[0]        # key for abandoned_data dict, consists from <node_id:node_ip>
+            # key for abandoned_data dict, consists from <node_id:node_ip>
+            node = str(i) + ":" + kv[0]
             count = int(kv[1])                 # value for abandoned_data dict.
             if node in abandoned_data and count > abandoned_data[node]:
                 abandoned_delta += count - abandoned_data[node]
                 errors += "Attempt: " + str(attempt) + ". Abandoned increased in " + node + \
-                          ". Old:" + str(abandoned_data[node]) + ", New:" + str(count) + os.linesep
+                          ". Old:" + \
+                    str(abandoned_data[node]) + \
+                    ", New:" + str(count) + os.linesep
 
             abandoned_data[node] = count
             i += 1
 
         if verbose:
-            info("Attempt " + str(attempt) + ". Abandoned requests delta: " + str(abandoned_delta))
+            info("Attempt " + str(attempt) +
+                 ". Abandoned requests delta: " + str(abandoned_delta))
 
     # If abandoned_delta is 0
     # we assume, that all of them was processed.
     if abandoned_delta != 0:
         info(errors)
     check(abandoned_delta == 0, "Unprocessed Abandoned-requests count IS NOT ZERO.")
-
 
     info("==== start/stop check_abandoned_requests test passed! ====")
     stop_test()
@@ -1064,8 +1076,11 @@ def check_abandoned_requests_not_increasing(nattempts=5, step=15, verbose=False)
 #   10.1.0.179:insolar_requests_abandoned{role="heavy_material"} 1
 #   10.1.0.180:insolar_requests_abandoned{role="light_material"} 20
 #   ...
+
+
 def get_abandones_count_from_nodes():
-    abandoned_data = ssh_output(HEAVY, 'cd ' + INSPATH + ' && ./jepsen-tools/collect_abandoned_metrics.py')
+    abandoned_data = ssh_output(
+        HEAVY, 'cd ' + INSPATH + ' && ./jepsen-tools/collect_abandoned_metrics.py')
     debug(abandoned_data)
     return abandoned_data
 
@@ -1076,10 +1091,12 @@ def check_dependencies():
         run('which ' + d)
     info("All dependencies found.")
 
+
 def upload_tools(pod, pod_ips):
     info("Uploading tools ...")
     ips = ' '.join(pod_ips.values())
-    ssh(pod, "mkdir -p "+INSPATH+"/jepsen-tools/ && echo " + ips + " > "+INSPATH+"/jepsen-tools/pod_ips")
+    ssh(pod, "mkdir -p "+INSPATH+"/jepsen-tools/ && echo " +
+        ips + " > "+INSPATH+"/jepsen-tools/pod_ips")
     scp_to(pod, "./jepsen-tools/*", INSPATH+"/jepsen-tools/")
 
 
@@ -1132,7 +1149,8 @@ if args.skip_all_tests:
     notify("Deploy checked, skipping all tests")
     sys.exit(0)
 
-ok, bench_out = run_benchmark(pod_ips, extra_args="-s --members-file=" + OLD_MEMBERS_FILE)
+ok, bench_out = run_benchmark(
+    pod_ips, extra_args="-s --members-file=" + OLD_MEMBERS_FILE)
 check_benchmark(ok, bench_out)
 members_creted_at = time.time()
 info("Wait for data to save on heavy (top sync pulse must change)")
@@ -1185,8 +1203,8 @@ for test_num in range(0, args.repeat):
     ok, bench_out = run_benchmark(
         pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
     check_benchmark(ok, bench_out)
-
-    clear_logs_after_repetition(test_num)
+    if test_num != args.repeat-1:
+        clear_logs_after_repetition_and_restart()
 
 notify("Test completed!")
 info("Stop nodes")
