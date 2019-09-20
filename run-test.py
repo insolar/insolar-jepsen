@@ -1021,7 +1021,7 @@ simple_tests = [
 
 for test_num in range(0, args.repeat):
     random.shuffle(tests)
-    for t in tests:
+    for t in simple_tests:
         t()
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
