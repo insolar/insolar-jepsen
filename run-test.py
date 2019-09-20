@@ -1110,6 +1110,9 @@ parser.add_argument(
     '-s', '--skip-all-tests', action="store_true",
     help='skip all tests, check only deploy procedure')
 parser.add_argument(
+    '-m', '--minimum-tests', action="store_true",
+    help='run minimal required tests set')
+parser.add_argument(
     '-r', '--repeat', metavar='N', type=int, default=1,
     help='number of times to repeat tests')
 parser.add_argument(
@@ -1184,9 +1187,17 @@ tests = [
     lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
 ]
 
+
+minimum_tests = [
+    lambda: test_stop_start_pulsar(pod_ips, test_num),
+    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+]
+
 for test_num in range(0, args.repeat):
-    random.shuffle(tests)
-    for t in tests:
+    tests_to_run = minimum_tests if args.minimum_tests else tests
+    random.shuffle(tests_to_run)
+    for t in tests_to_run:
         t()
     check_abandoned_requests_not_increasing(verbose=True)
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
