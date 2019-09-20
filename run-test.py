@@ -991,7 +991,7 @@ def test_netsplit_single_virtual(pod, pod_ips):
     stop_test()
 
 
-def clear_logs_after_repetition(test_num):
+def clear_logs_after_repetition_and_restart():
     info("Stop nodes and clear logs before next repetition")
     for node in NODES:
         kill(node, "insolard")
@@ -1004,14 +1004,13 @@ def clear_logs_after_repetition(test_num):
     for pod in NODES:
         ssh(pod, "cd " + INSPATH + " && rm insolard_*.log.gz")
 
-    if test_num+1 < args.repeat:
-        info("Starting pulsar for next repetition")
-        start_pulsard()
-        info("Re-launching nodes for next repetition")
-        start_insolar_net(NODES, pod_ips)
-        ok, bench_out = run_benchmark(
-            pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
-        check_benchmark(ok, bench_out)
+    info("Starting pulsar for next repetition")
+    start_pulsard()
+    info("Re-launching nodes for next repetition")
+    start_insolar_net(NODES, pod_ips)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
 
 
 # check_abandoned_requests calculates abandoned requests leak.
@@ -1186,7 +1185,6 @@ tests = [
 ]
 
 for test_num in range(0, args.repeat):
-    clear_logs_after_repetition(test_num)
     random.shuffle(tests)
     for t in tests:
         t()
@@ -1205,6 +1203,8 @@ for test_num in range(0, args.repeat):
     ok, bench_out = run_benchmark(
         pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
     check_benchmark(ok, bench_out)
+    if test_num != args.repeat-1:
+        clear_logs_after_repetition_and_restart()
 
 notify("Test completed!")
 info("Stop nodes")
