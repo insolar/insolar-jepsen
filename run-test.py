@@ -997,7 +997,8 @@ def clear_logs_after_repetition(test_num):
         start_pulsard()
         info("Re-launching nodes for next repetition")
         start_insolar_net(NODES, pod_ips)
-        ok = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+        ok = run_benchmark(
+            pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
         check_benchmark(ok)
 
 
@@ -1034,25 +1035,28 @@ def check_abandoned_requests_not_increasing(nattempts=5, step=15, verbose=False)
                 # set starting value
                 kv.insert(1, 0)
 
-            node = str(i) + ":" + kv[0]        # key for abandoned_data dict, consists from <node_id:node_ip>
+            # key for abandoned_data dict, consists from <node_id:node_ip>
+            node = str(i) + ":" + kv[0]
             count = int(kv[1])                 # value for abandoned_data dict.
             if node in abandoned_data and count > abandoned_data[node]:
                 abandoned_delta += count - abandoned_data[node]
                 errors += "Attempt: " + str(attempt) + ". Abandoned increased in " + node + \
-                          ". Old:" + str(abandoned_data[node]) + ", New:" + str(count) + os.linesep
+                          ". Old:" + \
+                    str(abandoned_data[node]) + \
+                    ", New:" + str(count) + os.linesep
 
             abandoned_data[node] = count
             i += 1
 
         if verbose:
-            info("Attempt " + str(attempt) + ". Abandoned requests delta: " + str(abandoned_delta))
+            info("Attempt " + str(attempt) +
+                 ". Abandoned requests delta: " + str(abandoned_delta))
 
     # If abandoned_delta is 0
     # we assume, that all of them was processed.
     if abandoned_delta != 0:
         info(errors)
     check(abandoned_delta == 0, "Unprocessed Abandoned-requests count IS NOT ZERO.")
-
 
     info("==== start/stop check_abandoned_requests test passed! ====")
     stop_test()
@@ -1061,8 +1065,11 @@ def check_abandoned_requests_not_increasing(nattempts=5, step=15, verbose=False)
 #   10.1.0.179:insolar_requests_abandoned{role="heavy_material"} 1
 #   10.1.0.180:insolar_requests_abandoned{role="light_material"} 20
 #   ...
+
+
 def get_abandones_count_from_nodes():
-    abandoned_data = ssh_output(HEAVY, 'cd ' + INSPATH + ' && ./jepsen-tools/collect_abandoned_metrics.py')
+    abandoned_data = ssh_output(
+        HEAVY, 'cd ' + INSPATH + ' && ./jepsen-tools/collect_abandoned_metrics.py')
     debug(abandoned_data)
     return abandoned_data
 
@@ -1073,10 +1080,12 @@ def check_dependencies():
         run('which ' + d)
     info("All dependencies found.")
 
+
 def upload_tools(pod, pod_ips):
     info("Uploading tools ...")
     ips = ' '.join(pod_ips.values())
-    ssh(pod, "mkdir -p "+INSPATH+"/jepsen-tools/ && echo " + ips + " > "+INSPATH+"/jepsen-tools/pod_ips")
+    ssh(pod, "mkdir -p "+INSPATH+"/jepsen-tools/ && echo " +
+        ips + " > "+INSPATH+"/jepsen-tools/pod_ips")
     scp_to(pod, "./jepsen-tools/*", INSPATH+"/jepsen-tools/")
 
 
