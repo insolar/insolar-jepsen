@@ -9,6 +9,7 @@ import json
 import time
 import random
 import traceback
+import datetime
 
 # Roles:
 # jepsen-1: heavy
@@ -142,7 +143,7 @@ def stop_test():
 
 
 def info(msg):
-    print("INFO: "+str(msg))
+    print(str(datetime.datetime.now())+" INFO: "+str(msg))
 
 
 def wait(nsec):
