@@ -9,7 +9,7 @@ END_PORT = 32012
 DEBUG = True
 
 ZCAT = "zcat"
-if os.uname().sysname.lower():
+if os.uname().sysname.lower() == "darwin":
     ZCAT = "gzcat"
 
 
