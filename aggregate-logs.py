@@ -68,7 +68,7 @@ for port in range(START_PORT, END_PORT+1):
         """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log.gz """+node_dir)
 
 run(ZCAT + " " + copy_to_dir + """*/*.log.gz | egrep -n '"level":"(error|fatal|panic)"' """ +
-    """ | sort > """ + copy_to_dir + """all_errors.log""")
+    """ | sort -n > """ + copy_to_dir + """all_errors.log""")
 
 run("""cat """ + copy_to_dir + """all_errors.log """ +
     """ | grep -v "TraceID already set" | grep -v "Failed to process packet" | sort > """ +
