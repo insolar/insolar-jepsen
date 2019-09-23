@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import subprocess
 
 START_PORT = 32001
 END_PORT = 32012
 DEBUG = True
+
+ZCAT = "zcat"
+if os.uname().sysname.lower():
+    ZCAT = "gzcat"
 
 
 def debug(msg):
@@ -16,7 +21,8 @@ def debug(msg):
 
 def run(cmd):
     debug(cmd)
-    proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if proc.returncode != 0:
         print("Command `%s` returned non-zero status: %d, output: %s" %
               (cmd, proc.returncode, str(proc.stdout)))
@@ -30,10 +36,11 @@ def get_output(cmd):
 
 
 def k8s_hostname():
-    v = get_output("kubectl get nodes -o json | jq -r '.items[] | .metadata.name' | head -n 1")
-    if v == "docker-for-desktop": # Docker Desktop 2.0, k8s 1.10, docker 18.09
+    v = get_output(
+        "kubectl get nodes -o json | jq -r '.items[] | .metadata.name' | head -n 1")
+    if v == "docker-for-desktop":  # Docker Desktop 2.0, k8s 1.10, docker 18.09
         v = "localhost"
-    if v == "docker-desktop": # Docker Desktop 2.1, k8s 1.14, docker 19.03
+    if v == "docker-desktop":  # Docker Desktop 2.1, k8s 1.14, docker 19.03
         v = "localhost"
     return v
 
@@ -60,7 +67,7 @@ for port in range(START_PORT, END_PORT+1):
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
         """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log.gz """+node_dir)
 
-run("""gzcat """ + copy_to_dir + """*/*.log.gz | egrep -nr '"level":"(error|fatal|panic)"' """ +
+run(ZCAT + " " + copy_to_dir + """*/*.log.gz | egrep -nr '"level":"(error|fatal|panic)"' """ +
     """ | sort > """ + copy_to_dir + """all_errors.log""")
 
 run("""cat """ + copy_to_dir + """all_errors.log """ +
