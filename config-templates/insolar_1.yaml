@@ -49,6 +49,7 @@ log:
   level: Debug
   adapter: zerolog
   formatter: json
+  buffersize: 0
 metrics:
   listenaddress: JEPSEN-1:8080
   namespace: insolar
