@@ -309,13 +309,13 @@ def k8s_stop_pods_if_running(fname):
 def k8s_start_pods(fname):
     info("starting pods")
     run(k8s()+"apply -f "+fname)
-    for n in range(60):
+    for n in range(30):
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | " +
                           "jq -r '.items[].status.phase' | grep Running | wc -l")
         info("running pods: "+data)
         if data == str(len(ALL_PODS)):
             break
-        wait(1)
+        wait(5)
     else:
         fail_test("k8s_start_pods no attempts left")
 
