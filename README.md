@@ -40,4 +40,11 @@ scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P 32001 gopher@localho
 
 # Aggregate all logfiles:
 ./aggregate-logs.py /tmp/jepsen-agg/
+
+# Example of how to sort and properly format logs for a given trace id:
+gunzip /tmp/jepsen-agg/320*/*.log.gz
+grep -r 32bc366d-b144-4765-9483-6be37c55fd9d ./320* > trace.txt
+cat trace.txt | ./format-trace-logs.py | \
+  grep -v '"caller":"insolar/bus/bus' | \
+  grep -v '"caller":"network/' | sort > trace-sorted.txt
 ```
