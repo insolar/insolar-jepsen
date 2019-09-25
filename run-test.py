@@ -294,13 +294,13 @@ def k8s_get_pod_nodes():
 def k8s_stop_pods_if_running(fname):
     info("stopping pods if they are running")
     run(k8s()+"delete -f "+fname+" 2>/dev/null || true")
-    for n in range(60):
+    for n in range(30):
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | " +
                           "jq -r '.items[].metadata.name' | wc -l")
         info("running pods: "+data)
         if data == "0":
             break
-        wait(1)
+        wait(5)
     else:
         fail_test("k8s_stop_pods_if_running no attempts left")
     wait(10)  # make sure services and everything else are gone as well
