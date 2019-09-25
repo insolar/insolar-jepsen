@@ -75,7 +75,7 @@ try:
     run('echo "=== AGGREGATING LOGS TO ' +
         podlogs_fullname+' ===" | tee -a '+logfile_fullname)
     run('./aggregate-logs.py /tmp/jepsen-'+date)
-    run('gunzip /tmp/jepsen-'+date+'/*/*.log.gz')
+    run('gunzip /tmp/jepsen-'+date+'/*/*.log.gz || true')
     run('tar -cvzf '+podlogs_fullname+' /tmp/jepsen-'+date)
 except Exception as e:
     print("ERROR:")
