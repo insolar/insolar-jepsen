@@ -87,6 +87,9 @@ try:
     os.chdir(args.logdir)
     for fname in os.listdir("."):
         m = re.search("jepsen-(\d{4}\d{2}\d{2})", fname)
+        if m is None:
+            run(' echo "File: ' + fname + ' - skipped" | tee -a '+logfile_fullname)
+            continue
         ftime = calendar.timegm(time.strptime(m.group(1), "%Y%m%d"))
         ndays = int((now - ftime) / (60 * 60 * 24))
         delete = ndays > 15
