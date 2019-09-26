@@ -468,16 +468,13 @@ def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, 
     return out
 
 
-def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
+def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=80, background=False):
     out = benchmark(pod_ips, api_pod, ssh_pod, extra_args, c, r, timeout, background)
 
     if background:
         return True, out
 
-    if 'Total balance mismatch' in out:
-        return False, out
-
-    if 'Successes: '+str(c*r) in out:
+    if 'Successes: '+str(c*r) in out and 'Total balance successfully matched' in out:
         return True, out
     return False, out
 
