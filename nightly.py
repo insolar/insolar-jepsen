@@ -4,6 +4,9 @@
 import os
 import subprocess
 import argparse
+import time
+import calendar
+import re
 
 
 def run(cmd):
@@ -77,6 +80,23 @@ try:
     run('./aggregate-logs.py /tmp/jepsen-'+date)
     run('gunzip /tmp/jepsen-'+date+'/*/*.log.gz || true')
     run('tar -cvzf '+podlogs_fullname+' /tmp/jepsen-'+date)
+    run('rm -r /tmp/jepsen-'+date)
+
+    run('echo "=== CLEANING UP '+args.logdir+' ===" | tee -a '+logfile_fullname)
+    now = int(time.time())
+    os.chdir(args.logdir)
+    for fname in os.listdir("."):
+        m = re.search("jepsen-(\d{4}\d{2}\d{2})", fname)
+        if m is None:
+            run(' echo "File: ' + fname + ' - skipped" | tee -a '+logfile_fullname)
+            continue
+        ftime = calendar.timegm(time.strptime(m.group(1), "%Y%m%d"))
+        ndays = int((now - ftime) / (60 * 60 * 24))
+        delete = ndays > 15
+        run(' echo "File: ' + fname + ', ndays: ' + str(ndays) +
+            ', delete: ' + str(delete) + '" | tee -a '+logfile_fullname)
+        if delete:
+            os.unlink(fname)
 except Exception as e:
     print("ERROR:")
     print(str(e))
