@@ -7,7 +7,8 @@ ARG BRANCH
 ENV BRANCH ${BRANCH:-master}
 RUN git remote prune origin && git pull
 RUN git checkout $BRANCH
-RUN git merge origin/master --no-edit --no-ff
+# TODO: this command fails with no name set for git user
+# RUN git merge origin/master --no-edit
 RUN make install-deps && \
   (make ensure || rm -rvf vendor && make ensure) && \
   make clean && \
