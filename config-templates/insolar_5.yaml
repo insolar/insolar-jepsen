@@ -57,6 +57,8 @@ adminapirunner:
   rpc: /admin-api/rpc
   isadmin: true
   timeout: 15
+availabilitychecker:
+  enabled: false
 pulsar:
   connectiontype: tcp
   mainlisteneraddress: 0.0.0.0:18090
