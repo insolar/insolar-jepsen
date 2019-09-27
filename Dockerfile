@@ -5,10 +5,12 @@ FROM tsovak/insolar-jepsen-base
 ARG CACHE=1
 ARG BRANCH
 ENV BRANCH ${BRANCH:-master}
+RUN git config --global user.name 'Kyle Kingsbury'
+RUN git config --global user.email 'jepsen@inslar.io'
 RUN git remote prune origin && git pull
 RUN git checkout $BRANCH
 # TODO: this command fails with no name set for git user
-# RUN git merge origin/master --no-edit
+RUN git merge origin/master --no-edit
 RUN make install-deps && \
   (make ensure || rm -rvf vendor && make ensure) && \
   make clean && \
