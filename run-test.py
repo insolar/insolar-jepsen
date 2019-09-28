@@ -712,7 +712,6 @@ def test_stop_start_virtuals_quick(virtual_pods, pod_ips):
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
     stop_test()
 
-###########################
 
 def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     virtual_pods_indexes = ""
@@ -1316,9 +1315,9 @@ tests = [
 
 minimum_tests = [
     lambda: test_stop_start_virtuals_quick(VIRTUALS[:1], pod_ips),
-    # lambda: test_stop_start_pulsar(pod_ips, test_num),
-    # lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
-    # lambda: test_stop_start_heavy(HEAVY, pod_ips),
+    lambda: test_stop_start_pulsar(pod_ips, test_num),
+    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips),
 ]
 
 for test_num in range(0, args.repeat):
