@@ -468,6 +468,21 @@ def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, 
     return out
 
 
+def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS_FILE, c=C*2, timeout=80):
+    ok, migration_out = run_benchmark(
+        pod_ips, api_pod, ssh_pod, c=c, extra_args='-t=migration -s --members-file=' + members_file, timeout=timeout
+    )
+    check_benchmark(ok, migration_out)
+    ok, migration_out = run_benchmark(
+        pod_ips, api_pod, ssh_pod, c=c, extra_args='-t=migration -m --members-file=' + members_file, timeout=timeout,
+    )
+    check(not ok, "Benchmark should fail while migrate already migrated members, but it was successful:\n" + migration_out)
+    ok, out = check_balance_at_benchmark(
+        pod_ips, extra_args='-m --members-file=' + members_file + ' --check-all-balance', timeout=timeout
+    )
+    check_benchmark(ok, out)
+
+
 def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=80, background=False):
     out = benchmark(pod_ips, api_pod, ssh_pod, extra_args, c, r, timeout, background)
 
@@ -684,8 +699,10 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
         pod_ips, NODES, step="before-killing-virtual")
     check_alive(alive)
 
+    migrate_member(pod_ips, members_file=MEMBERS_FILE)
+
     ok, bench_out = run_benchmark(
-        pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
 
     for pod in virtual_pods:
@@ -705,7 +722,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
     check_alive(alive)
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
     )
     check_benchmark(ok, out)
 
@@ -713,7 +730,7 @@ def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
         pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
     )
     check_benchmark(ok, out)
 
@@ -739,11 +756,13 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
         pod_ips, NODES, step="before-killing-virtual")
     check_alive(alive)
 
+    migrate_member(pod_ips, members_file=MEMBERS_FILE)
+
     ok, bench_out = run_benchmark(
-        pod_ips, api_pod=LIGHTS[0], extra_args='-s --members-file=' + MEMBERS_FILE)
+        pod_ips, api_pod=LIGHTS[0], extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
     )
     check_benchmark(ok, out)
 
@@ -760,7 +779,7 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
         pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
     )
     check_benchmark(ok, out)
 
@@ -780,11 +799,13 @@ def test_stop_start_lights(light_pods, pod_ips):
         pod_ips, NODES, step="before-killing-light")
     check_alive(alive)
 
+    migrate_member(pod_ips, members_file=MEMBERS_FILE)
+
     ok, bench_out = run_benchmark(
-        pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
     )
     check_benchmark(ok, out)
 
@@ -810,7 +831,7 @@ def test_stop_start_lights(light_pods, pod_ips):
         pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
     )
     check_benchmark(ok, out)
 
@@ -827,11 +848,13 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
         pod_ips, NODES, step="before-killing-heavy")
     check_alive(alive)
 
+    migrate_member(pod_ips, members_file=MEMBERS_FILE)
+
     ok, bench_out = run_benchmark(
-        pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
     )
     check_benchmark(ok, out)
 
@@ -862,7 +885,7 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
         pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
     )
     check_benchmark(ok, out)
 
@@ -881,7 +904,9 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     check_alive(alive)
 
     info("Create several members with benchmark")
-    run_benchmark(pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+    migrate_member(pod_ips, members_file=MEMBERS_FILE)
+    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
     info("Wait for data to save on heavy (top sync pulse must change)")
     pulse = current_pulse()
     finalized_pulse = get_finalized_pulse_from_exporter()
@@ -920,7 +945,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     check_benchmark(ok, 'Error while checking total balance with benchmark (waited for 100s): ' + check_out)
 
     ok, check_out = check_balance_at_benchmark(
-        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
     )
     check(
         not ok,
@@ -1230,8 +1255,9 @@ if args.skip_all_tests:
     notify("Deploy checked, skipping all tests")
     sys.exit(0)
 
+migrate_member(pod_ips, members_file=OLD_MEMBERS_FILE)
 ok, bench_out = run_benchmark(
-    pod_ips, extra_args="-s --members-file=" + OLD_MEMBERS_FILE)
+    pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
 check_benchmark(ok, bench_out)
 members_creted_at = time.time()
 info("Wait for data to save on heavy (top sync pulse must change)")
@@ -1290,7 +1316,7 @@ for test_num in range(0, args.repeat):
     info("Make calls to members, created at the beginning: " +
          str(pulses_pass) + " pulses ago")
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE + " --check-balance-without-fee"
+        pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE + " --check-members-balance"
     )
     check_benchmark(ok, out)
     ok, bench_out = run_benchmark(
