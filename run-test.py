@@ -1096,7 +1096,7 @@ def clear_logs_after_repetition_and_restart():
 # nattempts - number of attempts for checking abandoned requests metric from nodes.
 # step - time in seconds between two attempts.
 # verbose - flag for additional logging.
-def check_abandoned_requests_not_increasing(nattempts=5, step=15, verbose=False):
+def check_abandoned_requests_not_increasing(nattempts=10, step=15, verbose=False):
     start_test("check_abandoned_requests")
     info("==== start/stop check_abandoned_requests test started ====")
 
