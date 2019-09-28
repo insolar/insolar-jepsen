@@ -666,6 +666,53 @@ def deploy_insolar():
     start_insolar_net(NODES, pod_ips, step="starting")
     info("==== Insolar started! ====")
 
+def test_stop_start_virtuals_quick(virtual_pods, pod_ips):
+    virtual_pods_indexes = ""
+    for pod in virtual_pods:
+        virtual_pods_indexes = virtual_pods_indexes + str(pod) + "_"
+
+    start_test(virtual_pods_indexes + "test_stop_start_virtuals_quick")
+    info("==== start/stop virtual at pods #" +
+         virtual_pods_indexes+" test started ====")
+    if len(VIRTUALS) - len(virtual_pods) < MIN_ROLES_VIRTUAL:
+        msg = "TEST FAILED: test receive wrong parameter: " +\
+              "amount of working virtual nodes must be more or equel to min roles in config (2 at the moment)"
+        fail_test(msg)
+
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="before-killing-virtual")
+    check_alive(alive)
+
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-s --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
+
+    for pod in virtual_pods:
+        info("Killing virtual on pod #"+str(pod))
+        kill(pod, "insolard")
+
+    info("Re-launching insolard on pods #"+str(virtual_pods))
+    for pod in virtual_pods:
+        start_insolard(pod)
+
+    alive = wait_until_insolar_is_alive(pod_ips, NODES, step="virtual-up")
+    check_alive(alive)
+    ok, out = check_balance_at_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+    )
+    check_benchmark(ok, out)
+
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    check_benchmark(ok, bench_out)
+    ok, out = check_balance_at_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-every-member'
+    )
+    check_benchmark(ok, out)
+
+    info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
+    stop_test()
+
+###########################
 
 def test_stop_start_virtuals_min_roles_ok(virtual_pods, pod_ips):
     virtual_pods_indexes = ""
@@ -1249,6 +1296,7 @@ tests = [
     # lambda: test_small_mtu(pod_ips), # TODO: this test hangs @ DigitalOcean, fix it
     lambda: test_stop_start_pulsar(pod_ips, test_num),
     # lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: make this test pass, see INS-2125
+    lambda: test_stop_start_virtuals_quick(VIRTUALS[:1], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
@@ -1267,9 +1315,10 @@ tests = [
 
 
 minimum_tests = [
-    lambda: test_stop_start_pulsar(pod_ips, test_num),
-    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
-    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+    lambda: test_stop_start_virtuals_quick(VIRTUALS[:1], pod_ips),
+    # lambda: test_stop_start_pulsar(pod_ips, test_num),
+    # lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
+    # lambda: test_stop_start_heavy(HEAVY, pod_ips),
 ]
 
 for test_num in range(0, args.repeat):
