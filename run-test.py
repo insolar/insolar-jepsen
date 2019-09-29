@@ -1130,11 +1130,12 @@ def check_abandoned_requests_not_increasing(nattempts=10, step=15, verbose=False
     #          <10.1.0.180:insolar_requests_abandoned{role="light_material"} 35>,
     #          ...
     abandoned_data = {}
-    # Difference of abandoned requests count between all steps.
+    # Difference of abandoned requests count in one step.
     abandoned_delta = 0
     errors = ""
 
     for attempt in range(1, nattempts+1):
+        abandoned_delta = 0
         time.sleep(step)
         # node id for investigations
         i = 0
