@@ -484,7 +484,8 @@ def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS
 
 
 def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=80, background=False):
-    out = benchmark(pod_ips, api_pod, ssh_pod, extra_args, c, r, timeout, background)
+    out = benchmark(pod_ips, api_pod, ssh_pod,
+                    extra_args, c, r, timeout, background)
 
     if background:
         return True, out
@@ -495,7 +496,8 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r
 
 
 def check_balance_at_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
-    out = benchmark(pod_ips, api_pod, ssh_pod, extra_args, c, r, timeout, background)
+    out = benchmark(pod_ips, api_pod, ssh_pod,
+                    extra_args, c, r, timeout, background)
 
     if background:
         return True, out
@@ -524,7 +526,8 @@ def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod=1):
         info('insolar_is_alive() is false, out = "'+out+'"')
         return False
 
-    ok, out = run_benchmark(pod_ips, virtual_pod, ssh_pod, extra_args=" -t=createMember")
+    ok, out = run_benchmark(pod_ips, virtual_pod, ssh_pod,
+                            extra_args=" -t=createMember")
     if ok:
         return True
     else:
@@ -905,7 +908,8 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
 
     info("Create several members with benchmark")
     migrate_member(pod_ips, members_file=MEMBERS_FILE)
-    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     info("Wait for data to save on heavy (top sync pulse must change)")
     pulse = current_pulse()
@@ -915,7 +919,8 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
         finalized_pulse = get_finalized_pulse_from_exporter()
 
     info("Starting benchmark on this members in the background, wait several transfer to pass")
-    run_benchmark(pod_ips, r=100, timeout=100, background=True, extra_args='-b -m --members-file=' + MEMBERS_FILE)
+    run_benchmark(pod_ips, r=50, timeout=100, background=True,
+                  extra_args='-b -m --members-file=' + MEMBERS_FILE)
     wait(20)
 
     info("Killing heavy on pod #"+str(heavy_pod))
@@ -932,9 +937,13 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="heavy-up")
 
+    info("Giving Insolar 2 minutes to process abandoned requests...")
+    time.sleep(120)
+
     for n in range(20):
         ok, check_out = check_balance_at_benchmark(
-            pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-total-balance'
+            pod_ips, extra_args='-m --members-file=' +
+            MEMBERS_FILE + ' --check-total-balance'
         )
         if not ok:
             info("Benchmark reply: " + check_out)
@@ -942,7 +951,8 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
         else:
             break
 
-    check_benchmark(ok, 'Error while checking total balance with benchmark (waited for 100s): ' + check_out)
+    check_benchmark(
+        ok, 'Error while checking total balance with benchmark (waited for 100s): ' + check_out)
 
     ok, check_out = check_balance_at_benchmark(
         pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
@@ -972,7 +982,7 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False):
     ssh(heavy_pod, "tmux new-session -d -s backupmanager-killer " +
         """\\"while true; do killall -9 -r backupmanager; sleep 0.1; done""" +
         """; bash\\" """)
-    ok, bench_out = run_benchmark(pod_ips, r=100, timeout=100)
+    ok, bench_out = run_benchmark(pod_ips, r=50, timeout=100)
     check(not ok, "Benchmark should fail while killing backupmanager (increase -c or -r?), but it was successfull:\n" + bench_out)
 
     info("Shutting down backupmanager-killer")
@@ -988,6 +998,9 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False):
             "rm -r data && cp -r heavy_backup data")
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="heavy-up")
+
+    info("Giving Insolar 2 minutes to process abandoned requests...")
+    time.sleep(120)
 
     ok, bench_out = run_benchmark(pod_ips)
     check_benchmark(ok, bench_out)
@@ -1317,7 +1330,8 @@ for test_num in range(0, args.repeat):
     info("Make calls to members, created at the beginning: " +
          str(pulses_pass) + " pulses ago")
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE + " --check-members-balance"
+        pod_ips, extra_args="-m --members-file=" +
+        OLD_MEMBERS_FILE + " --check-members-balance"
     )
     check_benchmark(ok, out)
     ok, bench_out = run_benchmark(
