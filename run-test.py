@@ -1236,7 +1236,7 @@ parser.add_argument(
     '-i', '--image', metavar='IMG', type=str, required=True,
     help='Docker image to test')
 parser.add_argument(
-    '-l', '--launch-only', type=bool, default=False,
+    '-l', '--launch-only', metavar='B', type=bool, default=False,
     help='Launch insolar on running pods, e.g. restart after failed tests')
 
 
