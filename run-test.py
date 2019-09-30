@@ -484,7 +484,8 @@ def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS
 
 
 def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=80, background=False):
-    out = benchmark(pod_ips, api_pod, ssh_pod, extra_args, c, r, timeout, background)
+    out = benchmark(pod_ips, api_pod, ssh_pod,
+                    extra_args, c, r, timeout, background)
 
     if background:
         return True, out
@@ -495,7 +496,8 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r
 
 
 def check_balance_at_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
-    out = benchmark(pod_ips, api_pod, ssh_pod, extra_args, c, r, timeout, background)
+    out = benchmark(pod_ips, api_pod, ssh_pod,
+                    extra_args, c, r, timeout, background)
 
     if background:
         return True, out
@@ -524,7 +526,8 @@ def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod=1):
         info('insolar_is_alive() is false, out = "'+out+'"')
         return False
 
-    ok, out = run_benchmark(pod_ips, virtual_pod, ssh_pod, extra_args=" -t=createMember")
+    ok, out = run_benchmark(pod_ips, virtual_pod, ssh_pod,
+                            extra_args=" -t=createMember")
     if ok:
         return True
     else:
@@ -537,8 +540,8 @@ def insolar_is_alive_on_pod(pod):
     return out != ''
 
 
-def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=10, pause_sec=5, step=""):
-    min_nalive = 2
+def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=20, pause_sec=5, step=""):
+    min_nalive = 3
     nalive = 0
     if virtual_pod == -1:
         virtual_pod = VIRTUALS[0]
@@ -572,7 +575,7 @@ def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step=""):
             start_insolard(pod, extra_args=extra_args_insolard)
         info("Check insolar net alive")
         alive = wait_until_insolar_is_alive(
-            pod_ips, NODES, step=step, nattempts=10)
+            pod_ips, NODES, step=step)
         if alive:
             break
 
@@ -905,7 +908,8 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
 
     info("Create several members with benchmark")
     migrate_member(pod_ips, members_file=MEMBERS_FILE)
-    ok, bench_out = run_benchmark(pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
+    ok, bench_out = run_benchmark(
+        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     info("Wait for data to save on heavy (top sync pulse must change)")
     pulse = current_pulse()
@@ -915,7 +919,8 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
         finalized_pulse = get_finalized_pulse_from_exporter()
 
     info("Starting benchmark on this members in the background, wait several transfer to pass")
-    run_benchmark(pod_ips, r=100, timeout=100, background=True, extra_args='-b -m --members-file=' + MEMBERS_FILE)
+    run_benchmark(pod_ips, r=100, timeout=100, background=True,
+                  extra_args='-b -m --members-file=' + MEMBERS_FILE)
     wait(20)
 
     info("Killing heavy on pod #"+str(heavy_pod))
@@ -934,7 +939,8 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
 
     for n in range(20):
         ok, check_out = check_balance_at_benchmark(
-            pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-total-balance'
+            pod_ips, extra_args='-m --members-file=' +
+            MEMBERS_FILE + ' --check-total-balance'
         )
         if not ok:
             info("Benchmark reply: " + check_out)
@@ -942,7 +948,8 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
         else:
             break
 
-    check_benchmark(ok, 'Error while checking total balance with benchmark (waited for 100s): ' + check_out)
+    check_benchmark(
+        ok, 'Error while checking total balance with benchmark (waited for 100s): ' + check_out)
 
     ok, check_out = check_balance_at_benchmark(
         pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
@@ -1228,8 +1235,20 @@ parser.add_argument(
 parser.add_argument(
     '-i', '--image', metavar='IMG', type=str, required=True,
     help='Docker image to test')
+parser.add_argument(
+    '-l', '--launch-only', type=bool, default=False,
+    help='Launch insolar on running pods, e.g. restart after failed tests')
+
 
 args = parser.parse_args()
+
+if args.launch_only:
+    info("=== Launching pulsard... ===")
+    start_pulsard(extra_args="-s pulsard")
+    info("=== Launching insolar network... ===")
+    start_insolar_net(NODES, pod_ips, step="starting")
+    info("==== Insolar launched! ====")
+    os.exit(0)
 
 NAMESPACE = args.namespace
 DEBUG = args.debug
@@ -1317,7 +1336,8 @@ for test_num in range(0, args.repeat):
     info("Make calls to members, created at the beginning: " +
          str(pulses_pass) + " pulses ago")
     ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE + " --check-members-balance"
+        pod_ips, extra_args="-m --members-file=" +
+        OLD_MEMBERS_FILE + " --check-members-balance"
     )
     check_benchmark(ok, out)
     ok, bench_out = run_benchmark(
