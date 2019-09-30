@@ -468,7 +468,7 @@ def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, 
     return out
 
 
-def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS_FILE, c=C*2, timeout=80):
+def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS_FILE, c=C*2, timeout=90):
     ok, migration_out = run_benchmark(
         pod_ips, api_pod, ssh_pod, c=c, extra_args='-t=migration -s --members-file=' + members_file, timeout=timeout
     )
@@ -483,7 +483,7 @@ def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS
     check_benchmark(ok, out)
 
 
-def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=80, background=False):
+def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=90, background=False):
     out = benchmark(pod_ips, api_pod, ssh_pod,
                     extra_args, c, r, timeout, background)
 
@@ -495,7 +495,7 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r
     return False, out
 
 
-def check_balance_at_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
+def check_balance_at_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=90, background=False):
     out = benchmark(pod_ips, api_pod, ssh_pod,
                     extra_args, c, r, timeout, background)
 
