@@ -1251,7 +1251,7 @@ if args.launch_only:
     info("=== Launching insolar network... ===")
     start_insolar_net(NODES, pod_ips, step="starting")
     info("==== Insolar launched! ====")
-    os.exit(0)
+    sys.exit(0)
 
 NAMESPACE = args.namespace
 DEBUG = args.debug
