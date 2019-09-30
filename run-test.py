@@ -1243,6 +1243,9 @@ parser.add_argument(
 args = parser.parse_args()
 
 if args.launch_only:
+    POD_NODES = k8s_get_pod_nodes()
+    wait_until_ssh_is_up_on_pods()
+    pod_ips = k8s_get_pod_ips()
     info("=== Launching pulsard... ===")
     start_pulsard(extra_args="-s pulsard")
     info("=== Launching insolar network... ===")
