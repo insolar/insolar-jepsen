@@ -7,7 +7,7 @@ MAINTAINER Tsovak Sahakyan
 RUN apt-get update
 RUN apt-get install -y openssh-server iptables net-tools \
     iputils-ping vim sudo git make lsof gcc curl tmux psmisc \
-    timelimit tree
+    timelimit tree htop
 RUN apt-get clean
 
 RUN mkdir /var/run/sshd
