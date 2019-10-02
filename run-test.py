@@ -128,6 +128,7 @@ def fail_test(failure_message):
         .replace("[", "|[").replace("]", "|]")
     print("##teamcity[testFailed name='%s' message='%s']" %
           (CURRENT_TEST_NAME, trace))
+    print_k8s_events()
     stop_test()
     info("Stops nodes after fail")
     for node in NODES:
@@ -136,6 +137,11 @@ def fail_test(failure_message):
     wait_until_insolar_is_down()
     sys.exit(1)
 
+
+def print_k8s_events():
+    print(get_output(k8s() + " get pods -o wide -l app=insolar-jepsen "))
+    print(get_output(k8s() + " describe pods    -l app=insolar-jepsen"))
+    print(get_output(k8s() + " get events"))
 
 def stop_test():
     global CURRENT_TEST_NAME
