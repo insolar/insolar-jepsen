@@ -626,7 +626,7 @@ def kill(pod, proc_name):
     ssh(pod, "killall -s 9 "+proc_name+" || true")
 
 
-def restore_from_backup(heavy_pod):
+def restore_heavy_from_backup(heavy_pod):
     info("Restoring heavy from backup at pod#..."+str(heavy_pod))
     kill(heavy_pod, "backupmanager")
     ssh(heavy_pod, "cd go/src/github.com/insolar/insolar/ && " +
@@ -900,7 +900,7 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
     check_down(down)
     info("Insolar is down")
     if restore_from_backup:
-        restore_from_backup(heavy_pod)
+        restore_heavy_from_backup(heavy_pod)
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="heavy-up")
 
@@ -951,7 +951,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     info("Insolar is down")
 
     if restore_from_backup:
-        restore_from_backup(heavy_pod)
+        restore_heavy_from_backup(heavy_pod)
 
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="heavy-up")
@@ -1011,7 +1011,7 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False):
     info("Insolar is down")
 
     if restore_from_backup:
-        restore_from_backup(heavy_pod)
+        restore_heavy_from_backup(heavy_pod)
     else:
         start_backupdaemon(pod)  # it was killed above
 
