@@ -684,7 +684,7 @@ def deploy_insolar():
         if pod == HEAVY:
             ssh(pod, "mkdir -p /tmp/heavy/tmp && mkdir -p /tmp/heavy/target && mkdir -p "+INSPATH+"/data")
             ssh(pod, "cd go/src/github.com/insolar/insolar && ./bin/backupmanager create -d ./heavy_backup")
-            start_backup_daemon(pod, extra_args="-s backupdaemon")
+            start_backupdaemon(pod, extra_args="-s backupdaemon")
             scp_to(pod, "/tmp/insolar-jepsen-configs/last_backup_info.json",
                    INSPATH+"/data/last_backup_info.json")
         scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
