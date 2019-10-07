@@ -8,9 +8,12 @@ FROM ubuntu:16.04
 RUN apt-get update && apt-get install -y \
  openssh-server iptables net-tools \
  iputils-ping vim sudo git make lsof gcc curl tmux psmisc \
- timelimit tree && apt-get clean
+ timelimit tree && \
+ apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /var/run/sshd
+# sudo thing below violates best practices, but works
+# https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#user
 RUN adduser --disabled-password --gecos '' gopher
 RUN usermod -a -G sudo gopher
 RUN sed -i 's/ALL=(ALL:ALL) ALL/ALL=(ALL:ALL) NOPASSWD:ALL/' \
