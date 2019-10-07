@@ -1012,6 +1012,8 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False):
 
     if restore_from_backup:
         restore_from_backup(heavy_pod)
+    else:
+        start_backupdaemon(pod)  # it was killed above
 
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="heavy-up")
