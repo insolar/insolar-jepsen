@@ -143,6 +143,7 @@ def print_k8s_events():
     print(get_output(k8s() + " describe pods    -l app=insolar-jepsen"))
     print(get_output(k8s() + " get events"))
 
+
 def stop_test():
     global CURRENT_TEST_NAME
     print("##teamcity[testFinished name='%s']" % CURRENT_TEST_NAME)
@@ -614,13 +615,16 @@ def start_pulsard(extra_args=""):
         extra_args+""" \\"./bin/pulsard -c pulsar.yaml """ +
         logto("pulsar") + """; bash\\" """)
 
+
 def start_backupdaemon(pod, extra_args=""):
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +
         """\\" ./bin/backupmanager daemon -a :8099 -t ./heavy_backup """ +
         logto("backupdaemon")+"""; bash\\" """)
 
+
 def kill(pod, proc_name):
     ssh(pod, "killall -s 9 "+proc_name+" || true")
+
 
 def restore_from_backup(heavy_pod):
     info("Restoring heavy from backup at pod#..."+str(heavy_pod))
@@ -629,6 +633,7 @@ def restore_from_backup(heavy_pod):
         "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
         "rm -r data && cp -r heavy_backup data")
     start_backupdaemon(heavy_pod)
+
 
 def check_ssh_is_up_on_pods():
     try:
