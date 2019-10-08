@@ -1319,7 +1319,7 @@ tests = [
     # lambda: test_virtuals_slow_down_speed_up(pod_ips), TODO: this test hangs on CI, fix it
     # lambda: test_small_mtu(pod_ips), # TODO: this test hangs @ DigitalOcean, fix it
     lambda: test_stop_start_pulsar(pod_ips, test_num),
-    # lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: make this test pass, see INS-2125
+    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
