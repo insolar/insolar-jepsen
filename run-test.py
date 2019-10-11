@@ -987,9 +987,11 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
 
 def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, create_backup_from_existing_db=False):
     start_test("test_kill_backupmanager" +
-               ("_restore_from_backup" if restore_from_backup else ""))
+               ("_restore_from_backup" if restore_from_backup else "")+
+               ("_created_backup_from_existing_db" if create_backup_from_existing_db else ""))
     info("==== kill backupmanager " +
-         ("with restore from backup " if restore_from_backup else "")+"test started ====")
+         ("with restore from backup " if restore_from_backup else "")+
+         ("and create backup from existing DB " if create_backup_from_existing_db else "")+ "test started ====")
     alive = wait_until_insolar_is_alive(
         pod_ips, NODES, step="before-killing-backupmanager")
     check_alive(alive)
@@ -1024,7 +1026,8 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, creat
     check_benchmark(ok, bench_out)
 
     info("==== kill backupmanager " +
-         ("with restore from backup " if restore_from_backup else "")+"passed! ====")
+         ("with restore from backup " if restore_from_backup else "")+
+         ("and create backup from existing DB " if create_backup_from_existing_db else "")+ " passed! ====")
     stop_test()
 
 
