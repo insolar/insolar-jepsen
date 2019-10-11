@@ -1028,7 +1028,7 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, creat
 
     info("==== kill backupmanager " +
          ("with restore from backup " if restore_from_backup else "") +
-         ("and create backup from existing DB " if create_backup_from_existing_db else "") + " passed! ====")
+         ("and create backup from existing DB " if create_backup_from_existing_db else "") + "passed! ====")
     stop_test()
 
 
