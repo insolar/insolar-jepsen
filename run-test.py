@@ -170,7 +170,7 @@ def check(condition, failure_message):
 
 def check_alive(condition):
     if not condition:
-        out = ssh_output(1, 'cd go/src/github.com/insolar/insolar && ' +
+        out = ssh_output(1, 'cd '+INSPATH+' && ' +
                          'timelimit -s9 -t10 ' +  # timeout: 10 seconds
                          './bin/pulsewatcher --single --config ./pulsewatcher.yaml')
         msg = "Insolar must be alive, but its not:\n" + out
@@ -461,7 +461,7 @@ def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, 
     port = VIRTUAL_START_PORT + api_pod
     out = ""
     try:
-        out = ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
+        out = ssh_output(ssh_pod, 'cd '+INSPATH+' && ' +
                          ("tmux new-session -d \"" if background else "") +
                          'timelimit -s9 -t'+str(timeout)+' ' +
                          './bin/benchmark -c ' + str(c) + ' -r ' + str(r) + ' -a http://'+pod_ips[virtual_pod_name] +
@@ -515,7 +515,7 @@ def check_balance_at_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_ar
 
 
 def pulsewatcher_output(ssh_pod=1):
-    return ssh_output(ssh_pod, 'cd go/src/github.com/insolar/insolar && ' +
+    return ssh_output(ssh_pod, 'cd '+INSPATH+' && ' +
                       'timelimit -s9 -t10 ' +  # timeout: 10 seconds
                       './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
 
@@ -629,7 +629,7 @@ def kill(pod, proc_name):
 def restore_heavy_from_backup(heavy_pod):
     info("Restoring heavy from backup at pod#..."+str(heavy_pod))
     kill(heavy_pod, "backupmanager")
-    ssh(heavy_pod, "cd go/src/github.com/insolar/insolar/ && " +
+    ssh(heavy_pod, "cd "+INSPATH+" && " +
         "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
         "rm -r data && cp -r heavy_backup data")
     start_backupdaemon(heavy_pod)
@@ -695,7 +695,7 @@ def deploy_insolar():
                 " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
         if pod == HEAVY:
             ssh(pod, "mkdir -p /tmp/heavy/tmp && mkdir -p /tmp/heavy/target && mkdir -p "+INSPATH+"/data")
-            ssh(pod, "cd go/src/github.com/insolar/insolar && ./bin/backupmanager create -d ./heavy_backup")
+            ssh(pod, "cd "+INSPATH+" && ./bin/backupmanager create -d ./heavy_backup")
             start_backupdaemon(pod)
             scp_to(pod, "/tmp/insolar-jepsen-configs/last_backup_info.json",
                    INSPATH+"/data/last_backup_info.json")
@@ -985,7 +985,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     stop_test()
 
 
-def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False):
+def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, create_backup_from_existing_db=False):
     start_test("test_kill_backupmanager" +
                ("_restore_from_backup" if restore_from_backup else ""))
     info("==== kill backupmanager " +
@@ -1013,6 +1013,8 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False):
     if restore_from_backup:
         restore_heavy_from_backup(heavy_pod)
     else:
+        if create_backup_from_existing_db:
+            ssh(heavy_pod, "cd "+INSPATH+" && (rm -r ./heavy_backup || true) && cp -r ./data ./heavy_backup")
         start_backupdaemon(heavy_pod)  # it was killed above
 
     info("Re-launching nodes")
@@ -1318,22 +1320,23 @@ tests = [
     # lambda: test_network_slow_down_speed_up(pod_ips), # TODO: doesn't work well on CI, see INS-3695
     # lambda: test_virtuals_slow_down_speed_up(pod_ips), TODO: this test doesn't pass currently, see INS-3688
     # lambda: test_small_mtu(pod_ips), # TODO: this test doesn't pass currently, see INS-3689
-    lambda: test_stop_start_pulsar(pod_ips, test_num),
-    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: very rarely doesn't pass, see INS-3687
-    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
-    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
-    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
-    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
-    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
-    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
-    lambda: test_stop_start_lights(LIGHTS, pod_ips),
-    lambda: test_stop_start_heavy(HEAVY, pod_ips),
-    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
-    lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
-    lambda: test_kill_heavy_under_load(
-        HEAVY, pod_ips, restore_from_backup=True),
-    lambda: test_kill_backupmanager(HEAVY, pod_ips),
-    lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
+#    lambda: test_stop_start_pulsar(pod_ips, test_num),
+#    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: very rarely doesn't pass, see INS-3687
+#    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
+#    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
+#    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
+#    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
+#    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
+#    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
+#    lambda: test_stop_start_lights(LIGHTS, pod_ips),
+#    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+#    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
+#    lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
+#    lambda: test_kill_heavy_under_load(
+#        HEAVY, pod_ips, restore_from_backup=True),
+#    lambda: test_kill_backupmanager(HEAVY, pod_ips),
+#    lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_backupmanager(HEAVY, pod_ips, create_backup_from_existing_db=True),
 ]
 
 
