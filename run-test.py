@@ -987,11 +987,11 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
 
 def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, create_backup_from_existing_db=False):
     start_test("test_kill_backupmanager" +
-               ("_restore_from_backup" if restore_from_backup else "")+
+               ("_restore_from_backup" if restore_from_backup else "") +
                ("_created_backup_from_existing_db" if create_backup_from_existing_db else ""))
     info("==== kill backupmanager " +
-         ("with restore from backup " if restore_from_backup else "")+
-         ("and create backup from existing DB " if create_backup_from_existing_db else "")+ "test started ====")
+         ("with restore from backup " if restore_from_backup else "") +
+         ("and create backup from existing DB " if create_backup_from_existing_db else "") + "test started ====")
     alive = wait_until_insolar_is_alive(
         pod_ips, NODES, step="before-killing-backupmanager")
     check_alive(alive)
@@ -1016,7 +1016,8 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, creat
         restore_heavy_from_backup(heavy_pod)
     else:
         if create_backup_from_existing_db:
-            ssh(heavy_pod, "cd "+INSPATH+" && (rm -r ./heavy_backup || true) && cp -r ./data ./heavy_backup")
+            ssh(heavy_pod, "cd "+INSPATH +
+                " && (rm -r ./heavy_backup || true) && cp -r ./data ./heavy_backup")
         start_backupdaemon(heavy_pod)  # it was killed above
 
     info("Re-launching nodes")
@@ -1026,8 +1027,8 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, creat
     check_benchmark(ok, bench_out)
 
     info("==== kill backupmanager " +
-         ("with restore from backup " if restore_from_backup else "")+
-         ("and create backup from existing DB " if create_backup_from_existing_db else "")+ " passed! ====")
+         ("with restore from backup " if restore_from_backup else "") +
+         ("and create backup from existing DB " if create_backup_from_existing_db else "") + " passed! ====")
     stop_test()
 
 
@@ -1323,23 +1324,24 @@ tests = [
     # lambda: test_network_slow_down_speed_up(pod_ips), # TODO: doesn't work well on CI, see INS-3695
     # lambda: test_virtuals_slow_down_speed_up(pod_ips), TODO: this test doesn't pass currently, see INS-3688
     # lambda: test_small_mtu(pod_ips), # TODO: this test doesn't pass currently, see INS-3689
-#    lambda: test_stop_start_pulsar(pod_ips, test_num),
-#    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: very rarely doesn't pass, see INS-3687
-#    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
-#    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
-#    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
-#    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
-#    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
-#    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
-#    lambda: test_stop_start_lights(LIGHTS, pod_ips),
-#    lambda: test_stop_start_heavy(HEAVY, pod_ips),
-#    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
-#    lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
-#    lambda: test_kill_heavy_under_load(
-#        HEAVY, pod_ips, restore_from_backup=True),
-#    lambda: test_kill_backupmanager(HEAVY, pod_ips),
-#    lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
-    lambda: test_kill_backupmanager(HEAVY, pod_ips, create_backup_from_existing_db=True),
+    lambda: test_stop_start_pulsar(pod_ips, test_num),
+    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: very rarely doesn't pass, see INS-3687
+    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
+    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
+    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
+    lambda: test_stop_start_lights(LIGHTS, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
+    lambda: test_kill_heavy_under_load(
+        HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_backupmanager(HEAVY, pod_ips),
+    lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_backupmanager(
+        HEAVY, pod_ips, create_backup_from_existing_db=True),
 ]
 
 
