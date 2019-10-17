@@ -1265,7 +1265,7 @@ parser.add_argument(
     help='Docker image to test')
 parser.add_argument(
     '-l', '--launch-only', action="store_true",
-    help='Launch insolar on running pods, e.g. restart after failed tests (hint: use with `-i dummy`)')
+    help='Launch insolar on running pods, i.e. restart after failed tests (hint: use with `-i dummy`)')
 
 
 args = parser.parse_args()
