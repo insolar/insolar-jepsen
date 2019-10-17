@@ -15,10 +15,6 @@ chmod 600 ./base-image/id\_rsa
 # Label current node: jepsen=true
 kubectl label node docker-desktop jepsen=true
 
-# Install Python dependencies
-mkvirtualenv insolar-jepsen
-pip3 install -r requirements.txt
-
 # to build the base image:
 cd base-image && docker build --no-cache -t tsovak/insolar-jepsen-base . && cd ..
 

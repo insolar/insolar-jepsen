@@ -698,12 +698,6 @@ def deploy_pulsar():
            INSPATH+"/pulsar.yaml")
     start_pulsard(extra_args="-s pulsard")
 
-# How to connect to Observer database:
-# >>> import postgresql
-# >>> db = postgresql.open('pq://observer:observer@localhost:31013/observer')
-# >>> db.query('SELECT * FROM members')
-# []
-
 
 def deploy_observer(observer_path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
