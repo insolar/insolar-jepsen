@@ -254,7 +254,7 @@ def ssh_output(pod, cmd):
 def scp_to(pod, lpath, rpath, flags='', ignore_errors=False):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P" +
         str(START_PORT + pod)+" "+flags+" " + lpath + " "+ssh_user_host(pod) +
-        ":"+rpath + (" || true" if ignore_errors else "") )
+        ":"+rpath + (" || true" if ignore_errors else ""))
 
 
 def scp_from(pod, rpath, lpath, flags=''):
@@ -703,6 +703,8 @@ def deploy_pulsar():
 # >>> db = postgresql.open('pq://observer:observer@localhost:31013/observer')
 # >>> db.query('SELECT * FROM members')
 # []
+
+
 def deploy_observer(observer_path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
@@ -711,12 +713,17 @@ def deploy_observer(observer_path):
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
-    info("deploying observer @ pod "+str(OBSERVER) + ", using source code from "+observer_path)
+    info("deploying observer @ pod "+str(OBSERVER) +
+         ", using source code from "+observer_path)
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
-    scp_to(OBSERVER, observer_path, INSPATH+"/../observer", flags="-r", ignore_errors=True)
+    scp_to(OBSERVER, observer_path, INSPATH +
+           "/../observer", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd "+INSPATH+"/../observer && make observer && mkdir -p .artifacts")
-    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml", INSPATH+"/../observer/.artifacts/observer.yaml")
-    ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH+"""/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
+           INSPATH+"/../observer/.artifacts/observer.yaml")
+    ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
+        """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
+
 
 def deploy_insolar():
     info("copying configs and fixing certificates for discovery nodes")
@@ -1304,7 +1311,7 @@ parser.add_argument(
 parser.add_argument(
     '-o', '--observer-path', metavar='P', type=str, default="",
     help='Path to cloned Observer repositry (closed-source project)')
-   
+
 args = parser.parse_args()
 
 if args.launch_only:
