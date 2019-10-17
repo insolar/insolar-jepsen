@@ -714,8 +714,8 @@ def deploy_observer(observer_path):
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
     scp_to(OBSERVER, observer_path, INSPATH+"/../observer", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd "+INSPATH+"/../observer && make observer && mkdir -p .artifacts")
-    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml", INSPATH+"/../.artifacts/observer.yaml")
-    ssh(OBSERVER, """tmux new-session -d -s observer \\"./bin/observer | tee -a observer.log\\" """)
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml", INSPATH+"/../observer/.artifacts/observer.yaml")
+    ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH+"""/../observer && ./bin/observer | tee -a observer.log\\" """)
 
 def deploy_insolar():
     info("copying configs and fixing certificates for discovery nodes")
