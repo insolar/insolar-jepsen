@@ -4,6 +4,10 @@ FROM ubuntu:16.04
 
 MAINTAINER Tsovak Sahakyan 
 
+# wget is required to add PPA
+RUN apt-get update
+RUN apt-get install -y wget
+
 # Observer depends on PostgreSQL 11.4+
 RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' > /etc/apt/sources.list.d/pgdg.list
 RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
