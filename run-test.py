@@ -42,7 +42,8 @@ NOT_DISCOVERY_NODES = VIRTUALS
 NODES = DISCOVERY_NODES + NOT_DISCOVERY_NODES
 
 PULSAR = 12
-ALL_PODS = NODES + [PULSAR]
+OBSERVER = 13
+ALL_PODS = NODES + [PULSAR, OBSERVER]
 
 MIN_ROLES_VIRTUAL = 2
 LOG_LEVEL = "Debug"  # Info
@@ -69,6 +70,18 @@ spec:
   ports:
     - port: 22
       nodePort: {ssh_port}
+  selector:
+    name: {pod_name}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {pod_name}-pgsql
+spec:
+  type: NodePort
+  ports:
+    - port: 5432
+      nodePort: {pgsql_port}
   selector:
     name: {pod_name}
 ---
@@ -238,10 +251,10 @@ def ssh_output(pod, cmd):
                       cmd + """ '" """)
 
 
-def scp_to(pod, lpath, rpath, flags=''):
+def scp_to(pod, lpath, rpath, flags='', ignore_errors=False):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P" +
         str(START_PORT + pod)+" "+flags+" " + lpath + " "+ssh_user_host(pod) +
-        ":"+rpath)
+        ":"+rpath + (" || true" if ignore_errors else ""))
 
 
 def scp_from(pod, rpath, lpath, flags=''):
@@ -259,9 +272,11 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
         for i in ALL_PODS:
             pod_name = "jepsen-" + str(i)
             ssh_port = str(32000 + i)
+            pgsql_port = str(31000 + i)
             descr = K8S_YAML_TEMPLATE.format(
                 pod_name=pod_name,
                 ssh_port=ssh_port,
+                pgsql_port=pgsql_port,
                 image_name=image_name,
                 pull_policy=pull_policy
             )
@@ -670,6 +685,7 @@ def prepare_configs():
     run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
     pod_ips = k8s_get_pod_ips()
 
+    # sorting is needed to replace JEPSEN-10 before JEPSEN-1
     for k in sorted(pod_ips.keys(), reverse=True):
         run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak " +
             "| xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
@@ -681,6 +697,26 @@ def deploy_pulsar():
     scp_to(PULSAR, "/tmp/insolar-jepsen-configs/pulsar.yaml",
            INSPATH+"/pulsar.yaml")
     start_pulsard(extra_args="-s pulsard")
+
+
+def deploy_observer(observer_path):
+    info("deploying PostgreSQL @ pod "+str(OBSERVER))
+    # The base64-encoded string is: listen_addresses = '*'
+    # I got tired to fight with escaping quotes in bash...
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
+    scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
+    ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
+    info("deploying observer @ pod "+str(OBSERVER) +
+         ", using source code from "+observer_path)
+    # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
+    scp_to(OBSERVER, observer_path, INSPATH +
+           "/../observer", flags="-r", ignore_errors=True)
+    ssh(OBSERVER, "cd "+INSPATH+"/../observer && make observer && mkdir -p .artifacts")
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
+           INSPATH+"/../observer/.artifacts/observer.yaml")
+    ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
+        """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
 
 
 def deploy_insolar():
@@ -1266,7 +1302,9 @@ parser.add_argument(
 parser.add_argument(
     '-l', '--launch-only', action="store_true",
     help='Launch insolar on running pods, i.e. restart after failed tests (hint: use with `-i dummy`)')
-
+parser.add_argument(
+    '-o', '--observer-path', metavar='P', type=str, default="",
+    help='Path to cloned Observer repositry (closed-source project)')
 
 args = parser.parse_args()
 
@@ -1299,7 +1337,8 @@ upload_tools(HEAVY, pod_ips)
 prepare_configs()
 deploy_pulsar()
 deploy_insolar()
-
+if args.observer_path:
+    deploy_observer(args.observer_path)
 stop_test()
 
 if args.skip_all_tests:

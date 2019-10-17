@@ -4,11 +4,22 @@ FROM ubuntu:16.04
 
 MAINTAINER Tsovak Sahakyan 
 
+# wget is required to add PPA
+RUN apt-get update
+RUN apt-get install -y wget
+
+# Observer depends on PostgreSQL 11+
+RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' > /etc/apt/sources.list.d/pgdg.list
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+
 RUN apt-get update
 RUN apt-get install -y openssh-server iptables net-tools \
     iputils-ping vim sudo git make lsof gcc curl tmux psmisc \
-    timelimit tree htop
+    timelimit tree htop telnet
 RUN apt-get clean
+
+# Speeds up Observer deployment
+RUN apt-get install -y --download-only postgresql-11
 
 RUN mkdir /var/run/sshd
 RUN adduser --disabled-password --gecos '' gopher
