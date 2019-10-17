@@ -683,6 +683,17 @@ def deploy_pulsar():
            INSPATH+"/pulsar.yaml")
     start_pulsard(extra_args="-s pulsard")
 
+def deploy_observer(observer_path):
+    info("deploying PostgreSQL @ pod "+str(OBSERVER))
+    ssh(OBSERVER, "sudo apt install postgresql-9.5 && sudo service postgresql start")
+    ssh(OBSERVER, """echo "CREATE DATABASE observer; CREATE USER observer WITH PASSWORD 'observer'; GRANT ALL ON DATABASE observer TO observer;" | sudo -u postgres psql""")
+    scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
+    ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
+    info("deploying observer @ pod "+str(OBSERVER) + ", using source code from "+observer_path)
+    scp_to(OBSERVER, observer_path, "/home/gopher/observer_src", flags="-r")
+    ssh(OBSERVER, "cd /home/gopher/observer_src && make all && mkdir -p .artifacts")
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml", "/home/gopher/observer_src/.artifacts/observer.yaml")
+    ssh(OBSERVER, "tmux new-session -d -s observer './bin/observer | tee -a observer.log'")
 
 def deploy_insolar():
     info("copying configs and fixing certificates for discovery nodes")
@@ -1267,8 +1278,10 @@ parser.add_argument(
 parser.add_argument(
     '-l', '--launch-only', action="store_true",
     help='Launch insolar on running pods, i.e. restart after failed tests (hint: use with `-i dummy`)')
-
-
+parser.add_argument(
+    '-o', '--observer-path', metavar='P', type=str, default="",
+    help='Path to cloned Observer repositry (closed-source project)')
+   
 args = parser.parse_args()
 
 if args.launch_only:
@@ -1300,7 +1313,8 @@ upload_tools(HEAVY, pod_ips)
 prepare_configs()
 deploy_pulsar()
 deploy_insolar()
-
+if args.observer_path:
+    deploy_observer(args.observer_path)
 stop_test()
 
 if args.skip_all_tests:
