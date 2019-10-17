@@ -712,9 +712,9 @@ def deploy_observer(observer_path):
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
     info("deploying observer @ pod "+str(OBSERVER) + ", using source code from "+observer_path)
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
-    scp_to(OBSERVER, observer_path, INSPATH+"/observer", flags="-r", ignore_errors=True)
-    ssh(OBSERVER, "cd "+INSPATH+"/observer && make observer && mkdir -p .artifacts")
-    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml", INSPATH+"/.artifacts/observer.yaml")
+    scp_to(OBSERVER, observer_path, INSPATH+"/../observer", flags="-r", ignore_errors=True)
+    ssh(OBSERVER, "cd "+INSPATH+"/../observer && make observer && mkdir -p .artifacts")
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml", INSPATH+"/../.artifacts/observer.yaml")
     ssh(OBSERVER, """tmux new-session -d -s observer \\"./bin/observer | tee -a observer.log\\" """)
 
 def deploy_insolar():
