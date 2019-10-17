@@ -64,12 +64,24 @@ K8S_YAML_TEMPLATE = """
 kind: Service
 apiVersion: v1
 metadata:
-  name: {pod_name}
+  name: {pod_name}-ssh
 spec:
   type: NodePort
   ports:
     - port: 22
       nodePort: {ssh_port}
+  selector:
+    name: {pod_name}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {pod_name}-pgsql
+spec:
+  type: NodePort
+  ports:
+    - port: 5432
+      nodePort: {pgsql_port}
   selector:
     name: {pod_name}
 ---
@@ -239,10 +251,10 @@ def ssh_output(pod, cmd):
                       cmd + """ '" """)
 
 
-def scp_to(pod, lpath, rpath, flags=''):
+def scp_to(pod, lpath, rpath, flags='', ignore_errors=False):
     run("scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P" +
         str(START_PORT + pod)+" "+flags+" " + lpath + " "+ssh_user_host(pod) +
-        ":"+rpath)
+        ":"+rpath + (" || true" if ignore_errors else "") )
 
 
 def scp_from(pod, rpath, lpath, flags=''):
@@ -260,9 +272,11 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
         for i in ALL_PODS:
             pod_name = "jepsen-" + str(i)
             ssh_port = str(32000 + i)
+            pgsql_port = str(31000 + i)
             descr = K8S_YAML_TEMPLATE.format(
                 pod_name=pod_name,
                 ssh_port=ssh_port,
+                pgsql_port=pgsql_port,
                 image_name=image_name,
                 pull_policy=pull_policy
             )
@@ -683,14 +697,20 @@ def deploy_pulsar():
            INSPATH+"/pulsar.yaml")
     start_pulsard(extra_args="-s pulsard")
 
+# How to connect to Observer database:
+# >>> import postgresql
+# >>> db = postgresql.open('pq://observer:observer@localhost:31013/observer')
+# >>> db.query('SELECT * FROM members')
+# []
 def deploy_observer(observer_path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
-    ssh(OBSERVER, "sudo apt install -y postgresql-9.5 && sudo service postgresql start")
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-9.5 && echo -e listen_addresses = \\x27*\\x27 >> /etc/postgresql/9.5/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/9.5/main/pg_hba.conf && service postgresql start\\" """)
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
     info("deploying observer @ pod "+str(OBSERVER) + ", using source code from "+observer_path)
-    scp_to(OBSERVER, observer_path, "/home/gopher/observer_src", flags="-r")
+    # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
+    scp_to(OBSERVER, observer_path, "/home/gopher/observer_src", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd /home/gopher/observer_src && make all && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml", "/home/gopher/observer_src/.artifacts/observer.yaml")
     ssh(OBSERVER, """tmux new-session -d -s observer \\"./bin/observer | tee -a observer.log\\" """)
