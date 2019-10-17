@@ -685,6 +685,7 @@ def prepare_configs():
     run("cp -r ./config-templates /tmp/insolar-jepsen-configs")
     pod_ips = k8s_get_pod_ips()
 
+    # sorting is needed to replace JEPSEN-10 before JEPSEN-1
     for k in sorted(pod_ips.keys(), reverse=True):
         run("find /tmp/insolar-jepsen-configs -type f -print | grep -v .bak " +
             "| xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
