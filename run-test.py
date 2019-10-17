@@ -64,7 +64,7 @@ K8S_YAML_TEMPLATE = """
 kind: Service
 apiVersion: v1
 metadata:
-  name: {pod_name}-ssh
+  name: {pod_name}
 spec:
   type: NodePort
   ports:
