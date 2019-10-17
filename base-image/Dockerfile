@@ -10,6 +10,9 @@ RUN apt-get install -y openssh-server iptables net-tools \
     timelimit tree htop telnet
 RUN apt-get clean
 
+# Speeds up Observer deployment
+RUN apt-get install -y --download-only postgresql-9.5
+
 RUN mkdir /var/run/sshd
 RUN adduser --disabled-password --gecos '' gopher
 RUN usermod -a -G sudo gopher

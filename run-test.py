@@ -684,7 +684,7 @@ def deploy_pulsar():
     start_pulsard(extra_args="-s pulsard")
 
 def deploy_observer(observer_path):
-    info("deploying PostgreSQL @ pod "+str(OBSERVER) + " (this may take a few minutes...)")
+    info("deploying PostgreSQL @ pod "+str(OBSERVER) + " (please be patient...)")
     ssh(OBSERVER, "sudo apt install postgresql-9.5 && sudo service postgresql start")
     ssh(OBSERVER, """echo \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD 'observer'; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
