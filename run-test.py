@@ -704,7 +704,9 @@ def deploy_pulsar():
 # []
 def deploy_observer(observer_path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-9.5 && echo -e listen_addresses = \\\\x27*\\\\x27 >> /etc/postgresql/9.5/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/9.5/main/pg_hba.conf && service postgresql start\\" """)
+    # The base64-encoded string is: listen_addresses = '*'
+    # I got tired to fight with escaping quotes in bash...
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-9.5 && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/9.5/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/9.5/main/pg_hba.conf && service postgresql start\\" """)
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
