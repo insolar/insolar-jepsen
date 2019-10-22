@@ -31,7 +31,7 @@ RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
   scripts/insolard/configs/foundation_${m}_member_keys.json; done
 RUN for m in $(seq 0 1); do ./bin/insolar gen-key-pair > \
     scripts/insolard/configs/funds_${m}_member_keys.json; done
-RUN for m in $(seq 0 2); do ./bin/insolar gen-key-pair > \
+RUN for m in $(seq 0 3); do ./bin/insolar gen-key-pair > \
     scripts/insolard/configs/enterprise_${m}_member_keys.json; done
 
 RUN ./bin/insolar gen-migration-addresses > scripts/insolard/configs/migration_addresses.json || true
