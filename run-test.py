@@ -706,6 +706,8 @@ def deploy_pulsar():
 # scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../wallet-api-insolar-price/build/libs/wallet-api-insolar-price.jar gopher@localhost:
 # scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../xns-coin-stats/build/libs/xns-coin-stats.jar gopher@localhost:
 
+# DB_NAME=observer DB_LOGIN=observer DB_PASSWORD=observer DB_PATH=jdbc:postgresql://localhost:5432/ SERVER_PORT=8090 java -jar ./wallet-api-insolar-balance.jar
+
 def deploy_observer(observer_path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
