@@ -10,6 +10,7 @@ RUN git config --global user.email 'jepsen@insolar.io'
 RUN git remote prune origin && git pull
 RUN git checkout $BRANCH
 RUN git merge origin/master --no-edit
+RUN make submodule || true
 RUN make install-deps && \
   (make ensure || rm -rvf vendor && make ensure) && \
   make clean && \
