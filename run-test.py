@@ -286,7 +286,7 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
             # Proxy Java API daemons and PostgreSQL ports on OBSERVER
             if i == OBSERVER:
                 to_port = 31001
-                for from_port in list(range(8091,8095+1)) + [5432]:
+                for from_port in list(range(8091, 8095+1)) + [5432]:
                     descr += PROXY_PORT_YAML_TEMPLATE.format(
                         pod_name=pod_name,
                         from_port=from_port,
@@ -733,18 +733,24 @@ def deploy_observer(path):
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/*")
     services = [
-        {"port": 8091, "name": "wallet-api-insolar-balance", "jar": "wallet-api-insolar-balance.jar" },
-        {"port": 8092, "name": "wallet-api-insolar-transactions", "jar": "wallet-api-insolar-transactions.jar" },
-        {"port": 8093, "name": "migration-address-api", "jar": "migration-address.jar" },
-        {"port": 8094, "name": "wallet-api-insolar-price", "jar": "wallet-api-insolar-price.jar" },
-        {"port": 8095, "name": "xns-coin-stats", "jar": "xns-coin-stats.jar" },
+        {"port": 8091, "name": "wallet-api-insolar-balance",
+            "jar": "wallet-api-insolar-balance.jar"},
+        {"port": 8092, "name": "wallet-api-insolar-transactions",
+            "jar": "wallet-api-insolar-transactions.jar"},
+        {"port": 8093, "name": "migration-address-api",
+            "jar": "migration-address.jar"},
+        {"port": 8094, "name": "wallet-api-insolar-price",
+            "jar": "wallet-api-insolar-price.jar"},
+        {"port": 8095, "name": "xns-coin-stats", "jar": "xns-coin-stats.jar"},
     ]
     for srv in services:
         info("deploying "+srv["name"]+"...")
-        scp_to(OBSERVER, path + "/" + srv["name"]+"/build/libs/"+srv["jar"], "/home/gopher/")
-        ssh(OBSERVER, """tmux new-session -d -s """+srv["name"]+""" \\" """+
+        scp_to(OBSERVER, path + "/" +
+               srv["name"]+"/build/libs/"+srv["jar"], "/home/gopher/")
+        ssh(OBSERVER, """tmux new-session -d -s """+srv["name"]+""" \\" """ +
             """DB_NAME=observer DB_LOGIN=observer DB_PASSWORD=observer DB_PATH=jdbc:postgresql://localhost:5432/ """ +
             """SERVER_PORT="""+str(srv["port"])+""" java -jar ./"""+srv["jar"]+""" 2>&1 | tee -a """+srv["name"]+""".log; bash\\" """)
+
 
 def deploy_insolar():
     info("copying configs and fixing certificates for discovery nodes")
@@ -1391,7 +1397,8 @@ tests = [
     # lambda: test_virtuals_slow_down_speed_up(pod_ips), TODO: this test doesn't pass currently, see INS-3688
     # lambda: test_small_mtu(pod_ips), # TODO: this test doesn't pass currently, see INS-3689
     lambda: test_stop_start_pulsar(pod_ips, test_num),
-    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: very rarely doesn't pass, see INS-3687
+    # TODO: sometimes test_netsplit_single_virtual doesn't pass, see INS-3687
+    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
