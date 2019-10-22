@@ -286,7 +286,7 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
             # Proxy Java API daemons and PostgreSQL ports on OBSERVER
             if i == OBSERVER:
                 to_port = 31001
-                for from_port in list(range(8091,8095+1)) + [5422]:
+                for from_port in list(range(8091,8095+1)) + [5432]:
                     descr += PROXY_PORT_YAML_TEMPLATE.format(
                         pod_name=pod_name,
                         from_port=from_port,
