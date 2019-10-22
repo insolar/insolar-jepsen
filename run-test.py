@@ -73,18 +73,6 @@ spec:
   selector:
     name: {pod_name}
 ---
-kind: Service
-apiVersion: v1
-metadata:
-  name: {pod_name}-pgsql
-spec:
-  type: NodePort
-  ports:
-    - port: 5432
-      nodePort: {pgsql_port}
-  selector:
-    name: {pod_name}
----
 apiVersion: v1
 kind: Pod
 metadata:
@@ -106,6 +94,21 @@ spec:
   nodeSelector:
     jepsen: "true"
 ---
+"""
+
+PROXY_PORT_YAML_TEMPLATE = """
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: proxy-{pod_name}-{from_port}
+spec:
+  type: NodePort
+  ports:
+    - port: {from_port}
+      nodePort: {to_port}
+  selector:
+    name: {pod_name}
 """
 
 # to make `sed` work properly, otherwise it failes with an error:
@@ -280,6 +283,16 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
                 image_name=image_name,
                 pull_policy=pull_policy
             )
+            # Proxy Java API daemons and PostgreSQL ports on OBSERVER
+            if i == OBSERVER:
+                to_port = 31001
+                for from_port in list(range(8091,8095+1)) + [5422]:
+                    descr += PROXY_PORT_YAML_TEMPLATE.format(
+                        pod_name=pod_name,
+                        from_port=from_port,
+                        to_port=to_port,
+                    )
+                    to_port += 1
             f.write(descr)
 
 
