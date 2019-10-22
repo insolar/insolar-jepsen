@@ -21,7 +21,7 @@ RUN apt-get clean
 # Speeds up Observer deployment
 RUN apt-get install -y --download-only postgresql-11
 
-# Sppeds up Java API daemons deployment
+# Speeds up Java API daemons deployment
 RUN apt-get install -y --download-only openjdk-8-jdk
 
 RUN mkdir /var/run/sshd
