@@ -699,11 +699,18 @@ def deploy_pulsar():
     start_pulsard(extra_args="-s pulsard")
 
 
+# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../wallet-api-insolar-balance/build/libs/wallet-api-insolar-balance.jar gopher@localhost:
+# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../wallet-api-insolar-transactions/build/libs/wallet-api-insolar-transactions.jar gopher@localhost:
+# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../migration-address-api/build/libs/migration-address.jar gopher@localhost:
+# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../CoinStats/build/libs/coin_stats.jar gopher@localhost:
+# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../wallet-api-insolar-price/build/libs/wallet-api-insolar-price.jar gopher@localhost:
+# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../xns-coin-stats/build/libs/xns-coin-stats.jar gopher@localhost:
+
 def deploy_observer(observer_path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 openjdk-8-jdk && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
