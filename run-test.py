@@ -699,16 +699,7 @@ def deploy_pulsar():
     start_pulsard(extra_args="-s pulsard")
 
 
-# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../wallet-api-insolar-balance/build/libs/wallet-api-insolar-balance.jar gopher@localhost:
-# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../wallet-api-insolar-transactions/build/libs/wallet-api-insolar-transactions.jar gopher@localhost:
-# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../migration-address-api/build/libs/migration-address.jar gopher@localhost:
-# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../CoinStats/build/libs/coin_stats.jar gopher@localhost:
-# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../wallet-api-insolar-price/build/libs/wallet-api-insolar-price.jar gopher@localhost:
-# scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32013 ../xns-coin-stats/build/libs/xns-coin-stats.jar gopher@localhost:
-
-# DB_NAME=observer DB_LOGIN=observer DB_PASSWORD=observer DB_PATH=jdbc:postgresql://localhost:5432/ SERVER_PORT=8090 java -jar ./wallet-api-insolar-balance.jar
-
-def deploy_observer(observer_path):
+def deploy_observer(path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
@@ -717,16 +708,30 @@ def deploy_observer(observer_path):
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
     info("deploying observer @ pod "+str(OBSERVER) +
-         ", using source code from "+observer_path)
+         ", using source code from "+path+"/observer")
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
-    scp_to(OBSERVER, observer_path, INSPATH +
+    scp_to(OBSERVER, path + "/observer", INSPATH +
            "/../observer", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd "+INSPATH+"/../observer && make observer && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
         """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
-
+    info("deploying Java API microservices @ pod "+str(OBSERVER) +
+         ", using source code from "+path+"/*")
+    services = [
+        {"port": 8091, "name": "wallet-api-insolar-balance", "jar": "wallet-api-insolar-balance.jar" },
+        {"port": 8092, "name": "wallet-api-insolar-transactions", "jar": "wallet-api-insolar-transactions.jar" },
+        {"port": 8093, "name": "migration-address-api", "jar": "migration-address.jar" },
+        {"port": 8094, "name": "wallet-api-insolar-price", "jar": "wallet-api-insolar-price.jar" },
+        {"port": 8095, "name": "xns-coin-stats", "jar": "xns-coin-stats.jar" },
+    ]
+    for srv in services:
+        info("deploying "+srv["name"]+"...")
+        scp_to(OBSERVER, path + "/" + srv["name"]+"/build/libs/"+srv["jar"], "/home/gopher/")
+        ssh(OBSERVER, """tmux new-session -d -s """+srv["name"]+""" \\" """+
+            """DB_NAME=observer DB_LOGIN=observer DB_PASSWORD=observer DB_PATH=jdbc:postgresql://localhost:5432/""" +
+            """SERVER_PORT="""+str(srv["port"])+""" java -jar ./"""+srv["jar"]+""" 2>&1 | tee -a """+srv["name"]+""".log; bash\\" """)
 
 def deploy_insolar():
     info("copying configs and fixing certificates for discovery nodes")
@@ -1312,8 +1317,8 @@ parser.add_argument(
     '-l', '--launch-only', action="store_true",
     help='Launch insolar on running pods, i.e. restart after failed tests (hint: use with `-i dummy`)')
 parser.add_argument(
-    '-o', '--observer-path', metavar='P', type=str, default="",
-    help='Path to cloned Observer repositry (closed-source project)')
+    '-o', '--others-path', metavar='P', type=str, default="",
+    help='Path to cloned reposities of observer and Java API microservices (closed-source projects)')
 
 args = parser.parse_args()
 
@@ -1346,8 +1351,8 @@ upload_tools(HEAVY, pod_ips)
 prepare_configs()
 deploy_pulsar()
 deploy_insolar()
-if args.observer_path:
-    deploy_observer(args.observer_path)
+if args.others_path:
+    deploy_observer(args.others_path)
 stop_test()
 
 if args.skip_all_tests:
