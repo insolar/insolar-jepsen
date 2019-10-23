@@ -26,7 +26,8 @@ import datetime
 # jepsen-12: pulsar
 
 START_PORT = 32000
-VIRTUAL_START_PORT = 19000
+VIRTUAL_START_RPC_PORT = 19000
+VIRTUAL_START_ADMIN_PORT = 19100
 INSPATH = "go/src/github.com/insolar/insolar"
 OLD_MEMBERS_FILE = ".artifacts/bench-members/members-from-start.txt"
 MEMBERS_FILE = ".artifacts/bench-members/members.txt"
@@ -97,7 +98,6 @@ spec:
 """
 
 PROXY_PORT_YAML_TEMPLATE = """
----
 kind: Service
 apiVersion: v1
 metadata:
@@ -109,6 +109,7 @@ spec:
       nodePort: {to_port}
   selector:
     name: {pod_name}
+---
 """
 
 # to make `sed` work properly, otherwise it failes with an error:
@@ -272,6 +273,7 @@ def k8s():
 
 def k8s_gen_yaml(fname, image_name, pull_policy):
     with open(fname, "w") as f:
+        to_port = 31001
         for i in ALL_PODS:
             pod_name = "jepsen-" + str(i)
             ssh_port = str(32000 + i)
@@ -283,10 +285,24 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
                 image_name=image_name,
                 pull_policy=pull_policy
             )
-            # Proxy Java API daemons and PostgreSQL ports on OBSERVER
+            # Proxy platform RPC and admin API ports
+            if i == HEAVY:
+                descr += PROXY_PORT_YAML_TEMPLATE.format(
+                        pod_name=pod_name,
+                        from_port=VIRTUAL_START_RPC_PORT+1,
+                        to_port=to_port,
+                    )
+                to_port += 1
+                descr += PROXY_PORT_YAML_TEMPLATE.format(
+                        pod_name=pod_name,
+                        from_port=VIRTUAL_START_ADMIN_PORT+1,
+                        to_port=to_port,
+                    )
+                to_port += 1
+
+            # Proxy Java API daemons, PostgreSQL and Nginx ports on OBSERVER
             if i == OBSERVER:
-                to_port = 31001
-                for from_port in list(range(8091, 8095+1)) + [5432]:
+                for from_port in list(range(8091, 8095+1)) + [5432, 80]:
                     descr += PROXY_PORT_YAML_TEMPLATE.format(
                         pod_name=pod_name,
                         from_port=from_port,
@@ -486,7 +502,7 @@ def get_finalized_pulse_from_exporter():
 
 def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
     virtual_pod_name = 'jepsen-'+str(api_pod)
-    port = VIRTUAL_START_PORT + api_pod
+    port = VIRTUAL_START_RPC_PORT + api_pod
     out = ""
     try:
         out = ssh_output(ssh_pod, 'cd '+INSPATH+' && ' +
@@ -716,10 +732,13 @@ def deploy_observer(path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 openjdk-8-jdk && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 openjdk-8-jdk nginx && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
+    info("starting Nginx @ pod "+str(OBSERVER))
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf", "/tmp/nginx_default.conf")
+    ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
     info("deploying observer @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/observer")
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
