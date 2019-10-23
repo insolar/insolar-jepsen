@@ -98,7 +98,6 @@ spec:
 """
 
 PROXY_PORT_YAML_TEMPLATE = """
----
 kind: Service
 apiVersion: v1
 metadata:
@@ -110,6 +109,7 @@ spec:
       nodePort: {to_port}
   selector:
     name: {pod_name}
+---
 """
 
 # to make `sed` work properly, otherwise it failes with an error:
