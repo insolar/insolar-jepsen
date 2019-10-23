@@ -732,6 +732,8 @@ def deploy_observer(path):
         """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/*")
+    # TODO: create an ingress
+    # TODO: export platform API as well
     services = [
         {"port": 8091, "name": "wallet-api-insolar-balance",
             "jar": "wallet-api-insolar-balance.jar"},
