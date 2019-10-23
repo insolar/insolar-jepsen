@@ -289,13 +289,13 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
             if i == HEAVY:
                 descr += PROXY_PORT_YAML_TEMPLATE.format(
                         pod_name=pod_name,
-                        from_port=VIRTUAL_START_RPC_PORT,
+                        from_port=VIRTUAL_START_RPC_PORT+1,
                         to_port=to_port,
                     )
                 to_port += 1
                 descr += PROXY_PORT_YAML_TEMPLATE.format(
                         pod_name=pod_name,
-                        from_port=VIRTUAL_START_ADMIN_PORT,
+                        from_port=VIRTUAL_START_ADMIN_PORT+1,
                         to_port=to_port,
                     )
                 to_port += 1
