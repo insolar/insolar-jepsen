@@ -300,9 +300,9 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
                     )
                 to_port += 1
 
-            # Proxy Java API daemons and PostgreSQL ports on OBSERVER
+            # Proxy Java API daemons, PostgreSQL and Nginx ports on OBSERVER
             if i == OBSERVER:
-                for from_port in list(range(8091, 8095+1)) + [5432]:
+                for from_port in list(range(8091, 8095+1)) + [5432, 80]:
                     descr += PROXY_PORT_YAML_TEMPLATE.format(
                         pod_name=pod_name,
                         from_port=from_port,
@@ -732,10 +732,13 @@ def deploy_observer(path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 openjdk-8-jdk && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 openjdk-8-jdk nginx && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
+    info("starting Nginx @ pod "+str(OBSERVER))
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf", "/tmp/nginx_default.conf")
+    ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
     info("deploying observer @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/observer")
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
