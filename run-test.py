@@ -73,18 +73,6 @@ spec:
   selector:
     name: {pod_name}
 ---
-kind: Service
-apiVersion: v1
-metadata:
-  name: {pod_name}-pgsql
-spec:
-  type: NodePort
-  ports:
-    - port: 5432
-      nodePort: {pgsql_port}
-  selector:
-    name: {pod_name}
----
 apiVersion: v1
 kind: Pod
 metadata:
@@ -106,6 +94,21 @@ spec:
   nodeSelector:
     jepsen: "true"
 ---
+"""
+
+PROXY_PORT_YAML_TEMPLATE = """
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: proxy-{pod_name}-{from_port}
+spec:
+  type: NodePort
+  ports:
+    - port: {from_port}
+      nodePort: {to_port}
+  selector:
+    name: {pod_name}
 """
 
 # to make `sed` work properly, otherwise it failes with an error:
@@ -280,6 +283,16 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
                 image_name=image_name,
                 pull_policy=pull_policy
             )
+            # Proxy Java API daemons and PostgreSQL ports on OBSERVER
+            if i == OBSERVER:
+                to_port = 31001
+                for from_port in list(range(8091, 8095+1)) + [5432]:
+                    descr += PROXY_PORT_YAML_TEMPLATE.format(
+                        pod_name=pod_name,
+                        from_port=from_port,
+                        to_port=to_port,
+                    )
+                    to_port += 1
             f.write(descr)
 
 
@@ -699,24 +712,44 @@ def deploy_pulsar():
     start_pulsard(extra_args="-s pulsard")
 
 
-def deploy_observer(observer_path):
+def deploy_observer(path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 openjdk-8-jdk && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
     info("deploying observer @ pod "+str(OBSERVER) +
-         ", using source code from "+observer_path)
+         ", using source code from "+path+"/observer")
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
-    scp_to(OBSERVER, observer_path, INSPATH +
+    scp_to(OBSERVER, path + "/observer", INSPATH +
            "/../observer", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd "+INSPATH+"/../observer && make observer && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
         """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
+    info("deploying Java API microservices @ pod "+str(OBSERVER) +
+         ", using source code from "+path+"/*")
+    services = [
+        {"port": 8091, "name": "wallet-api-insolar-balance",
+            "jar": "wallet-api-insolar-balance.jar"},
+        {"port": 8092, "name": "wallet-api-insolar-transactions",
+            "jar": "wallet-api-insolar-transactions.jar"},
+        {"port": 8093, "name": "migration-address-api",
+            "jar": "migration-address.jar"},
+        {"port": 8094, "name": "wallet-api-insolar-price",
+            "jar": "wallet-api-insolar-price.jar"},
+        {"port": 8095, "name": "xns-coin-stats", "jar": "xns-coin-stats.jar"},
+    ]
+    for srv in services:
+        info("deploying "+srv["name"]+"...")
+        scp_to(OBSERVER, path + "/" +
+               srv["name"]+"/build/libs/"+srv["jar"], "/home/gopher/")
+        ssh(OBSERVER, """tmux new-session -d -s """+srv["name"]+""" \\" """ +
+            """DB_NAME=observer DB_LOGIN=observer DB_PASSWORD=observer DB_PATH=jdbc:postgresql://localhost:5432/ """ +
+            """SERVER_PORT="""+str(srv["port"])+""" java -jar ./"""+srv["jar"]+""" 2>&1 | tee -a """+srv["name"]+""".log; bash\\" """)
 
 
 def deploy_insolar():
@@ -1303,8 +1336,8 @@ parser.add_argument(
     '-l', '--launch-only', action="store_true",
     help='Launch insolar on running pods, i.e. restart after failed tests (hint: use with `-i dummy`)')
 parser.add_argument(
-    '-o', '--observer-path', metavar='P', type=str, default="",
-    help='Path to cloned Observer repositry (closed-source project)')
+    '-o', '--others-path', metavar='P', type=str, default="",
+    help='Path to cloned reposities of observer and Java API microservices (closed-source projects)')
 
 args = parser.parse_args()
 
@@ -1337,8 +1370,8 @@ upload_tools(HEAVY, pod_ips)
 prepare_configs()
 deploy_pulsar()
 deploy_insolar()
-if args.observer_path:
-    deploy_observer(args.observer_path)
+if args.others_path:
+    deploy_observer(args.others_path)
 stop_test()
 
 if args.skip_all_tests:
@@ -1364,7 +1397,8 @@ tests = [
     # lambda: test_virtuals_slow_down_speed_up(pod_ips), TODO: this test doesn't pass currently, see INS-3688
     # lambda: test_small_mtu(pod_ips), # TODO: this test doesn't pass currently, see INS-3689
     lambda: test_stop_start_pulsar(pod_ips, test_num),
-    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips), # TODO: very rarely doesn't pass, see INS-3687
+    # TODO: sometimes test_netsplit_single_virtual doesn't pass, see INS-3687
+    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),

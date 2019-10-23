@@ -10,6 +10,10 @@ RUN git config --global user.email 'jepsen@insolar.io'
 RUN git remote prune origin && git pull
 RUN git checkout $BRANCH
 RUN git merge origin/master --no-edit
+# Dirty hack: clone submodules using HTTPS instead of SSH, since Github requires
+# registration to use SSH. This will most likely go away after introduction of contract compiler.
+RUN perl -i.back -pe 's!\bgit\@github.com:!https://github.com/!' .gitmodules
+RUN make submodule || true
 RUN make install-deps && \
   (make ensure || rm -rvf vendor && make ensure) && \
   make clean && \
