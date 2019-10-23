@@ -26,7 +26,8 @@ import datetime
 # jepsen-12: pulsar
 
 START_PORT = 32000
-VIRTUAL_START_PORT = 19000
+VIRTUAL_START_RPC_PORT = 19000
+VIRTUAL_START_ADMIN_PORT = 19100
 INSPATH = "go/src/github.com/insolar/insolar"
 OLD_MEMBERS_FILE = ".artifacts/bench-members/members-from-start.txt"
 MEMBERS_FILE = ".artifacts/bench-members/members.txt"
@@ -272,6 +273,7 @@ def k8s():
 
 def k8s_gen_yaml(fname, image_name, pull_policy):
     with open(fname, "w") as f:
+        to_port = 31001
         for i in ALL_PODS:
             pod_name = "jepsen-" + str(i)
             ssh_port = str(32000 + i)
@@ -283,9 +285,23 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
                 image_name=image_name,
                 pull_policy=pull_policy
             )
+            # Proxy platform RPC and admin API ports
+            if i == HEAVY:
+                descr += PROXY_PORT_YAML_TEMPLATE.format(
+                        pod_name=pod_name,
+                        from_port=VIRTUAL_START_RPC_PORT,
+                        to_port=to_port,
+                    )
+                to_port += 1
+                descr += PROXY_PORT_YAML_TEMPLATE.format(
+                        pod_name=pod_name,
+                        from_port=VIRTUAL_START_ADMIN_PORT,
+                        to_port=to_port,
+                    )
+                to_port += 1
+
             # Proxy Java API daemons and PostgreSQL ports on OBSERVER
             if i == OBSERVER:
-                to_port = 31001
                 for from_port in list(range(8091, 8095+1)) + [5432]:
                     descr += PROXY_PORT_YAML_TEMPLATE.format(
                         pod_name=pod_name,
@@ -486,7 +502,7 @@ def get_finalized_pulse_from_exporter():
 
 def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
     virtual_pod_name = 'jepsen-'+str(api_pod)
-    port = VIRTUAL_START_PORT + api_pod
+    port = VIRTUAL_START_RPC_PORT + api_pod
     out = ""
     try:
         out = ssh_output(ssh_pod, 'cd '+INSPATH+' && ' +
