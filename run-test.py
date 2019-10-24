@@ -1392,7 +1392,7 @@ upload_tools(HEAVY, pod_ips)
 
 prepare_configs()
 deploy_pulsar()
-deploy_insolar(skip_benchmark=args.skip_benchmark)
+deploy_insolar(skip_benchmark=args.skip_all_tests)
 if args.others_path:
     deploy_observer(args.others_path)
 stop_test()
