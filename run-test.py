@@ -66,6 +66,8 @@ kind: Service
 apiVersion: v1
 metadata:
   name: {pod_name}
+  labels:
+    app: insolar-jepsen
 spec:
   type: NodePort
   ports:
@@ -102,6 +104,8 @@ kind: Service
 apiVersion: v1
 metadata:
   name: proxy-{pod_name}-{from_port}
+  labels:
+    app: insolar-jepsen
 spec:
   type: NodePort
   ports:
@@ -342,9 +346,10 @@ def k8s_get_pod_nodes():
     return res
 
 
-def k8s_stop_pods_if_running(fname):
-    info("stopping pods if they are running")
-    run(k8s()+"delete -f "+fname+" 2>/dev/null || true")
+def k8s_stop_pods_if_running():
+    info("stopping pods and services with `insolar-jepsen` label")
+    run(k8s()+" delete services -l app=insolar-jepsen 2>/dev/null || true")
+    run(k8s()+" delete pods -l app=insolar-jepsen 2>/dev/null || true")
     for n in range(60):
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | " +
                           "jq -r '.items[].metadata.name' | wc -l")
@@ -1387,7 +1392,7 @@ check_dependencies()
 k8s_yaml = "jepsen-pods.yaml"
 info("Generating "+k8s_yaml)
 k8s_gen_yaml(k8s_yaml, args.image, "IfNotPresent" if args.ci else "Never")
-k8s_stop_pods_if_running(k8s_yaml)
+k8s_stop_pods_if_running()
 k8s_start_pods(k8s_yaml)
 POD_NODES = k8s_get_pod_nodes()
 wait_until_ssh_is_up_on_pods()
