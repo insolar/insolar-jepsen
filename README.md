@@ -78,6 +78,6 @@ scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P32001 -r gopher@local
 
 # run go-autotests
 IS_LOCAL_RUN=0 IS_JEPSEN_RUN=1 go test -tags 'platform manual observer_api' ./...
-# instead of using environment variables you can edit edit apitests/entrypoint.yaml:
+# instead of using environment variables you can edit apitests/entrypoint.yaml:
 # is_local_run: false, is_jepsen_run: true
 ```
