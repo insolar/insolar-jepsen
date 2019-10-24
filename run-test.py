@@ -577,6 +577,7 @@ def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod=1, skip_benchma
         info('insolar_is_alive() is false, out = "'+out+'"')
         return False
 
+    info("insolar_is_alive() - skip_benchmark = "+str(skip_benchmark))
     if skip_benchmark:
         return True
 
@@ -774,7 +775,7 @@ def deploy_observer(path):
             """SERVER_PORT="""+str(srv["port"])+""" java -jar ./"""+srv["jar"]+""" 2>&1 | tee -a """+srv["name"]+""".log; bash\\" """)
 
 
-def deploy_insolar():
+def deploy_insolar(skip_benchmark=False):
     info("copying configs and fixing certificates for discovery nodes")
     pod_ips = k8s_get_pod_ips()
     for pod in NODES:
@@ -795,7 +796,7 @@ def deploy_insolar():
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml",
                INSPATH+"/pulsewatcher.yaml")
 
-    start_insolar_net(NODES, pod_ips, step="starting")
+    start_insolar_net(NODES, pod_ips, step="starting", skip_benchmark=skip_benchmark)
     info("==== Insolar started! ====")
 
 
@@ -1391,7 +1392,7 @@ upload_tools(HEAVY, pod_ips)
 
 prepare_configs()
 deploy_pulsar()
-deploy_insolar()
+deploy_insolar(skip_benchmark=skip_benchmark)
 if args.others_path:
     deploy_observer(args.others_path)
 stop_test()
