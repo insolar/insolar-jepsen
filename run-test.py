@@ -288,16 +288,16 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
             # Proxy platform RPC and admin API ports
             if i == HEAVY:
                 descr += PROXY_PORT_YAML_TEMPLATE.format(
-                        pod_name=pod_name,
-                        from_port=VIRTUAL_START_RPC_PORT+1,
-                        to_port=to_port,
-                    )
+                    pod_name=pod_name,
+                    from_port=VIRTUAL_START_RPC_PORT+1,
+                    to_port=to_port,
+                )
                 to_port += 1
                 descr += PROXY_PORT_YAML_TEMPLATE.format(
-                        pod_name=pod_name,
-                        from_port=VIRTUAL_START_ADMIN_PORT+1,
-                        to_port=to_port,
-                    )
+                    pod_name=pod_name,
+                    from_port=VIRTUAL_START_ADMIN_PORT+1,
+                    to_port=to_port,
+                )
                 to_port += 1
 
             # Proxy Java API daemons, PostgreSQL and Nginx ports on OBSERVER
@@ -570,12 +570,15 @@ def current_pulse(node_index=HEAVY, ssh_pod=1):
     return pn
 
 
-def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod=1):
+def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod=1, skip_benchmark=False):
     out = pulsewatcher_output(ssh_pod)
     network_status = json.loads(out)
     if not network_status_is_ok(network_status, nodes_online):
         info('insolar_is_alive() is false, out = "'+out+'"')
         return False
+
+    if skip_benchmark:
+        return True
 
     ok, out = run_benchmark(pod_ips, virtual_pod, ssh_pod,
                             extra_args=" -t=createMember")
@@ -591,7 +594,7 @@ def insolar_is_alive_on_pod(pod):
     return out != ''
 
 
-def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=20, pause_sec=5, step=""):
+def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=20, pause_sec=5, step="", skip_benchmark=False):
     min_nalive = 3
     nalive = 0
     if virtual_pod == -1:
@@ -599,7 +602,8 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
     for attempt in range(1, nattempts+1):
         wait(pause_sec)
         try:
-            alive = insolar_is_alive(pod_ips, virtual_pod, nodes_online)
+            alive = insolar_is_alive(
+                pod_ips, virtual_pod, nodes_online, skip_benchmark=skip_benchmark)
             if alive:
                 nalive += 1
             info("[Step: "+step+"] Alive check passed "+str(nalive)+"/" +
@@ -614,7 +618,7 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
     return nalive >= min_nalive
 
 
-def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step=""):
+def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step="", skip_benchmark=False):
     alive = False
 
     for attempt in range(1, 4):
@@ -626,7 +630,7 @@ def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step=""):
             start_insolard(pod, extra_args=extra_args_insolard)
         info("Check insolar net alive")
         alive = wait_until_insolar_is_alive(
-            pod_ips, NODES, step=step)
+            pod_ips, NODES, step=step, skip_benchmark=skip_benchmark)
         if alive:
             break
 
@@ -737,14 +741,16 @@ def deploy_observer(path):
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
     info("starting Nginx @ pod "+str(OBSERVER))
-    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf", "/tmp/nginx_default.conf")
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
+           "/tmp/nginx_default.conf")
     ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
     info("deploying observer @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/observer")
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
     scp_to(OBSERVER, path + "/observer", INSPATH +
            "/../observer", flags="-r", ignore_errors=True)
-    ssh(OBSERVER, "cd "+INSPATH+"/../observer && rm -rf vendor && make ensure && make observer && mkdir -p .artifacts")
+    ssh(OBSERVER, "cd "+INSPATH +
+        "/../observer && rm -rf vendor && make ensure && make observer && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
@@ -771,7 +777,7 @@ def deploy_observer(path):
             """SERVER_PORT="""+str(srv["port"])+""" java -jar ./"""+srv["jar"]+""" 2>&1 | tee -a """+srv["name"]+""".log; bash\\" """)
 
 
-def deploy_insolar():
+def deploy_insolar(skip_benchmark=False):
     info("copying configs and fixing certificates for discovery nodes")
     pod_ips = k8s_get_pod_ips()
     for pod in NODES:
@@ -792,7 +798,8 @@ def deploy_insolar():
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml",
                INSPATH+"/pulsewatcher.yaml")
 
-    start_insolar_net(NODES, pod_ips, step="starting")
+    start_insolar_net(NODES, pod_ips, step="starting",
+                      skip_benchmark=skip_benchmark)
     info("==== Insolar started! ====")
 
 
@@ -1367,7 +1374,8 @@ if args.launch_only:
     info("=== Launching pulsard... ===")
     start_pulsard()
     info("=== Launching insolar network... ===")
-    start_insolar_net(NODES, pod_ips, step="starting")
+    start_insolar_net(NODES, pod_ips, step="starting",
+                      skip_benchmark=args.skip_all_tests)
     info("==== Insolar launched! ====")
     sys.exit(0)
 
@@ -1388,7 +1396,7 @@ upload_tools(HEAVY, pod_ips)
 
 prepare_configs()
 deploy_pulsar()
-deploy_insolar()
+deploy_insolar(skip_benchmark=args.skip_all_tests)
 if args.others_path:
     deploy_observer(args.others_path)
 stop_test()
