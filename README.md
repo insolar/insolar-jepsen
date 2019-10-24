@@ -6,7 +6,7 @@ Jepsen-like tests for Insolar.
 
 If you are using Docker Desktop, please note, that by default it uses rather strict resource limits. You might want to change these limits in Preferences... -> Advanced tab.
 
-Usage:
+## Usage
 
 ```
 # Make sure private key is readable only by current user
@@ -47,4 +47,37 @@ grep -r 32bc366d-b144-4765-9483-6be37c55fd9d ./320* > trace.txt
 cat trace.txt | ./format-trace-logs.py | \
   grep -v '"caller":"insolar/bus/bus' | \
   grep -v '"caller":"network/' | sort > trace-sorted.txt
+```
+
+## How to run go-autotests
+
+The projects mentioned in this sections are closed-source for now, sorry.
+
+`--other-path` should contain the following repos:
+
+* observer
+* wallet-api-insolar-balance
+* wallet-api-insolar-transactions
+* migration-address-api
+* wallet-api-insolar-price
+* xns-coin-stats
+
+All but observer should be compiled using `gradle bootJar`.
+
+```
+./run-test.py --debug -i insolar-jepsen:latest --others-path .. --skip-all-tests
+
+# test the API endpoint:
+curl -vvv http://localhost:31009/api/rpc
+
+# collect keys and configs required for go-autotests:
+rm -r /tmp/jepsen-keys || true
+mkdir /tmp/jepsen-keys
+scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P32001 -r 'gopher@localhost:go/src/github.com/insolar/insolar/scripts/insolard/configs/migration_*_member_keys.json' /tmp/jepsen-keys/
+scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P32001 -r gopher@localhost:go/src/github.com/insolar/insolar/scripts/insolard/bootstrap.yaml /tmp/jepsen-keys/
+
+# run go-autotests
+IS\_LOCAL\_RUN=0 IS\_JEPSEN\_RUN=1 go test -tags 'platform manual observer_api' ./...
+# instead of using environment variables you can edit edit apitests/entrypoint.yaml:
+# is\_local\_run: false, is\_jepsen\_run: true
 ```
