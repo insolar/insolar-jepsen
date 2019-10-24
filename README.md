@@ -10,7 +10,7 @@ If you are using Docker Desktop, please note, that by default it uses rather str
 
 ```
 # Make sure private key is readable only by current user
-chmod 600 ./base-image/id\_rsa
+chmod 600 ./base-image/id_rsa
 
 # Label current node: jepsen=true
 kubectl label node docker-desktop jepsen=true
@@ -29,14 +29,14 @@ After the test:
 
 ```
 # To login to `jepsen-1` pod:
-ssh -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -p 32001 gopher@localhost
+ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p 32001 gopher@localhost
 
 # To attach a process running in background:
 tmux ls
 tmux attach -t insolard
 
 # To copy a file from `jepsen-1` pod:
-scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P 32001 gopher@localhost:.bash_profile ./
+scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P 32001 gopher@localhost:.bash_profile ./
 
 # Aggregate all logfiles:
 ./aggregate-logs.py /tmp/jepsen-agg/
@@ -73,11 +73,11 @@ curl -vvv http://localhost:31009/api/rpc
 # collect keys and configs required for go-autotests:
 rm -r /tmp/jepsen-keys || true
 mkdir /tmp/jepsen-keys
-scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P32001 -r 'gopher@localhost:go/src/github.com/insolar/insolar/scripts/insolard/configs/migration_*_member_keys.json' /tmp/jepsen-keys/
-scp -o 'StrictHostKeyChecking no' -i ./base-image/id\_rsa -P32001 -r gopher@localhost:go/src/github.com/insolar/insolar/scripts/insolard/bootstrap.yaml /tmp/jepsen-keys/
+scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P32001 -r 'gopher@localhost:go/src/github.com/insolar/insolar/scripts/insolard/configs/migration_*_member_keys.json' /tmp/jepsen-keys/
+scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P32001 -r gopher@localhost:go/src/github.com/insolar/insolar/scripts/insolard/bootstrap.yaml /tmp/jepsen-keys/
 
 # run go-autotests
-IS\_LOCAL\_RUN=0 IS\_JEPSEN\_RUN=1 go test -tags 'platform manual observer_api' ./...
+IS_LOCAL_RUN=0 IS_JEPSEN_RUN=1 go test -tags 'platform manual observer_api' ./...
 # instead of using environment variables you can edit edit apitests/entrypoint.yaml:
-# is\_local\_run: false, is\_jepsen\_run: true
+# is_local_run: false, is_jepsen_run: true
 ```
