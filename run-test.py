@@ -288,16 +288,16 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
             # Proxy platform RPC and admin API ports
             if i == HEAVY:
                 descr += PROXY_PORT_YAML_TEMPLATE.format(
-                        pod_name=pod_name,
-                        from_port=VIRTUAL_START_RPC_PORT+1,
-                        to_port=to_port,
-                    )
+                    pod_name=pod_name,
+                    from_port=VIRTUAL_START_RPC_PORT+1,
+                    to_port=to_port,
+                )
                 to_port += 1
                 descr += PROXY_PORT_YAML_TEMPLATE.format(
-                        pod_name=pod_name,
-                        from_port=VIRTUAL_START_ADMIN_PORT+1,
-                        to_port=to_port,
-                    )
+                    pod_name=pod_name,
+                    from_port=VIRTUAL_START_ADMIN_PORT+1,
+                    to_port=to_port,
+                )
                 to_port += 1
 
             # Proxy Java API daemons, PostgreSQL and Nginx ports on OBSERVER
@@ -577,7 +577,6 @@ def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod=1, skip_benchma
         info('insolar_is_alive() is false, out = "'+out+'"')
         return False
 
-    info("insolar_is_alive() - skip_benchmark = "+str(skip_benchmark))
     if skip_benchmark:
         return True
 
@@ -603,7 +602,8 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
     for attempt in range(1, nattempts+1):
         wait(pause_sec)
         try:
-            alive = insolar_is_alive(pod_ips, virtual_pod, nodes_online, skip_benchmark=skip_benchmark)
+            alive = insolar_is_alive(
+                pod_ips, virtual_pod, nodes_online, skip_benchmark=skip_benchmark)
             if alive:
                 nalive += 1
             info("[Step: "+step+"] Alive check passed "+str(nalive)+"/" +
@@ -741,14 +741,16 @@ def deploy_observer(path):
     scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
     ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
     info("starting Nginx @ pod "+str(OBSERVER))
-    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf", "/tmp/nginx_default.conf")
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
+           "/tmp/nginx_default.conf")
     ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
     info("deploying observer @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/observer")
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
     scp_to(OBSERVER, path + "/observer", INSPATH +
            "/../observer", flags="-r", ignore_errors=True)
-    ssh(OBSERVER, "cd "+INSPATH+"/../observer && rm -rf vendor && make ensure && make observer && mkdir -p .artifacts")
+    ssh(OBSERVER, "cd "+INSPATH +
+        "/../observer && rm -rf vendor && make ensure && make observer && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
@@ -796,7 +798,8 @@ def deploy_insolar(skip_benchmark=False):
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml",
                INSPATH+"/pulsewatcher.yaml")
 
-    start_insolar_net(NODES, pod_ips, step="starting", skip_benchmark=skip_benchmark)
+    start_insolar_net(NODES, pod_ips, step="starting",
+                      skip_benchmark=skip_benchmark)
     info("==== Insolar started! ====")
 
 
@@ -1371,7 +1374,8 @@ if args.launch_only:
     info("=== Launching pulsard... ===")
     start_pulsard()
     info("=== Launching insolar network... ===")
-    start_insolar_net(NODES, pod_ips, step="starting", skip_benchmark=args.skip_all_tests)
+    start_insolar_net(NODES, pod_ips, step="starting",
+                      skip_benchmark=args.skip_all_tests)
     info("==== Insolar launched! ====")
     sys.exit(0)
 
