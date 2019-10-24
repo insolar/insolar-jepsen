@@ -570,12 +570,15 @@ def current_pulse(node_index=HEAVY, ssh_pod=1):
     return pn
 
 
-def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod=1):
+def insolar_is_alive(pod_ips, virtual_pod, nodes_online, ssh_pod=1, skip_benchmark=False):
     out = pulsewatcher_output(ssh_pod)
     network_status = json.loads(out)
     if not network_status_is_ok(network_status, nodes_online):
         info('insolar_is_alive() is false, out = "'+out+'"')
         return False
+
+    if skip_benchmark:
+        return True
 
     ok, out = run_benchmark(pod_ips, virtual_pod, ssh_pod,
                             extra_args=" -t=createMember")
@@ -591,7 +594,7 @@ def insolar_is_alive_on_pod(pod):
     return out != ''
 
 
-def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=20, pause_sec=5, step=""):
+def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts=20, pause_sec=5, step="", skip_benchmark=False):
     min_nalive = 3
     nalive = 0
     if virtual_pod == -1:
@@ -599,7 +602,7 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
     for attempt in range(1, nattempts+1):
         wait(pause_sec)
         try:
-            alive = insolar_is_alive(pod_ips, virtual_pod, nodes_online)
+            alive = insolar_is_alive(pod_ips, virtual_pod, nodes_online, skip_benchmark=skip_benchmark)
             if alive:
                 nalive += 1
             info("[Step: "+step+"] Alive check passed "+str(nalive)+"/" +
@@ -614,7 +617,7 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
     return nalive >= min_nalive
 
 
-def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step=""):
+def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step="", skip_benchmark=False):
     alive = False
 
     for attempt in range(1, 4):
@@ -626,7 +629,7 @@ def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step=""):
             start_insolard(pod, extra_args=extra_args_insolard)
         info("Check insolar net alive")
         alive = wait_until_insolar_is_alive(
-            pod_ips, NODES, step=step)
+            pod_ips, NODES, step=step, skip_benchmark=skip_benchmark)
         if alive:
             break
 
@@ -1367,7 +1370,7 @@ if args.launch_only:
     info("=== Launching pulsard... ===")
     start_pulsard()
     info("=== Launching insolar network... ===")
-    start_insolar_net(NODES, pod_ips, step="starting")
+    start_insolar_net(NODES, pod_ips, step="starting", skip_benchmark=args.skip_all_tests)
     info("==== Insolar launched! ====")
     sys.exit(0)
 
