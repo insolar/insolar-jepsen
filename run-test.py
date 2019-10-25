@@ -753,9 +753,11 @@ def deploy_observer(path):
     scp_to(OBSERVER, path + "/observer", INSPATH +
            "/../observer", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd "+INSPATH +
-        "/../observer && rm -rf vendor && GO111MODULE=on make all && GO111MODULE=on make migrate && mkdir -p .artifacts")
+        "/../observer && rm -rf vendor && GO111MODULE=on make all && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
+    ssh(OBSERVER, "cd "+INSPATH +
+        "/../observer && GO111MODULE=on make migrate && mkdir -p .artifacts")
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
         """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
