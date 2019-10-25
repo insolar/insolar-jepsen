@@ -743,8 +743,6 @@ def deploy_observer(path):
     # I got tired to fight with escaping quotes in bash...
     ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 openjdk-8-jdk nginx && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
-    scp_to(OBSERVER, "./observer_scheme.sql", "/tmp/observer_scheme.sql")
-    ssh(OBSERVER, "PGPASSWORD=observer psql -hlocalhost observer observer < /tmp/observer_scheme.sql")
     info("starting Nginx @ pod "+str(OBSERVER))
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
            "/tmp/nginx_default.conf")
@@ -758,6 +756,8 @@ def deploy_observer(path):
         "/../observer && rm -rf vendor && GO111MODULE=on make all && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
+    ssh(OBSERVER, "cd "+INSPATH +
+        "/../observer && GO111MODULE=on make migrate && mkdir -p .artifacts")
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
         """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
