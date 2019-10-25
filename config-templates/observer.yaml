@@ -8,6 +8,7 @@ replicator:
   attemptinterval: 10s
   fastforwardinterval: 250ms
   batchsize: 2000
+  cachesize: 10000
 db:
   url: postgres://observer:observer@localhost/observer?sslmode=disable
   attempts: 5
