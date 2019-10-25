@@ -65,6 +65,7 @@ The projects mentioned in this sections are closed-source for now, sorry.
 All but observer should be compiled using `gradle bootJar`.
 
 ```
+# skipped: steps from "Usage" section above
 ./run-test.py --debug -i insolar-jepsen:latest --others-path .. --skip-all-tests
 
 # test the API endpoint:
