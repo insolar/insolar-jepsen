@@ -13,7 +13,7 @@ RUN git merge origin/master --no-edit
 # Dirty hack: clone submodules using HTTPS instead of SSH, since Github requires
 # registration to use SSH. This will most likely go away after introduction of contract compiler.
 RUN perl -i.back -pe 's!\bgit\@github.com:!https://github.com/!' .gitmodules
-RUN make submodule || true
+RUN make submodule
 RUN make install-deps && \
   (make ensure || rm -rvf vendor && make ensure) && \
   make clean && \
@@ -33,8 +33,7 @@ RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
   scripts/insolard/configs/application_incentives_${m}_member_keys.json; done
 RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
   scripts/insolard/configs/foundation_${m}_member_keys.json; done
-RUN for m in $(seq 0 1); do ./bin/insolar gen-key-pair > \
-    scripts/insolard/configs/funds_${m}_member_keys.json; done
+RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/funds_0_member_keys.json
 RUN for m in $(seq 0 3); do ./bin/insolar gen-key-pair > \
     scripts/insolard/configs/enterprise_${m}_member_keys.json; done
 
