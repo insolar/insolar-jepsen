@@ -69,7 +69,7 @@ All but observer should be compiled using `gradle bootJar`.
 ./run-test.py --debug -i insolar-jepsen:latest --others-path .. --skip-all-tests
 
 # test the API endpoint:
-curl -vvv http://localhost:31009/api/rpc
+curl -vvv -XPOST http://localhost:31009/api/rpc
 
 # collect keys and configs required for go-autotests:
 rm -r /tmp/jepsen-keys || true
