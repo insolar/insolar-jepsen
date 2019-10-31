@@ -756,10 +756,14 @@ def deploy_observer(path):
         "/../observer && rm -rf vendor && GOPROXY=https://proxy.golang.org GO111MODULE=on make all && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observerapi.yaml",
+           INSPATH+"/../observer/.artifacts/observerapi.yaml")
     ssh(OBSERVER, "cd "+INSPATH +
         "/../observer && GO111MODULE=on make migrate && mkdir -p .artifacts")
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
         """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
+    ssh(OBSERVER, """tmux new-session -d -s observerapi \\"cd """+INSPATH +
+        """/../observer && ./bin/api 2>&1 | tee -a observerapi.log; bash\\" """)
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/*")
     services = [
