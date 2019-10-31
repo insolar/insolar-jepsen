@@ -760,10 +760,17 @@ def deploy_observer(path):
            INSPATH+"/../observer/.artifacts/observerapi.yaml")
     ssh(OBSERVER, "cd "+INSPATH +
         "/../observer && GO111MODULE=on make migrate && mkdir -p .artifacts")
+    # run observer
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
         """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
+    # run observer-api
     ssh(OBSERVER, """tmux new-session -d -s observerapi \\"cd """+INSPATH +
         """/../observer && ./bin/api 2>&1 | tee -a observerapi.log; bash\\" """)
+    # run xns_stats_count every 60 seconds
+    ssh(OBSERVER, "tmux new-session -d -s xns_stats_count " +
+        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/xns_stats_count; sleep 60; done""" +
+        """; bash\\" """)
+
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/*")
     services = [
