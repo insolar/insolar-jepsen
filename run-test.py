@@ -1038,7 +1038,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
         wait(1)
         finalized_pulse = get_finalized_pulse_from_exporter()
 
-    info("Starting benchmark on this members in the background, wait several transfer to pass")
+    info("Starting benchmark on these members in the background, wait several transfer to pass")
     run_benchmark(pod_ips, r=100, timeout=100, background=True,
                   extra_args='-b -m --members-file=' + MEMBERS_FILE)
     wait(20)
@@ -1075,7 +1075,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     )
     check(
         not ok,
-        "Benchmark should fail with check-every-member option,"
+        "Benchmark should fail with --check-all-balance option,"
         " because several transfers should not be done before heavy went down (increase sleeping time?),"
         " but it was successful:\n" + check_out
     )
@@ -1441,8 +1441,9 @@ tests = [
     lambda: test_stop_start_heavy(HEAVY, pod_ips),
     lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
     lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
-    lambda: test_kill_heavy_under_load(
-        HEAVY, pod_ips, restore_from_backup=True),
+    # We intentinally don't check this scenario because it's unstable.
+    # Also backupmanager + backupdaemon will be discarded in nearest build.
+    # lambda: test_kill_heavy_under_load(HEAVY, pod_ips, restore_from_backup=True),
     lambda: test_kill_backupmanager(HEAVY, pod_ips),
     lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
     lambda: test_kill_backupmanager(
