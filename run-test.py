@@ -668,13 +668,6 @@ def start_pulsard(extra_args=""):
         extra_args+""" \\"./bin/pulsard -c pulsar.yaml """ +
         logto("pulsar") + """; bash\\" """)
 
-
-def start_backupdaemon(pod, extra_args=""):
-    ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +
-        """\\" ./bin/backupmanager daemon -a :8099 -t ./heavy_backup """ +
-        logto("backupdaemon")+"""; bash\\" """)
-
-
 def kill(pod, proc_name):
     ssh(pod, "killall -s 9 "+proc_name+" || true")
 
@@ -685,8 +678,6 @@ def restore_heavy_from_backup(heavy_pod):
     ssh(heavy_pod, "cd "+INSPATH+" && " +
         "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
         "rm -r data && cp -r heavy_backup data")
-    start_backupdaemon(heavy_pod)
-
 
 def check_ssh_is_up_on_pods():
     try:
@@ -805,8 +796,6 @@ def deploy_insolar(skip_benchmark=False):
                 " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
         if pod == HEAVY:
             ssh(pod, "mkdir -p /tmp/heavy/tmp && mkdir -p /tmp/heavy/target && mkdir -p "+INSPATH+"/data")
-            ssh(pod, "cd "+INSPATH+" && ./bin/backupmanager create -d ./heavy_backup")
-            start_backupdaemon(pod)
             scp_to(pod, "/tmp/insolar-jepsen-configs/last_backup_info.json",
                    INSPATH+"/data/last_backup_info.json")
         scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
@@ -1096,8 +1085,8 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     stop_test()
 
 
-def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, create_backup_from_existing_db=False):
-    start_test("test_kill_backupmanager" +
+def test_kill_backupprocess(heavy_pod, pod_ips, restore_from_backup=False, create_backup_from_existing_db=False):
+    start_test("test_kill_backupprocess" +
                ("_restore_from_backup" if restore_from_backup else "") +
                ("_created_backup_from_existing_db" if create_backup_from_existing_db else ""))
     info("==== kill backupmanager " +
@@ -1109,15 +1098,16 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, creat
 
     info("Running benchmark and trying to kill backupmanager on pod #"+str(heavy_pod))
 
-    # Note: currently it will kill both backupmanager daemon and backupmanager client (if and when started)
-    ssh(heavy_pod, "tmux new-session -d -s backupmanager-killer " +
-        """\\"while true; do killall -9 -r backupmanager; sleep 0.1; done""" +
+    # Note: when backuping script starts it saves its pid to /tmp/heavy/backup.pid 
+    ssh(heavy_pod, "tmux new-session -d -s backupprocess-killer " +
+        """\\"while true; do cat /tmp/heavy/backup.pid | xargs kill -9 ;  sleep 0.1; done """ +
         """; bash\\" """)
+
     ok, bench_out = run_benchmark(pod_ips, r=100, timeout=100)
     check(not ok, "Benchmark should fail while killing backupmanager (increase -c or -r?), but it was successfull:\n" + bench_out)
 
-    info("Shutting down backupmanager-killer")
-    ssh(heavy_pod, "tmux kill-session -t backupmanager-killer")
+    info("Shutting down backupprocess-killer")
+    ssh(heavy_pod, "tmux kill-session -t backupprocess-killer")
 
     down = wait_until_insolar_is_down()
     check_down(down)
@@ -1129,7 +1119,6 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, creat
         if create_backup_from_existing_db:
             ssh(heavy_pod, "cd "+INSPATH +
                 " && (rm -r ./heavy_backup || true) && cp -r ./data ./heavy_backup")
-        start_backupdaemon(heavy_pod)  # it was killed above
 
     info("Re-launching nodes")
     start_insolar_net(NODES, pod_ips, step="heavy-up")
@@ -1137,7 +1126,7 @@ def test_kill_backupmanager(heavy_pod, pod_ips, restore_from_backup=False, creat
     ok, bench_out = run_benchmark(pod_ips)
     check_benchmark(ok, bench_out)
 
-    info("==== kill backupmanager " +
+    info("==== kill backupprocess " +
          ("with restore from backup " if restore_from_backup else "") +
          ("and create backup from existing DB " if create_backup_from_existing_db else "") + "passed! ====")
     stop_test()
@@ -1451,13 +1440,12 @@ tests = [
     lambda: test_stop_start_lights(LIGHTS, pod_ips),
     lambda: test_stop_start_heavy(HEAVY, pod_ips),
     lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
-    # We intentinally don't check these scenarios because they are unstable.
-    # Also backupmanager + backupdaemon will be discarded in nearest build.
-    # lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
-    # lambda: test_kill_heavy_under_load(HEAVY, pod_ips, restore_from_backup=True),
-    lambda: test_kill_backupmanager(HEAVY, pod_ips),
-    lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
-    lambda: test_kill_backupmanager(
+    lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
+    lambda: test_kill_heavy_under_load(
+        HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_backupprocess(HEAVY, pod_ips),
+    lambda: test_kill_backupprocess(HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_backupprocess(
         HEAVY, pod_ips, create_backup_from_existing_db=True),
 ]
 
