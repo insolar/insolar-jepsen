@@ -747,10 +747,21 @@ def deploy_observer(path):
         "/../observer && rm -rf vendor && GOPROXY=https://proxy.golang.org GO111MODULE=on make all && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observerapi.yaml",
+           INSPATH+"/../observer/.artifacts/observerapi.yaml")
     ssh(OBSERVER, "cd "+INSPATH +
         "/../observer && GO111MODULE=on make migrate && mkdir -p .artifacts")
+    # run observer
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
         """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
+    # run observer-api
+    ssh(OBSERVER, """tmux new-session -d -s observerapi \\"cd """+INSPATH +
+        """/../observer && ./bin/api 2>&1 | tee -a observerapi.log; bash\\" """)
+    # run xns_stats_count every 60 seconds
+    ssh(OBSERVER, "tmux new-session -d -s xns_stats_count " +
+        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/xns_stats_count; sleep 60; done""" +
+        """; bash\\" """)
+
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/*")
     services = [
@@ -1027,7 +1038,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
         wait(1)
         finalized_pulse = get_finalized_pulse_from_exporter()
 
-    info("Starting benchmark on this members in the background, wait several transfer to pass")
+    info("Starting benchmark on these members in the background, wait several transfer to pass")
     run_benchmark(pod_ips, r=100, timeout=100, background=True,
                   extra_args='-b -m --members-file=' + MEMBERS_FILE)
     wait(20)
@@ -1064,7 +1075,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     )
     check(
         not ok,
-        "Benchmark should fail with check-every-member option,"
+        "Benchmark should fail with --check-all-balance option,"
         " because several transfers should not be done before heavy went down (increase sleeping time?),"
         " but it was successful:\n" + check_out
     )

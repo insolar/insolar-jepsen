@@ -1,0 +1,8 @@
+loglevel: debug
+api:
+  addr: 0.0.0.0:8090
+db:
+  url: postgres://observer:observer@localhost/observer?sslmode=disable
+  attempts: 5
+  attemptinterval: 3s
+
