@@ -6,7 +6,7 @@ Jepsen-like tests for Insolar.
 
 If you are using Docker Desktop, please note, that by default it uses rather strict resource limits. You might want to change these limits in Preferences... -> Advanced tab.
 
-## Usage
+## Usage: common part
 
 ```
 # Make sure private key is readable only by current user
@@ -18,10 +18,14 @@ kubectl label node docker-desktop jepsen=true
 # to build the base image:
 cd base-image && docker build --no-cache -t tsovak/insolar-jepsen-base . && cd ..
 
-# to build the branch image:
+# to build the image of Insolar Platform from the given branch:
 ./build-docker.py branch-name
+```
 
-# run tests (use --help flag to see all arguments)
+## Usage: how to run Jepsen-test
+
+```
+# use --help flag to see all arguments
 ./run-test.py -i insolar-jepsen:latest
 ```
 
@@ -49,7 +53,7 @@ cat trace.txt | ./format-trace-logs.py | \
   grep -v '"caller":"network/' | sort > trace-sorted.txt
 ```
 
-## How to run go-autotests
+## Usage: how to run go-autotests
 
 The projects mentioned in this sections are closed-source for now, sorry.
 
