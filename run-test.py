@@ -1451,9 +1451,9 @@ tests = [
     lambda: test_stop_start_lights(LIGHTS, pod_ips),
     lambda: test_stop_start_heavy(HEAVY, pod_ips),
     lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
-    lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
-    # We intentinally don't check this scenario because it's unstable.
+    # We intentinally don't check these scenarios because they are unstable.
     # Also backupmanager + backupdaemon will be discarded in nearest build.
+    # lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
     # lambda: test_kill_heavy_under_load(HEAVY, pod_ips, restore_from_backup=True),
     lambda: test_kill_backupmanager(HEAVY, pod_ips),
     lambda: test_kill_backupmanager(HEAVY, pod_ips, restore_from_backup=True),
