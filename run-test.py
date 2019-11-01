@@ -1099,15 +1099,15 @@ def test_kill_backupprocess(heavy_pod, pod_ips, restore_from_backup=False, creat
     info("Running benchmark and trying to kill backupmanager on pod #"+str(heavy_pod))
 
     # Note: when backuping script starts it saves its pid to /tmp/heavy/backup.pid 
-    ssh(heavy_pod, "tmux new-session -d -s backupmanager-killer " +
+    ssh(heavy_pod, "tmux new-session -d -s backupprocess-killer " +
         """\\"while true; do cat /tmp/heavy/backup.pid | xargs kill -9 ;  sleep 0.1; done ; echo STOP > /tmp/heavy/STOP_KILLING """ +
         """; bash\\" """)
 
     ok, bench_out = run_benchmark(pod_ips, r=100, timeout=100)
     check(not ok, "Benchmark should fail while killing backupmanager (increase -c or -r?), but it was successfull:\n" + bench_out)
 
-    info("Shutting down backupmanager-killer")
-    ssh(heavy_pod, "tmux kill-session -t backupmanager-killer")
+    info("Shutting down backupprocess-killer")
+    ssh(heavy_pod, "tmux kill-session -t backupprocess-killer")
 
     down = wait_until_insolar_is_down()
     check_down(down)
