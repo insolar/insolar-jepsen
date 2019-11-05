@@ -773,7 +773,6 @@ def deploy_observer(path):
             "jar": "migration-address.jar"},
         {"port": 8094, "name": "wallet-api-insolar-price",
             "jar": "wallet-api-insolar-price.jar"},
-        {"port": 8095, "name": "xns-coin-stats", "jar": "xns-coin-stats.jar"},
     ]
     for srv in services:
         info("deploying "+srv["name"]+"...")
