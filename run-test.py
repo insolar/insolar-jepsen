@@ -496,7 +496,7 @@ def network_status_is_ok(network_status, nodes_online):
 
 
 def get_finalized_pulse_from_exporter():
-    cmd = 'grpcurl -import-path /home/gopher/go/src' +\
+    cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/insolar/vendor' +\
           ' -proto /home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto' +\
           """ -plaintext localhost:5678 exporter.PulseExporter.TopSyncPulse"""
     out = ssh_output(HEAVY, cmd)
@@ -676,7 +676,7 @@ def restore_heavy_from_backup(heavy_pod):
     info("Restoring heavy from backup at pod#..."+str(heavy_pod))
     kill(heavy_pod, "backupmanager")
     ssh(heavy_pod, "cd "+INSPATH+" && " +
-        "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
+        "./bin/backupmanager prepare_backup -d ./heavy_backup/ && " +
         "rm -r data && cp -r heavy_backup data")
 
 def check_ssh_is_up_on_pods():
@@ -757,9 +757,9 @@ def deploy_observer(path):
     # run observer-api
     ssh(OBSERVER, """tmux new-session -d -s observerapi \\"cd """+INSPATH +
         """/../observer && ./bin/api 2>&1 | tee -a observerapi.log; bash\\" """)
-    # run xns_stats_count every 60 seconds
+    # run xns_stats_count every 10 seconds
     ssh(OBSERVER, "tmux new-session -d -s xns_stats_count " +
-        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/xns_stats_count; sleep 60; done""" +
+        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/xns_stats_count 2>&1 | tee -a xns_stats_count.log;  sleep 10; done""" +
         """; bash\\" """)
 
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
@@ -773,7 +773,6 @@ def deploy_observer(path):
             "jar": "migration-address.jar"},
         {"port": 8094, "name": "wallet-api-insolar-price",
             "jar": "wallet-api-insolar-price.jar"},
-        {"port": 8095, "name": "xns-coin-stats", "jar": "xns-coin-stats.jar"},
     ]
     for srv in services:
         info("deploying "+srv["name"]+"...")
@@ -1453,7 +1452,7 @@ tests = [
 minimum_tests = [
     lambda: test_stop_start_pulsar(pod_ips, test_num),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
-    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
 ]
 
 for test_num in range(0, args.repeat):

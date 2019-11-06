@@ -8,6 +8,7 @@ ENV BRANCH ${BRANCH:-master}
 RUN git config --global user.name 'Kyle Kingsbury'
 RUN git config --global user.email 'jepsen@insolar.io'
 RUN git remote prune origin && git pull
+RUN git checkout .
 RUN git checkout $BRANCH
 RUN git merge origin/master --no-edit
 # Dirty hack: clone submodules using HTTPS instead of SSH, since Github requires
