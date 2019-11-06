@@ -496,7 +496,7 @@ def network_status_is_ok(network_status, nodes_online):
 
 
 def get_finalized_pulse_from_exporter():
-    cmd = 'grpcurl -import-path /home/gopher/go/src' +\
+    cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/insolar/vendor' +\
           ' -proto /home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto' +\
           """ -plaintext localhost:5678 exporter.PulseExporter.TopSyncPulse"""
     out = ssh_output(HEAVY, cmd)
