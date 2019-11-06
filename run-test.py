@@ -348,8 +348,8 @@ def k8s_get_pod_nodes():
 
 def k8s_stop_pods_if_running():
     info("stopping pods and services with `insolar-jepsen` label")
-    run(k8s()+" delete services -l app=insolar-jepsen 2>/dev/null || true")
-    run(k8s()+" delete pods -l app=insolar-jepsen 2>/dev/null || true")
+    run(k8s()+"delete services -l app=insolar-jepsen 2>/dev/null || true")
+    run(k8s()+"delete pods -l app=insolar-jepsen 2>/dev/null || true")
     for n in range(60):
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | " +
                           "jq -r '.items[].metadata.name' | wc -l")
@@ -496,7 +496,7 @@ def network_status_is_ok(network_status, nodes_online):
 
 
 def get_finalized_pulse_from_exporter():
-    cmd = 'grpcurl -import-path /home/gopher/go/src' +\
+    cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/insolar/vendor' +\
           ' -proto /home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto' +\
           """ -plaintext localhost:5678 exporter.PulseExporter.TopSyncPulse"""
     out = ssh_output(HEAVY, cmd)
@@ -676,7 +676,7 @@ def restore_heavy_from_backup(heavy_pod):
     info("Restoring heavy from backup at pod#..."+str(heavy_pod))
     kill(heavy_pod, "backupmanager")
     ssh(heavy_pod, "cd "+INSPATH+" && " +
-        "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
+        "./bin/backupmanager prepare_backup -d ./heavy_backup/ && " +
         "rm -r data && cp -r heavy_backup data")
 
 def check_ssh_is_up_on_pods():
@@ -744,7 +744,7 @@ def deploy_observer(path):
     scp_to(OBSERVER, path + "/observer", INSPATH +
            "/../observer", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd "+INSPATH +
-        "/../observer && rm -rf vendor && GOPROXY=https://proxy.golang.org GO111MODULE=on make all && mkdir -p .artifacts")
+        "/../observer && rm -rf vendor && GOPROXY=https://goproxy.io GO111MODULE=on make all && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observerapi.yaml",
@@ -1452,7 +1452,7 @@ tests = [
 minimum_tests = [
     lambda: test_stop_start_pulsar(pod_ips, test_num),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
-    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
 ]
 
 for test_num in range(0, args.repeat):
