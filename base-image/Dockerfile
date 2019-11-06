@@ -57,9 +57,9 @@ RUN rm -r tmp || true
 RUN mkdir opt
 RUN mv go opt/go
 RUN mkdir -p go/bin
-RUN echo "export PATH=\"/home/gopher/go/bin:/home/gopher/opt/go/bin:\$PATH\"" > \
+RUN echo "export PATH=\"/home/gopher/go/bin:/home/gopher/opt/go/bin:\$PATH\"" >> \
     /home/gopher/.bash_profile
-RUN echo "alias obsdb=\"PGPASSWORD=observer psql -hlocalhost -uobserver observer\"" > \
+RUN echo "alias obsdb=\"PGPASSWORD=observer psql -hlocalhost -Uobserver observer\"" >> \
     /home/gopher/.bash_profile
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 RUN mkdir -p go/src/github.com/insolar
