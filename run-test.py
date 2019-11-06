@@ -348,8 +348,8 @@ def k8s_get_pod_nodes():
 
 def k8s_stop_pods_if_running():
     info("stopping pods and services with `insolar-jepsen` label")
-    run(k8s()+" delete services -l app=insolar-jepsen 2>/dev/null || true")
-    run(k8s()+" delete pods -l app=insolar-jepsen 2>/dev/null || true")
+    run(k8s()+"delete services -l app=insolar-jepsen 2>/dev/null || true")
+    run(k8s()+"delete pods -l app=insolar-jepsen 2>/dev/null || true")
     for n in range(60):
         data = get_output(k8s()+"get pods -l app=insolar-jepsen -o=json | " +
                           "jq -r '.items[].metadata.name' | wc -l")
