@@ -1452,7 +1452,7 @@ tests = [
 minimum_tests = [
     lambda: test_stop_start_pulsar(pod_ips, test_num),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
-    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
 ]
 
 for test_num in range(0, args.repeat):
