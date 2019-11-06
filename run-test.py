@@ -676,7 +676,7 @@ def restore_heavy_from_backup(heavy_pod):
     info("Restoring heavy from backup at pod#..."+str(heavy_pod))
     kill(heavy_pod, "backupmanager")
     ssh(heavy_pod, "cd "+INSPATH+" && " +
-        "./bin/backupmanager prepare_backup -d ./heavy_backup/ -l last_backup_info.json && " +
+        "./bin/backupmanager prepare_backup -d ./heavy_backup/ && " +
         "rm -r data && cp -r heavy_backup data")
 
 def check_ssh_is_up_on_pods():
