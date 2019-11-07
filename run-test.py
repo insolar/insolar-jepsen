@@ -765,12 +765,8 @@ def deploy_observer(path):
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/*")
     services = [
-        {"port": 8091, "name": "wallet-api-insolar-balance",
-            "jar": "wallet-api-insolar-balance.jar"},
         {"port": 8092, "name": "wallet-api-insolar-transactions",
             "jar": "wallet-api-insolar-transactions.jar"},
-        {"port": 8093, "name": "migration-address-api",
-            "jar": "migration-address.jar"},
         {"port": 8094, "name": "wallet-api-insolar-price",
             "jar": "wallet-api-insolar-price.jar"},
     ]
