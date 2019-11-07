@@ -46,8 +46,8 @@ COPY config-templates/bootstrap.yaml ./scripts/insolard/bootstrap.yaml
 RUN ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml \
   --certificates-out-dir scripts/insolard/certs
 
-RUN GO111MODULE=on go get github.com/fullstorydev/grpcurl
-RUN GO111MODULE=on go install github.com/fullstorydev/grpcurl/cmd/grpcurl
+RUN go get github.com/fullstorydev/grpcurl
+RUN go install github.com/fullstorydev/grpcurl/cmd/grpcurl
 
 EXPOSE 22
 CMD ["/usr/bin/sudo", "/usr/sbin/sshd", "-D"]
