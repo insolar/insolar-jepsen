@@ -88,6 +88,11 @@ spec:
     - name: {pod_name}
       image: {image_name}
       imagePullPolicy: {pull_policy}
+      resources:
+        requests:
+          ephemeral-storage: "2Gi"
+        limits:
+          ephemeral-storage: "10Gi"
       securityContext:
         capabilities:
           add:
