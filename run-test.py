@@ -1426,25 +1426,25 @@ tests = [
     # lambda: test_network_slow_down_speed_up(pod_ips), # TODO: doesn't work well on CI, see INS-3695
     # lambda: test_virtuals_slow_down_speed_up(pod_ips), TODO: this test doesn't pass currently, see INS-3688
     # lambda: test_small_mtu(pod_ips), # TODO: this test doesn't pass currently, see INS-3689
-#    lambda: test_stop_start_pulsar(pod_ips, test_num),
+    lambda: test_stop_start_pulsar(pod_ips, test_num),
     # TODO: sometimes test_netsplit_single_virtual doesn't pass, see INS-3687
-#    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips),
+    lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
     lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
     lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
-#    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
-#    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
-#    lambda: test_stop_start_lights(LIGHTS, pod_ips),
-#    lambda: test_stop_start_heavy(HEAVY, pod_ips),
-#    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
-#    lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
-#    lambda: test_kill_heavy_under_load(
-#        HEAVY, pod_ips, restore_from_backup=True),
-#    lambda: test_kill_backupprocess(HEAVY, pod_ips),
-#    lambda: test_kill_backupprocess(HEAVY, pod_ips, restore_from_backup=True),
-#    lambda: test_kill_backupprocess(
-#        HEAVY, pod_ips, create_backup_from_existing_db=True),
+    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
+    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
+    lambda: test_stop_start_lights(LIGHTS, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips),
+    lambda: test_stop_start_heavy(HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
+    lambda: test_kill_heavy_under_load(
+        HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_backupprocess(HEAVY, pod_ips),
+    lambda: test_kill_backupprocess(HEAVY, pod_ips, restore_from_backup=True),
+    lambda: test_kill_backupprocess(
+        HEAVY, pod_ips, create_backup_from_existing_db=True),
 ]
 
 
