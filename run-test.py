@@ -673,6 +673,7 @@ def start_pulsard(extra_args=""):
         extra_args+""" \\"./bin/pulsard -c pulsar.yaml """ +
         logto("pulsar") + """; bash\\" """)
 
+
 def kill(pod, proc_name):
     ssh(pod, "killall -s 9 "+proc_name+" || true")
 
@@ -683,6 +684,7 @@ def restore_heavy_from_backup(heavy_pod):
     ssh(heavy_pod, "cd "+INSPATH+" && " +
         "./bin/backupmanager prepare_backup -d ./heavy_backup/ && " +
         "rm -r data && cp -r heavy_backup data")
+
 
 def check_ssh_is_up_on_pods():
     try:
@@ -1096,7 +1098,7 @@ def test_kill_backupprocess(heavy_pod, pod_ips, restore_from_backup=False, creat
 
     info("Running benchmark and trying to kill backupmanager on pod #"+str(heavy_pod))
 
-    # Note: when backuping script starts it saves its pid to /tmp/heavy/backup.pid 
+    # Note: when backuping script starts it saves its pid to /tmp/heavy/backup.pid
     ssh(heavy_pod, "tmux new-session -d -s backupprocess-killer " +
         """\\"while true; do cat /tmp/heavy/backup.pid | xargs kill -9 ;  sleep 0.1; done """ +
         """; bash\\" """)
@@ -1468,7 +1470,8 @@ for test_num in range(0, args.repeat):
     pulses_pass = (cp - pulse_when_members_created)//PULSE_DELTA
     while pulses_pass < LIGHT_CHAIN_LIMIT:
         nattempt += 1
-        info("[Attempt "+str(nattemt)+"/"+str(LIGHT_CHAIN_LIMIT*3)+"] current pulse = "+str(cp)+", pulse_when_members_created = "+str(pulse_when_members_created)+", pulses_pass = "+str(pulses_pass))
+        info("[Attempt "+str(nattemt)+"/"+str(LIGHT_CHAIN_LIMIT*3)+"] current pulse = "+str(cp) +
+             ", pulse_when_members_created = "+str(pulse_when_members_created)+", pulses_pass = "+str(pulses_pass))
         check(nattempt < LIGHT_CHAIN_LIMIT*3, "Timeout!")
         wait(PULSE_DELTA/2)
         cp = current_pulse()
