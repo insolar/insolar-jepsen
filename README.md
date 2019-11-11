@@ -64,7 +64,6 @@ The projects mentioned in this sections are closed-source for now, sorry.
 * wallet-api-insolar-transactions
 * migration-address-api
 * wallet-api-insolar-price
-* xns-coin-stats
 
 All but observer should be compiled using `gradle bootJar`.
 
