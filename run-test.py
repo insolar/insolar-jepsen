@@ -165,9 +165,11 @@ def fail_test(failure_message):
 
 
 def print_k8s_events():
-    print(get_output(k8s() + " get pods -o wide -l app=insolar-jepsen "))
-    print(get_output(k8s() + " describe pods    -l app=insolar-jepsen"))
-    print(get_output(k8s() + " get events"))
+    # Disable many screens of k8s-specific output to stdout
+    # print(get_output(k8s() + " get pods -o wide -l app=insolar-jepsen "))
+    # print(get_output(k8s() + " describe pods    -l app=insolar-jepsen"))
+    # print(get_output(k8s() + " get events"))
+    pass
 
 
 def stop_test():
