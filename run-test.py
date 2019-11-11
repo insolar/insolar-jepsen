@@ -1473,7 +1473,7 @@ for test_num in range(0, args.repeat):
         check(nattempt < LIGHT_CHAIN_LIMIT*3, "Timeout!")
         cp = current_pulse()
         pulses_pass = (cp - pulse_when_members_created)//PULSE_DELTA
-        info("[Attempt "+str(nattemt)+"/"+str(LIGHT_CHAIN_LIMIT*3)+"] current pulse = "+str(cp) +
+        info("[Attempt "+str(nattempt)+"/"+str(LIGHT_CHAIN_LIMIT*3)+"] current pulse = "+str(cp) +
              ", pulse_when_members_created = "+str(pulse_when_members_created)+", pulses_pass = "+str(pulses_pass))
         if pulses_pass >= LIGHT_CHAIN_LIMIT:
             info("Success!")
