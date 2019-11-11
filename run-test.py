@@ -762,9 +762,9 @@ def deploy_observer(path):
     # run observer-api
     ssh(OBSERVER, """tmux new-session -d -s observerapi \\"cd """+INSPATH +
         """/../observer && ./bin/api 2>&1 | tee -a observerapi.log; bash\\" """)
-    # run xns_stats_count every 10 seconds
-    ssh(OBSERVER, "tmux new-session -d -s xns_stats_count " +
-        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/xns_stats_count 2>&1 | tee -a xns_stats_count.log;  sleep 10; done""" +
+    # run stats-collector every 10 seconds
+    ssh(OBSERVER, "tmux new-session -d -s stats-collector " +
+        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/stats-collector 2>&1 | tee -a stats-collector.log;  sleep 10; done""" +
         """; bash\\" """)
 
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
