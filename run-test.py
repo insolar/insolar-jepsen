@@ -1468,16 +1468,17 @@ for test_num in range(0, args.repeat):
 
     # The following test should be executed after the rest of the tests
     nattempt = 0
-    cp = current_pulse()
-    pulses_pass = (cp - pulse_when_members_created)//PULSE_DELTA
-    while pulses_pass < LIGHT_CHAIN_LIMIT:
+    while True:
         nattempt += 1
-        info("[Attempt "+str(nattemt)+"/"+str(LIGHT_CHAIN_LIMIT*3)+"] current pulse = "+str(cp) +
-             ", pulse_when_members_created = "+str(pulse_when_members_created)+", pulses_pass = "+str(pulses_pass))
         check(nattempt < LIGHT_CHAIN_LIMIT*3, "Timeout!")
-        wait(PULSE_DELTA/2)
         cp = current_pulse()
         pulses_pass = (cp - pulse_when_members_created)//PULSE_DELTA
+        info("[Attempt "+str(nattemt)+"/"+str(LIGHT_CHAIN_LIMIT*3)+"] current pulse = "+str(cp) +
+             ", pulse_when_members_created = "+str(pulse_when_members_created)+", pulses_pass = "+str(pulses_pass))
+        if pulses_pass >= LIGHT_CHAIN_LIMIT:
+            info("Success!")
+            break
+        wait(PULSE_DELTA/2)
 
     info("Make calls to members, created at the beginning: " +
          str(pulses_pass) + " pulses ago")
