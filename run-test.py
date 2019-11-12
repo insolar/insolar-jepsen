@@ -741,7 +741,7 @@ def deploy_observer(path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 openjdk-8-jdk nginx && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 nginx && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     info("starting Nginx @ pod "+str(OBSERVER))
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
