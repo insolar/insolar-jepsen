@@ -165,9 +165,11 @@ def fail_test(failure_message):
 
 
 def print_k8s_events():
-    print(get_output(k8s() + " get pods -o wide -l app=insolar-jepsen "))
-    print(get_output(k8s() + " describe pods    -l app=insolar-jepsen"))
-    print(get_output(k8s() + " get events"))
+    # Disable many screens of k8s-specific output to stdout
+    # print(get_output(k8s() + " get pods -o wide -l app=insolar-jepsen "))
+    # print(get_output(k8s() + " describe pods    -l app=insolar-jepsen"))
+    # print(get_output(k8s() + " get events"))
+    pass
 
 
 def stop_test():
@@ -673,6 +675,7 @@ def start_pulsard(extra_args=""):
         extra_args+""" \\"./bin/pulsard -c pulsar.yaml """ +
         logto("pulsar") + """; bash\\" """)
 
+
 def kill(pod, proc_name):
     ssh(pod, "killall -s 9 "+proc_name+" || true")
 
@@ -683,6 +686,7 @@ def restore_heavy_from_backup(heavy_pod):
     ssh(heavy_pod, "cd "+INSPATH+" && " +
         "./bin/backupmanager prepare_backup -d ./heavy_backup/ && " +
         "rm -r data && cp -r heavy_backup data")
+
 
 def check_ssh_is_up_on_pods():
     try:
@@ -762,9 +766,9 @@ def deploy_observer(path):
     # run observer-api
     ssh(OBSERVER, """tmux new-session -d -s observerapi \\"cd """+INSPATH +
         """/../observer && ./bin/api 2>&1 | tee -a observerapi.log; bash\\" """)
-    # run xns_stats_count every 10 seconds
-    ssh(OBSERVER, "tmux new-session -d -s xns_stats_count " +
-        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/xns_stats_count 2>&1 | tee -a xns_stats_count.log;  sleep 10; done""" +
+    # run stats-collector every 10 seconds
+    ssh(OBSERVER, "tmux new-session -d -s stats-collector " +
+        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/stats-collector 2>&1 | tee -a stats-collector.log;  sleep 10; done""" +
         """; bash\\" """)
 
     info("deploying Java API microservices @ pod "+str(OBSERVER) +
@@ -1098,7 +1102,7 @@ def test_kill_backupprocess(heavy_pod, pod_ips, restore_from_backup=False, creat
 
     info("Running benchmark and trying to kill backupmanager on pod #"+str(heavy_pod))
 
-    # Note: when backuping script starts it saves its pid to /tmp/heavy/backup.pid 
+    # Note: when backuping script starts it saves its pid to /tmp/heavy/backup.pid
     ssh(heavy_pod, "tmux new-session -d -s backupprocess-killer " +
         """\\"while true; do cat /tmp/heavy/backup.pid | xargs kill -9 ;  sleep 0.1; done """ +
         """; bash\\" """)
@@ -1465,11 +1469,18 @@ for test_num in range(0, args.repeat):
     info("ALL TESTS PASSED: "+str(test_num+1)+" of "+str(args.repeat))
 
     # The following test should be executed after the rest of the tests
-    pulses_pass = (current_pulse() - pulse_when_members_created)//PULSE_DELTA
-    while pulses_pass < LIGHT_CHAIN_LIMIT:
-        wait(5)
-        pulses_pass = (current_pulse() -
-                       pulse_when_members_created)//PULSE_DELTA
+    nattempt = 0
+    while True:
+        nattempt += 1
+        check(nattempt < LIGHT_CHAIN_LIMIT*3, "Timeout!")
+        cp = current_pulse()
+        pulses_pass = (cp - pulse_when_members_created)//PULSE_DELTA
+        info("[Attempt "+str(nattempt)+"/"+str(LIGHT_CHAIN_LIMIT*3)+"] current pulse = "+str(cp) +
+             ", pulse_when_members_created = "+str(pulse_when_members_created)+", pulses_pass = "+str(pulses_pass))
+        if pulses_pass >= LIGHT_CHAIN_LIMIT:
+            info("Success!")
+            break
+        wait(PULSE_DELTA/2)
 
     info("Make calls to members, created at the beginning: " +
          str(pulses_pass) + " pulses ago")

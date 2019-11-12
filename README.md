@@ -64,7 +64,6 @@ The projects mentioned in this sections are closed-source for now, sorry.
 * wallet-api-insolar-transactions
 * migration-address-api
 * wallet-api-insolar-price
-* xns-coin-stats
 
 All but observer should be compiled using `gradle bootJar`.
 
@@ -82,7 +81,7 @@ scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P32001 -r 'gopher@loca
 scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P32001 -r gopher@localhost:go/src/github.com/insolar/insolar/scripts/insolard/bootstrap.yaml /tmp/jepsen-keys/bootstrap_default.yaml
 
 # run go-autotests
-IS_LOCAL_RUN=0 IS_JEPSEN_RUN=1 go test --count=1 -tags 'platform manual observer_api' ./...
+IS_LOCAL_RUN=0 IS_JEPSEN_RUN=1 go test --count=1 -tags 'platform observer_api' ./...
 # instead of using environment variables you can edit apitests/entrypoint.yaml:
 # is_local_run: false, is_jepsen_run: true
 ```
