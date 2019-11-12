@@ -65,7 +65,7 @@ for port in range(START_PORT, END_PORT+1):
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
             """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/* """+node_dir+""" || true""")
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/background-bench-*.log.gz """+node_dir+""" || true"""
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/background-bench-*.log.gz """+node_dir+""" || true""" )
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
             """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/backupmanager.log """+node_dir+""" || true""")
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
