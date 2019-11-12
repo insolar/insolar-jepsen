@@ -516,13 +516,13 @@ def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, 
     out = ""
     try:
         out = ssh_output(ssh_pod, 'cd '+INSPATH+' && ' +
-                         ("tmux new-session -d \"" if background else "") +
+                         ("tmux new-session -d \\\"" if background else "") +
                          'timelimit -s9 -t'+str(timeout)+' ' +
                          './bin/benchmark -c ' + str(c) + ' -r ' + str(r) + ' -a http://'+pod_ips[virtual_pod_name] +
                          ':'+str(port) + '/admin-api/rpc ' +
                          ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
                          '-k=./scripts/insolard/configs/ ' + extra_args +
-                         ("\"" if background else ""))
+                         ' ' + ( logto('background-bench-'+str(int(time.time()))) + "\\\"" if background else ""))
     except Exception as e:
         print(e)
         out = "ssh_output() throwed an exception (non-zero return code): "+str(e)
@@ -1037,8 +1037,10 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
         finalized_pulse = get_finalized_pulse_from_exporter()
 
     info("Starting benchmark on these members in the background, wait several transfer to pass")
-    run_benchmark(pod_ips, r=100, timeout=100, background=True,
+    ok, bench_out = run_benchmark(pod_ips, r=100, timeout=100, background=True,
                   extra_args='-b -m --members-file=' + MEMBERS_FILE)
+
+    info( "Bench run output: " + bench_out)
     wait(20)
 
     info("Killing heavy on pod #"+str(heavy_pod))
