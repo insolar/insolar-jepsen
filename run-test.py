@@ -753,7 +753,7 @@ def deploy_observer(path):
     scp_to(OBSERVER, path + "/observer", INSPATH +
            "/../observer", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd "+INSPATH +
-        "/../observer && rm -rf vendor && GOPROXY=https://goproxy.io GO111MODULE=on make all && mkdir -p .artifacts")
+        "/../observer && rm -rf vendor && GO111MODULE=on make all && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observerapi.yaml",
