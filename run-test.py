@@ -771,23 +771,6 @@ def deploy_observer(path):
         """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/stats-collector 2>&1 | tee -a stats-collector.log;  sleep 10; done""" +
         """; bash\\" """)
 
-    info("deploying Java API microservices @ pod "+str(OBSERVER) +
-         ", using source code from "+path+"/*")
-    services = [
-        {"port": 8092, "name": "wallet-api-insolar-transactions",
-            "jar": "wallet-api-insolar-transactions.jar"},
-        {"port": 8094, "name": "wallet-api-insolar-price",
-            "jar": "wallet-api-insolar-price.jar"},
-    ]
-    for srv in services:
-        info("deploying "+srv["name"]+"...")
-        scp_to(OBSERVER, path + "/" +
-               srv["name"]+"/build/libs/"+srv["jar"], "/home/gopher/")
-        ssh(OBSERVER, """tmux new-session -d -s """+srv["name"]+""" \\" """ +
-            """DB_NAME=observer DB_LOGIN=observer DB_PASSWORD=observer DB_PATH=jdbc:postgresql://localhost:5432/ """ +
-            """SERVER_PORT="""+str(srv["port"])+""" java -jar ./"""+srv["jar"]+""" 2>&1 | tee -a """+srv["name"]+""".log; bash\\" """)
-
-
 def deploy_insolar(skip_benchmark=False):
     info("copying configs and fixing certificates for discovery nodes")
     pod_ips = k8s_get_pod_ips()
