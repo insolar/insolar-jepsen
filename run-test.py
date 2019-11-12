@@ -741,7 +741,7 @@ def deploy_observer(path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 openjdk-8-jdk nginx && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 nginx && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     info("starting Nginx @ pod "+str(OBSERVER))
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
@@ -770,23 +770,6 @@ def deploy_observer(path):
     ssh(OBSERVER, "tmux new-session -d -s stats-collector " +
         """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/stats-collector 2>&1 | tee -a stats-collector.log;  sleep 10; done""" +
         """; bash\\" """)
-
-    info("deploying Java API microservices @ pod "+str(OBSERVER) +
-         ", using source code from "+path+"/*")
-    services = [
-        {"port": 8092, "name": "wallet-api-insolar-transactions",
-            "jar": "wallet-api-insolar-transactions.jar"},
-        {"port": 8094, "name": "wallet-api-insolar-price",
-            "jar": "wallet-api-insolar-price.jar"},
-    ]
-    for srv in services:
-        info("deploying "+srv["name"]+"...")
-        scp_to(OBSERVER, path + "/" +
-               srv["name"]+"/build/libs/"+srv["jar"], "/home/gopher/")
-        ssh(OBSERVER, """tmux new-session -d -s """+srv["name"]+""" \\" """ +
-            """DB_NAME=observer DB_LOGIN=observer DB_PASSWORD=observer DB_PATH=jdbc:postgresql://localhost:5432/ """ +
-            """SERVER_PORT="""+str(srv["port"])+""" java -jar ./"""+srv["jar"]+""" 2>&1 | tee -a """+srv["name"]+""".log; bash\\" """)
-
 
 def deploy_insolar(skip_benchmark=False):
     info("copying configs and fixing certificates for discovery nodes")

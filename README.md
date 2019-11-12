@@ -60,12 +60,6 @@ The projects mentioned in this sections are closed-source for now, sorry.
 `--other-path` should contain the following repos:
 
 * observer
-* wallet-api-insolar-balance
-* wallet-api-insolar-transactions
-* migration-address-api
-* wallet-api-insolar-price
-
-All but observer should be compiled using `gradle bootJar`.
 
 ```
 # skipped: steps from "Usage" section above
