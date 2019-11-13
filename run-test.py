@@ -221,7 +221,6 @@ def stop_test():
 def info(msg):
     print(str(datetime.datetime.now())+" INFO: "+str(msg))
 
-
 def wait(nsec):
     info("waiting "+str(nsec)+" second"+("s" if nsec > 1 else "")+"...")
     time.sleep(nsec)
@@ -1033,6 +1032,10 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
          (" with restore from backup" if restore_from_backup else "")+" passed! ====")
     stop_test()
 
+def is_benchmark_alive(pod):
+    output = ssh_output(pod, "ps aux | grep [b]enchmark")
+    info( "is_benchmark_alive: " + output )
+    return len( output ) != 0
 
 def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     start_test("test_kill_heavy_under_load" +
@@ -1056,11 +1059,14 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
         finalized_pulse = get_finalized_pulse_from_exporter()
 
     info("Starting benchmark on these members in the background, wait several transfer to pass")
-    ok, bench_out = run_benchmark(pod_ips, r=100, timeout=100, background=True,
+    ok, bench_out = run_benchmark(pod_ips, r=10000, timeout=100, background=True,
                                   extra_args='-b -m --members-file=' + MEMBERS_FILE)
 
     info("Bench run output: " + bench_out)
     wait(20)
+
+    if not is_benchmark_alive(heavy_pod):
+        fail_test("Benchmark must be alive" )
 
     info("Killing heavy on pod #"+str(heavy_pod))
     kill(heavy_pod, "insolard")
@@ -1068,6 +1074,9 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     down = wait_until_insolar_is_down()
     check_down(down)
     info("Insolar is down")
+
+    info("Killing benchmark on pod #"+str(heavy_pod))
+    kill(heavy_pod, "benchmark")
 
     if restore_from_backup:
         restore_heavy_from_backup(heavy_pod)
@@ -1088,16 +1097,6 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
 
     check_benchmark(
         ok, 'Error while checking total balance with benchmark (waited for 100s): ' + check_out)
-
-    ok, check_out = check_balance_at_benchmark(
-        pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE + ' --check-all-balance'
-    )
-    check(
-        not ok,
-        "Benchmark should fail with --check-all-balance option,"
-        " because several transfers should not be done before heavy went down (increase sleeping time?),"
-        " but it was successful:\n" + check_out
-    )
 
     info("==== kill heavy under load at pod #"+str(heavy_pod) +
          (" with restore from backup" if restore_from_backup else "")+" passed! ====")
