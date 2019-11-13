@@ -366,7 +366,7 @@ def k8s_stop_pods_if_running():
         wait(3)
     else:
         fail_test("k8s_stop_pods_if_running no attempts left")
-    wait(10)  # make sure services and everything else are gone as well
+    wait(20)  # make sure services and everything else are gone as well
 
 
 def k8s_start_pods(fname):
