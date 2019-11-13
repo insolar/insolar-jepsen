@@ -6,6 +6,7 @@ import subprocess
 
 START_PORT = 32001
 END_PORT = 32012
+OBSERVER_PORT = 32013
 DEBUG = True
 
 ZCAT = "zcat"
@@ -70,6 +71,13 @@ for port in range(START_PORT, END_PORT+1):
             """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/backupmanager.log """+node_dir+""" || true""")
     run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
         """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log.gz """+node_dir)
+
+observer_dir = copy_to_dir + "observer/"
+run("""rm -r """+observer_dir)
+run("""mkdir -p """+observer_dir+""" || true """)
+
+run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(OBSERVER_PORT) +
+    """ gopher@"""+hostname+""":go/src/github.com/insolar/observer/*.log """+observer_dir)
 
 run(ZCAT + " " + copy_to_dir + """*/*.log.gz | egrep -n '"level":"(error|fatal|panic)"' """ +
     """ | sort -n > """ + copy_to_dir + """all_errors.log""")
