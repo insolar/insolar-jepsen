@@ -284,36 +284,19 @@ def k8s():
 
 def k8s_gen_yaml(fname, image_name, pull_policy):
     with open(fname, "w") as f:
-        to_port = 31001
+        to_port = 31008
         for i in ALL_PODS:
             pod_name = "jepsen-" + str(i)
             ssh_port = str(32000 + i)
-            pgsql_port = str(31000 + i)
             descr = K8S_YAML_TEMPLATE.format(
                 pod_name=pod_name,
                 ssh_port=ssh_port,
-                pgsql_port=pgsql_port,
                 image_name=image_name,
                 pull_policy=pull_policy
             )
-            # Proxy platform RPC and admin API ports
-            if i == HEAVY:
-                descr += PROXY_PORT_YAML_TEMPLATE.format(
-                    pod_name=pod_name,
-                    from_port=VIRTUAL_START_RPC_PORT+1,
-                    to_port=to_port,
-                )
-                to_port += 1
-                descr += PROXY_PORT_YAML_TEMPLATE.format(
-                    pod_name=pod_name,
-                    from_port=VIRTUAL_START_ADMIN_PORT+1,
-                    to_port=to_port,
-                )
-                to_port += 1
-
-            # Proxy Java API daemons, PostgreSQL and Nginx ports on OBSERVER
+            # Proxy PostgreSQL and Nginx ports on OBSERVER
             if i == OBSERVER:
-                for from_port in list(range(8091, 8095+1)) + [5432, 80]:
+                for from_port in [5432, 80]:
                     descr += PROXY_PORT_YAML_TEMPLATE.format(
                         pod_name=pod_name,
                         from_port=from_port,
@@ -524,7 +507,7 @@ def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, 
                          ':'+str(port) + '/admin-api/rpc ' +
                          ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
                          '-k=./scripts/insolard/configs/ ' + extra_args +
-                         ' ' + ( logto('background-bench-'+str(int(time.time()))) + "\\\"" if background else ""))
+                         ' ' + (logto('background-bench-'+str(int(time.time()))) + "\\\"" if background else ""))
     except Exception as e:
         print(e)
         out = "ssh_output() throwed an exception (non-zero return code): "+str(e)
@@ -770,6 +753,7 @@ def deploy_observer(path):
     ssh(OBSERVER, "tmux new-session -d -s stats-collector " +
         """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/stats-collector 2>&1 | tee -a stats-collector.log;  sleep 10; done""" +
         """; bash\\" """)
+
 
 def deploy_insolar(skip_benchmark=False):
     info("copying configs and fixing certificates for discovery nodes")
@@ -1025,9 +1009,9 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
 
     info("Starting benchmark on these members in the background, wait several transfer to pass")
     ok, bench_out = run_benchmark(pod_ips, r=100, timeout=100, background=True,
-                  extra_args='-b -m --members-file=' + MEMBERS_FILE)
+                                  extra_args='-b -m --members-file=' + MEMBERS_FILE)
 
-    info( "Bench run output: " + bench_out)
+    info("Bench run output: " + bench_out)
     wait(20)
 
     info("Killing heavy on pod #"+str(heavy_pod))
