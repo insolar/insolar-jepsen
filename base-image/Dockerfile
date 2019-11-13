@@ -21,9 +21,6 @@ RUN apt-get clean
 # Speeds up Observer deployment
 RUN apt-get install -y --download-only postgresql-11
 
-# Speeds up Java API daemons deployment
-RUN apt-get install -y --download-only openjdk-8-jdk
-
 RUN mkdir /var/run/sshd
 RUN adduser --disabled-password --gecos '' gopher
 RUN usermod -a -G sudo gopher
@@ -61,7 +58,6 @@ RUN echo "export PATH=\"/home/gopher/go/bin:/home/gopher/opt/go/bin:\$PATH\"" >>
     /home/gopher/.bash_profile
 RUN echo "alias obsdb=\"PGPASSWORD=observer psql -hlocalhost -Uobserver observer\"" >> \
     /home/gopher/.bash_profile
-RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 RUN mkdir -p go/src/github.com/insolar
 
 WORKDIR /home/gopher/go/src/github.com/insolar

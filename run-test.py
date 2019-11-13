@@ -24,6 +24,7 @@ import datetime
 # jepsen-10: virtual (not-discovery)
 # jepsen-11: virtual (not-discovery)
 # jepsen-12: pulsar
+# jepsen-13: observer, PostgreSQL, Nginx
 
 START_PORT = 32000
 VIRTUAL_START_RPC_PORT = 19000
@@ -88,11 +89,6 @@ spec:
     - name: {pod_name}
       image: {image_name}
       imagePullPolicy: {pull_policy}
-      resources:
-        requests:
-          ephemeral-storage: "2Gi"
-        limits:
-          ephemeral-storage: "10Gi"
       securityContext:
         capabilities:
           add:
@@ -103,6 +99,51 @@ spec:
     jepsen: "true"
 ---
 """
+
+# A copy of K8S_YAML_TEMPLATE except `resources` section
+K8S_OBSERVER_YAML_TEMPLATE = """
+kind: Service
+apiVersion: v1
+metadata:
+  name: {pod_name}
+  labels:
+    app: insolar-jepsen
+spec:
+  type: NodePort
+  ports:
+    - port: 22
+      nodePort: {ssh_port}
+  selector:
+    name: {pod_name}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {pod_name}
+  labels:
+    name: {pod_name}
+    app: insolar-jepsen
+spec:
+  containers:
+    - name: {pod_name}
+      image: {image_name}
+      imagePullPolicy: {pull_policy}
+      resources:
+        requests:
+          ephemeral-storage: "15Gi"
+        limits:
+          ephemeral-storage: "15Gi"
+      securityContext:
+        capabilities:
+          add:
+            - NET_ADMIN
+      ports:
+        - containerPort: 22
+  nodeSelector:
+    jepsen: "true"
+---
+"""
+
 
 PROXY_PORT_YAML_TEMPLATE = """
 kind: Service
@@ -283,36 +324,26 @@ def k8s():
 
 def k8s_gen_yaml(fname, image_name, pull_policy):
     with open(fname, "w") as f:
-        to_port = 31001
+        to_port = 31008
         for i in ALL_PODS:
             pod_name = "jepsen-" + str(i)
             ssh_port = str(32000 + i)
-            pgsql_port = str(31000 + i)
             descr = K8S_YAML_TEMPLATE.format(
                 pod_name=pod_name,
                 ssh_port=ssh_port,
-                pgsql_port=pgsql_port,
                 image_name=image_name,
                 pull_policy=pull_policy
             )
-            # Proxy platform RPC and admin API ports
-            if i == HEAVY:
-                descr += PROXY_PORT_YAML_TEMPLATE.format(
-                    pod_name=pod_name,
-                    from_port=VIRTUAL_START_RPC_PORT+1,
-                    to_port=to_port,
-                )
-                to_port += 1
-                descr += PROXY_PORT_YAML_TEMPLATE.format(
-                    pod_name=pod_name,
-                    from_port=VIRTUAL_START_ADMIN_PORT+1,
-                    to_port=to_port,
-                )
-                to_port += 1
-
-            # Proxy Java API daemons, PostgreSQL and Nginx ports on OBSERVER
+            # Proxy PostgreSQL and Nginx ports on OBSERVER
             if i == OBSERVER:
-                for from_port in list(range(8091, 8095+1)) + [5432, 80]:
+                # Rewrite `descr`
+                descr = K8S_OBSERVER_YAML_TEMPLATE.format(
+                    pod_name=pod_name,
+                    ssh_port=ssh_port,
+                    image_name=image_name,
+                    pull_policy=pull_policy
+                )
+                for from_port in [5432, 80]:
                     descr += PROXY_PORT_YAML_TEMPLATE.format(
                         pod_name=pod_name,
                         from_port=from_port,
@@ -365,7 +396,7 @@ def k8s_stop_pods_if_running():
         wait(3)
     else:
         fail_test("k8s_stop_pods_if_running no attempts left")
-    wait(10)  # make sure services and everything else are gone as well
+    wait(20)  # make sure services and everything else are gone as well
 
 
 def k8s_start_pods(fname):
@@ -523,7 +554,7 @@ def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, 
                          ':'+str(port) + '/admin-api/rpc ' +
                          ' -p http://'+pod_ips[virtual_pod_name]+':'+str(port + 100)+'/api/rpc ' +
                          '-k=./scripts/insolard/configs/ ' + extra_args +
-                         ' ' + ( logto('background-bench-'+str(int(time.time()))) + "\\\"" if background else ""))
+                         ' ' + (logto('background-bench-'+str(int(time.time()))) + "\\\"" if background else ""))
     except Exception as e:
         print(e)
         out = "ssh_output() throwed an exception (non-zero return code): "+str(e)
@@ -740,7 +771,7 @@ def deploy_observer(path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 openjdk-8-jdk nginx && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 nginx && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
     ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
     info("starting Nginx @ pod "+str(OBSERVER))
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
@@ -752,7 +783,7 @@ def deploy_observer(path):
     scp_to(OBSERVER, path + "/observer", INSPATH +
            "/../observer", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd "+INSPATH +
-        "/../observer && rm -rf vendor && GOPROXY=https://goproxy.io GO111MODULE=on make all && mkdir -p .artifacts")
+        "/../observer && rm -rf vendor && GO111MODULE=on make all && mkdir -p .artifacts")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
            INSPATH+"/../observer/.artifacts/observer.yaml")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observerapi.yaml",
@@ -769,22 +800,6 @@ def deploy_observer(path):
     ssh(OBSERVER, "tmux new-session -d -s stats-collector " +
         """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/stats-collector 2>&1 | tee -a stats-collector.log;  sleep 10; done""" +
         """; bash\\" """)
-
-    info("deploying Java API microservices @ pod "+str(OBSERVER) +
-         ", using source code from "+path+"/*")
-    services = [
-        {"port": 8092, "name": "wallet-api-insolar-transactions",
-            "jar": "wallet-api-insolar-transactions.jar"},
-        {"port": 8094, "name": "wallet-api-insolar-price",
-            "jar": "wallet-api-insolar-price.jar"},
-    ]
-    for srv in services:
-        info("deploying "+srv["name"]+"...")
-        scp_to(OBSERVER, path + "/" +
-               srv["name"]+"/build/libs/"+srv["jar"], "/home/gopher/")
-        ssh(OBSERVER, """tmux new-session -d -s """+srv["name"]+""" \\" """ +
-            """DB_NAME=observer DB_LOGIN=observer DB_PASSWORD=observer DB_PATH=jdbc:postgresql://localhost:5432/ """ +
-            """SERVER_PORT="""+str(srv["port"])+""" java -jar ./"""+srv["jar"]+""" 2>&1 | tee -a """+srv["name"]+""".log; bash\\" """)
 
 
 def deploy_insolar(skip_benchmark=False):
@@ -1045,9 +1060,9 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
 
     info("Starting benchmark on these members in the background, wait several transfer to pass")
     ok, bench_out = run_benchmark(pod_ips, r=10000, timeout=100, background=True,
-                  extra_args='-b -m --members-file=' + MEMBERS_FILE)
+                                  extra_args='-b -m --members-file=' + MEMBERS_FILE)
 
-    info( "Bench run output: " + bench_out)
+    info("Bench run output: " + bench_out)
     wait(20)
 
     if not is_benchmark_alive(heavy_pod):
