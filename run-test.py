@@ -89,9 +89,48 @@ spec:
     - name: {pod_name}
       image: {image_name}
       imagePullPolicy: {pull_policy}
+      securityContext:
+        capabilities:
+          add:
+            - NET_ADMIN
+      ports:
+        - containerPort: 22
+  nodeSelector:
+    jepsen: "true"
+---
+"""
+
+# A copy of K8S_YAML_TEMPLATE except `resources` section
+K8S_OBSERVER_YAML_TEMPLATE = """
+kind: Service
+apiVersion: v1
+metadata:
+  name: {pod_name}
+  labels:
+    app: insolar-jepsen
+spec:
+  type: NodePort
+  ports:
+    - port: 22
+      nodePort: {ssh_port}
+  selector:
+    name: {pod_name}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {pod_name}
+  labels:
+    name: {pod_name}
+    app: insolar-jepsen
+spec:
+  containers:
+    - name: {pod_name}
+      image: {image_name}
+      imagePullPolicy: {pull_policy}
       resources:
         requests:
-          ephemeral-storage: "5Gi"
+          ephemeral-storage: "15Gi"
         limits:
           ephemeral-storage: "15Gi"
       securityContext:
@@ -104,6 +143,7 @@ spec:
     jepsen: "true"
 ---
 """
+
 
 PROXY_PORT_YAML_TEMPLATE = """
 kind: Service
@@ -297,6 +337,13 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
             )
             # Proxy PostgreSQL and Nginx ports on OBSERVER
             if i == OBSERVER:
+                # Rewrite `descr`
+                descr = K8S_OBSERVER_YAML_TEMPLATE.format(
+                    pod_name=pod_name,
+                    ssh_port=ssh_port,
+                    image_name=image_name,
+                    pull_policy=pull_policy
+                )
                 for from_port in [5432, 80]:
                     descr += PROXY_PORT_YAML_TEMPLATE.format(
                         pod_name=pod_name,
