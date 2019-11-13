@@ -27,7 +27,7 @@ ledger:
     splitthreshold: 1000
   recentstorage:
     defaultttl: 10
-  lightchainlimit: 5
+  lightchainlimit: 15
   jetsizeshistorydepth: 10
   exporter:
     exportlag: 40
