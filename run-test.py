@@ -24,6 +24,7 @@ import datetime
 # jepsen-10: virtual (not-discovery)
 # jepsen-11: virtual (not-discovery)
 # jepsen-12: pulsar
+# jepsen-13: observer, PostgreSQL, Nginx
 
 START_PORT = 32000
 VIRTUAL_START_RPC_PORT = 19000
@@ -92,7 +93,7 @@ spec:
         requests:
           ephemeral-storage: "2Gi"
         limits:
-          ephemeral-storage: "10Gi"
+          ephemeral-storage: "25Gi"
       securityContext:
         capabilities:
           add:

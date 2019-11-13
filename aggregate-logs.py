@@ -5,7 +5,8 @@ import sys
 import subprocess
 
 START_PORT = 32001
-END_PORT = 32012
+END_PORT = 32013
+OBSERVER_PORT = 32013
 DEBUG = True
 
 ZCAT = "zcat"
@@ -65,11 +66,15 @@ for port in range(START_PORT, END_PORT+1):
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
             """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/* """+node_dir+""" || true""")
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/background-bench-*.log.gz """+node_dir+""" || true""" )
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/background-bench-*.log.gz """+node_dir+""" || true""")
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
             """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/backupmanager.log """+node_dir+""" || true""")
-    run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-        """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log.gz """+node_dir)
+    if port == OBSERVER_PORT:
+        run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/observer/*.log """+node_dir)
+    else:
+        run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log.gz """+node_dir)
 
 run(ZCAT + " " + copy_to_dir + """*/*.log.gz | egrep -n '"level":"(error|fatal|panic)"' """ +
     """ | sort -n > """ + copy_to_dir + """all_errors.log""")
