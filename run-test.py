@@ -91,9 +91,9 @@ spec:
       imagePullPolicy: {pull_policy}
       resources:
         requests:
-          ephemeral-storage: "25Gi"
+          ephemeral-storage: "5Gi"
         limits:
-          ephemeral-storage: "25Gi"
+          ephemeral-storage: "15Gi"
       securityContext:
         capabilities:
           add:
