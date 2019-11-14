@@ -4,6 +4,8 @@ FROM ubuntu:16.04
 
 MAINTAINER Tsovak Sahakyan 
 
+RUN echo 'eu-west-1.ec2.archive.ubuntu.com' >> /etc/apt/sources.list
+
 # wget is required to add PPA
 RUN apt-get update
 RUN apt-get install -y wget
