@@ -4,4 +4,5 @@ db:
   url: postgres://observer:observer@localhost/observer?sslmode=disable
   attempts: 5
   attemptinterval: 3s
+price: "0.05"
 feeamount: 1000000000
