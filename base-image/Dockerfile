@@ -4,7 +4,7 @@ FROM ubuntu:16.04
 
 MAINTAINER Tsovak Sahakyan 
 
-RUN echo 'eu-west-1.ec2.archive.ubuntu.com' >> /etc/apt/sources.list
+RUN echo "deb http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ bionic main restricted" | tee -a /etc/apt/sources.list
 
 # wget is required to add PPA
 RUN apt-get update
