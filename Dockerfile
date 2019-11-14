@@ -51,5 +51,7 @@ RUN ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml \
 RUN go get github.com/fullstorydev/grpcurl
 RUN go install github.com/fullstorydev/grpcurl/cmd/grpcurl
 
+RUN sed -i 's;eu-west-1.ec2.archive.ubuntu.com;eu.archive.ubuntu.com;' /etc/apt/sources.list
+
 EXPOSE 22
 CMD ["/usr/bin/sudo", "/usr/sbin/sshd", "-D"]
