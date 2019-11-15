@@ -4,8 +4,6 @@ FROM ubuntu:16.04
 
 MAINTAINER Tsovak Sahakyan 
 
-RUN echo "deb http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ bionic main restricted" | tee -a /etc/apt/sources.list
-
 # wget is required to add PPA
 RUN apt-get update
 RUN apt-get install -y wget
