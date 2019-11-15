@@ -567,24 +567,27 @@ def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS
     )
     check_benchmark(ok, migration_out)
     ok, migration_out = run_benchmark(
-        pod_ips, api_pod, ssh_pod, c=c, extra_args='-t=migration -m --members-file=' + members_file, timeout=timeout,
+        pod_ips, api_pod, ssh_pod, c=c, withoutBalanceCheck=True, extra_args='-t=migration -m --members-file=' + members_file, timeout=timeout,
     )
-    check(not ok, "Benchmark should fail while migrate already migrated members, but it was successful:\n" + migration_out)
+    check_benchmark(ok, migration_out)
     ok, out = check_balance_at_benchmark(
         pod_ips, extra_args='-m --members-file=' + members_file + ' --check-all-balance', timeout=timeout
     )
     check_benchmark(ok, out)
 
 
-def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=90, background=False):
+def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, withoutBalanceCheck=False, extra_args="", c=C, r=R, timeout=90, background=False):
+    if withoutBalanceCheck:
+        extra_args = extra_args + ' -b'
     out = benchmark(pod_ips, api_pod, ssh_pod,
                     extra_args, c, r, timeout, background)
 
     if background:
         return True, out
 
-    if 'Successes: '+str(c*r) in out and 'Total balance successfully matched' in out:
-        return True, out
+    if 'Successes: '+str(c*r) in out:
+        if withoutBalanceCheck or 'Total balance successfully matched' in out:
+            return True, out
     return False, out
 
 
