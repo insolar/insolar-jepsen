@@ -19,7 +19,7 @@ RUN apt-get install -y openssh-server iptables net-tools \
 RUN apt-get clean
 
 # Speeds up Observer deployment
-RUN apt-get install -y --download-only postgresql-11
+RUN apt-get install -y --download-only postgresql-11 nginx
 
 RUN mkdir /var/run/sshd
 RUN adduser --disabled-password --gecos '' gopher
