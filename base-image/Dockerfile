@@ -4,7 +4,7 @@ FROM ubuntu:16.04
 
 MAINTAINER Tsovak Sahakyan 
 
-# To trigger base-image rebuild on CI change this timestamp - Fri Nov 15 17:16:37 MSK 2019 ;)
+# To trigger base-image rebuild on CI change this timestamp - Fri Nov 15 17:51:47 MSK 2019 ;)
 
 # wget is required to add PPA
 RUN apt-get update
