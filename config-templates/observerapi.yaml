@@ -5,3 +5,4 @@ db:
   attempts: 5
   attemptinterval: 3s
 feeamount: 1000000000
+price: 0.05
