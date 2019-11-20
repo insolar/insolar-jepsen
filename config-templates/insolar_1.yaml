@@ -16,7 +16,7 @@ ledger:
   storage:
     datadirectory: ./data
     txretriesonconflict: 3
-    gcrunfrequency: 4
+    gcrunfrequency: 0 # (it was 4) INS-3891: try to disable GC and see if it helps
   pulsemanager:
     heavysyncenabled: true
     heavysyncmessagelimit: 1048576
