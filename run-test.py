@@ -805,6 +805,20 @@ def deploy_observer(path):
         """; bash\\" """)
 
 
+def gen_certs():
+    ssh(HEAVY, "cd "+INSPATH+" && ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml " +
+     "--certificates-out-dir scripts/insolard/certs")
+    run("mkdir -p /tmp/insolar-jepsen-configs/certs/ || true")
+    run("mkdir -p /tmp/insolar-jepsen-configs/reusekeys/not_discovery/ || true")
+    run("mkdir -p /tmp/insolar-jepsen-configs/reusekeys/discovery/ || true")
+    scp_from(HEAVY, INSPATH+"/scripts/insolard/certs/*", "/tmp/insolar-jepsen-configs/certs/")
+    scp_from(HEAVY, INSPATH+"/scripts/insolard/reusekeys/not_discovery/*", "/tmp/insolar-jepsen-configs/reusekeys/not_discovery/")
+    scp_from(HEAVY, INSPATH+"/scripts/insolard/reusekeys/discovery/*", "/tmp/insolar-jepsen-configs/reusekeys/discovery/")
+    for pod in LIGHTS+VIRTUALS:
+        scp_to(pod, "/tmp/insolar-jepsen-configs/certs/*", INSPATH+"/scripts/insolard/certs/")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/not_discovery/*", INSPATH+"/scripts/insolard/reusekeys/not_discovery/")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/discovery/*", INSPATH+"/scripts/insolard/reusekeys/discovery/")
+
 def deploy_insolar(skip_benchmark=False):
     info("copying configs and fixing certificates for discovery nodes")
     pod_ips = k8s_get_pod_ips()
@@ -821,6 +835,8 @@ def deploy_insolar(skip_benchmark=False):
                str(pod)+".yaml", pod_path)
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml",
                INSPATH+"/pulsewatcher.yaml")
+
+    gen_certs()
 
     start_insolar_net(NODES, pod_ips, step="starting",
                       skip_benchmark=skip_benchmark)
