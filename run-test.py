@@ -95,8 +95,6 @@ spec:
             - NET_ADMIN
       ports:
         - containerPort: 22
-  nodeSelector:
-    jepsen: "true"
 ---
 """
 
@@ -139,8 +137,6 @@ spec:
             - NET_ADMIN
       ports:
         - containerPort: 22
-  nodeSelector:
-    jepsen: "true"
 ---
 """
 
