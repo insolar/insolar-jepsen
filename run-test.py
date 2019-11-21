@@ -1461,6 +1461,8 @@ ok, bench_out = run_benchmark(
     pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
 check_benchmark(ok, bench_out)
 members_creted_at = time.time()
+pulse_when_members_created = current_pulse()
+
 info("Wait for data to save on heavy (top sync pulse must change)")
 wait_until_current_pulse_will_be_finalized()
 info("Data was saved on heavy (top sync pulse changed)")
