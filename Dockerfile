@@ -45,8 +45,8 @@ RUN ./bin/insolar gen-migration-addresses > scripts/insolard/configs/migration_a
 RUN cd scripts/insolard/configs && ls && cd ../../..
 
 COPY config-templates/bootstrap.yaml ./scripts/insolard/bootstrap.yaml
-RUN ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml \
-  --certificates-out-dir scripts/insolard/certs
+RUN mkdir -p scripts/insolard/reusekeys/not_discovery
+RUN mkdir -p scripts/insolard/reusekeys/discovery
 
 RUN go get github.com/fullstorydev/grpcurl
 RUN go install github.com/fullstorydev/grpcurl/cmd/grpcurl
