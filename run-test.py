@@ -221,6 +221,7 @@ def stop_test():
 def info(msg):
     print(str(datetime.datetime.now())+" INFO: "+str(msg))
 
+
 def wait(nsec):
     info("waiting "+str(nsec)+" second"+("s" if nsec > 1 else "")+"...")
     time.sleep(nsec)
@@ -531,13 +532,16 @@ def network_status_is_ok(network_status, nodes_online):
     info("[NetworkStatus] Everything is OK")
     return True
 
-def wait_until_current_pulse_will_be_finalized()
+
+def wait_until_current_pulse_will_be_finalized():
     pulse = current_pulse()
     finalized_pulse = get_finalized_pulse_from_exporter()
     while pulse != finalized_pulse:
-        info("Current pulse: "+str(pulse)+", finalized pulse: "+str(finalized_pulse))
+        info("Current pulse: "+str(pulse) +
+             ", finalized pulse: "+str(finalized_pulse))
         wait(1)
         finalized_pulse = get_finalized_pulse_from_exporter()
+
 
 def get_finalized_pulse_from_exporter():
     cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/insolar/vendor' +\
@@ -547,6 +551,7 @@ def get_finalized_pulse_from_exporter():
     pulse = json.loads(out)["PulseNumber"]
     info("exporter said: " + str(pulse))
     return pulse
+
 
 def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
     virtual_pod_name = 'jepsen-'+str(api_pod)
@@ -813,17 +818,24 @@ def deploy_observer(path):
 
 def gen_certs():
     ssh(HEAVY, "cd "+INSPATH+" && ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml " +
-     "--certificates-out-dir scripts/insolard/certs")
+        "--certificates-out-dir scripts/insolard/certs")
     run("mkdir -p /tmp/insolar-jepsen-configs/certs/ || true")
     run("mkdir -p /tmp/insolar-jepsen-configs/reusekeys/not_discovery/ || true")
     run("mkdir -p /tmp/insolar-jepsen-configs/reusekeys/discovery/ || true")
-    scp_from(HEAVY, INSPATH+"/scripts/insolard/certs/*", "/tmp/insolar-jepsen-configs/certs/")
-    scp_from(HEAVY, INSPATH+"/scripts/insolard/reusekeys/not_discovery/*", "/tmp/insolar-jepsen-configs/reusekeys/not_discovery/")
-    scp_from(HEAVY, INSPATH+"/scripts/insolard/reusekeys/discovery/*", "/tmp/insolar-jepsen-configs/reusekeys/discovery/")
+    scp_from(HEAVY, INSPATH+"/scripts/insolard/certs/*",
+             "/tmp/insolar-jepsen-configs/certs/")
+    scp_from(HEAVY, INSPATH+"/scripts/insolard/reusekeys/not_discovery/*",
+             "/tmp/insolar-jepsen-configs/reusekeys/not_discovery/")
+    scp_from(HEAVY, INSPATH+"/scripts/insolard/reusekeys/discovery/*",
+             "/tmp/insolar-jepsen-configs/reusekeys/discovery/")
     for pod in LIGHTS+VIRTUALS:
-        scp_to(pod, "/tmp/insolar-jepsen-configs/certs/*", INSPATH+"/scripts/insolard/certs/")
-        scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/not_discovery/*", INSPATH+"/scripts/insolard/reusekeys/not_discovery/")
-        scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/discovery/*", INSPATH+"/scripts/insolard/reusekeys/discovery/")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/certs/*",
+               INSPATH+"/scripts/insolard/certs/")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/not_discovery/*",
+               INSPATH+"/scripts/insolard/reusekeys/not_discovery/")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/discovery/*",
+               INSPATH+"/scripts/insolard/reusekeys/discovery/")
+
 
 def deploy_insolar(skip_benchmark=False):
     info("copying configs and fixing certificates for discovery nodes")
@@ -957,6 +969,7 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
     stop_test()
 
+
 def test_stop_start_lights(light_pods, pod_ips):
     light_pods_indexes = ""
     for pod in light_pods:
@@ -1050,10 +1063,12 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
          (" with restore from backup" if restore_from_backup else "")+" passed! ====")
     stop_test()
 
+
 def is_benchmark_alive(pod):
     output = ssh_output(pod, "ps aux | grep [b]enchmark")
-    info( "is_benchmark_alive: " + output )
-    return len( output ) != 0
+    info("is_benchmark_alive: " + output)
+    return len(output) != 0
+
 
 def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     start_test("test_kill_heavy_under_load" +
@@ -1079,7 +1094,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     wait(20)
 
     if not is_benchmark_alive(heavy_pod):
-        fail_test("Benchmark must be alive" )
+        fail_test("Benchmark must be alive")
 
     info("Killing heavy on pod #"+str(heavy_pod))
     kill(heavy_pod, "insolard")
