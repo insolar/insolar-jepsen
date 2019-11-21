@@ -221,6 +221,7 @@ def stop_test():
 def info(msg):
     print(str(datetime.datetime.now())+" INFO: "+str(msg))
 
+
 def wait(nsec):
     info("waiting "+str(nsec)+" second"+("s" if nsec > 1 else "")+"...")
     time.sleep(nsec)
@@ -532,6 +533,16 @@ def network_status_is_ok(network_status, nodes_online):
     return True
 
 
+def wait_until_current_pulse_will_be_finalized():
+    pulse = current_pulse()
+    finalized_pulse = get_finalized_pulse_from_exporter()
+    while pulse != finalized_pulse:
+        info("Current pulse: "+str(pulse) +
+             ", finalized pulse: "+str(finalized_pulse))
+        wait(1)
+        finalized_pulse = get_finalized_pulse_from_exporter()
+
+
 def get_finalized_pulse_from_exporter():
     cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/insolar/vendor' +\
           ' -proto /home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto' +\
@@ -807,17 +818,24 @@ def deploy_observer(path):
 
 def gen_certs():
     ssh(HEAVY, "cd "+INSPATH+" && ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml " +
-     "--certificates-out-dir scripts/insolard/certs")
+        "--certificates-out-dir scripts/insolard/certs")
     run("mkdir -p /tmp/insolar-jepsen-configs/certs/ || true")
     run("mkdir -p /tmp/insolar-jepsen-configs/reusekeys/not_discovery/ || true")
     run("mkdir -p /tmp/insolar-jepsen-configs/reusekeys/discovery/ || true")
-    scp_from(HEAVY, INSPATH+"/scripts/insolard/certs/*", "/tmp/insolar-jepsen-configs/certs/")
-    scp_from(HEAVY, INSPATH+"/scripts/insolard/reusekeys/not_discovery/*", "/tmp/insolar-jepsen-configs/reusekeys/not_discovery/")
-    scp_from(HEAVY, INSPATH+"/scripts/insolard/reusekeys/discovery/*", "/tmp/insolar-jepsen-configs/reusekeys/discovery/")
+    scp_from(HEAVY, INSPATH+"/scripts/insolard/certs/*",
+             "/tmp/insolar-jepsen-configs/certs/")
+    scp_from(HEAVY, INSPATH+"/scripts/insolard/reusekeys/not_discovery/*",
+             "/tmp/insolar-jepsen-configs/reusekeys/not_discovery/")
+    scp_from(HEAVY, INSPATH+"/scripts/insolard/reusekeys/discovery/*",
+             "/tmp/insolar-jepsen-configs/reusekeys/discovery/")
     for pod in LIGHTS+VIRTUALS:
-        scp_to(pod, "/tmp/insolar-jepsen-configs/certs/*", INSPATH+"/scripts/insolard/certs/")
-        scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/not_discovery/*", INSPATH+"/scripts/insolard/reusekeys/not_discovery/")
-        scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/discovery/*", INSPATH+"/scripts/insolard/reusekeys/discovery/")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/certs/*",
+               INSPATH+"/scripts/insolard/certs/")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/not_discovery/*",
+               INSPATH+"/scripts/insolard/reusekeys/not_discovery/")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/discovery/*",
+               INSPATH+"/scripts/insolard/reusekeys/discovery/")
+
 
 def deploy_insolar(skip_benchmark=False):
     info("copying configs and fixing certificates for discovery nodes")
@@ -927,6 +945,10 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     )
     check_benchmark(ok, out)
 
+    info("Waiting until current pulse will be finalized...")
+    wait_until_current_pulse_will_be_finalized()
+    info("Current pulse is finalized!")
+
     for pod in virtual_pods:
         info("Killing virtual on pod #"+str(pod))
         kill(pod, "insolard")
@@ -971,12 +993,7 @@ def test_stop_start_lights(light_pods, pod_ips):
     check_benchmark(ok, out)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
-    pulse = current_pulse()
-    finalized_pulse = get_finalized_pulse_from_exporter()
-    while pulse != finalized_pulse:
-        wait(1)
-        finalized_pulse = get_finalized_pulse_from_exporter()
-
+    wait_until_current_pulse_will_be_finalized()
     info("Data was saved on heavy (top sync pulse changed)")
 
     for pod in light_pods:
@@ -1020,12 +1037,7 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
     check_benchmark(ok, out)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
-    pulse = current_pulse()
-    finalized_pulse = get_finalized_pulse_from_exporter()
-    while pulse != finalized_pulse:
-        wait(1)
-        finalized_pulse = get_finalized_pulse_from_exporter()
-
+    wait_until_current_pulse_will_be_finalized()
     info("Data was saved on heavy (top sync pulse changed)")
 
     info("Killing heavy on pod #"+str(heavy_pod))
@@ -1051,10 +1063,12 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
          (" with restore from backup" if restore_from_backup else "")+" passed! ====")
     stop_test()
 
+
 def is_benchmark_alive(pod):
     output = ssh_output(pod, "ps aux | grep [b]enchmark")
-    info( "is_benchmark_alive: " + output )
-    return len( output ) != 0
+    info("is_benchmark_alive: " + output)
+    return len(output) != 0
+
 
 def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     start_test("test_kill_heavy_under_load" +
@@ -1071,12 +1085,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
         pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     info("Wait for data to save on heavy (top sync pulse must change)")
-    pulse = current_pulse()
-    finalized_pulse = get_finalized_pulse_from_exporter()
-    while pulse != finalized_pulse:
-        wait(1)
-        finalized_pulse = get_finalized_pulse_from_exporter()
-
+    wait_until_current_pulse_will_be_finalized()
     info("Starting benchmark on these members in the background, wait several transfer to pass")
     ok, bench_out = run_benchmark(pod_ips, r=10000, timeout=100, background=True,
                                   extra_args='-b -m --members-file=' + MEMBERS_FILE)
@@ -1085,7 +1094,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     wait(20)
 
     if not is_benchmark_alive(heavy_pod):
-        fail_test("Benchmark must be alive" )
+        fail_test("Benchmark must be alive")
 
     info("Killing heavy on pod #"+str(heavy_pod))
     kill(heavy_pod, "insolard")
@@ -1452,13 +1461,10 @@ ok, bench_out = run_benchmark(
     pod_ips, extra_args="-m --members-file=" + OLD_MEMBERS_FILE)
 check_benchmark(ok, bench_out)
 members_creted_at = time.time()
-info("Wait for data to save on heavy (top sync pulse must change)")
 pulse_when_members_created = current_pulse()
-finalized_pulse = get_finalized_pulse_from_exporter()
-while pulse_when_members_created != finalized_pulse:
-    wait(1)
-    finalized_pulse = get_finalized_pulse_from_exporter()
 
+info("Wait for data to save on heavy (top sync pulse must change)")
+wait_until_current_pulse_will_be_finalized()
 info("Data was saved on heavy (top sync pulse changed)")
 
 tests = [
