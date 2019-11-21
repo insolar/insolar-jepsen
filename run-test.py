@@ -531,6 +531,13 @@ def network_status_is_ok(network_status, nodes_online):
     info("[NetworkStatus] Everything is OK")
     return True
 
+def wait_until_current_pulse_will_be_finalized()
+    pulse = current_pulse()
+    finalized_pulse = get_finalized_pulse_from_exporter()
+    while pulse != finalized_pulse:
+        info("Current pulse: "+str(pulse)+", finalized pulse: "+str(finalized_pulse))
+        wait(1)
+        finalized_pulse = get_finalized_pulse_from_exporter()
 
 def get_finalized_pulse_from_exporter():
     cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/insolar/vendor' +\
@@ -540,7 +547,6 @@ def get_finalized_pulse_from_exporter():
     pulse = json.loads(out)["PulseNumber"]
     info("exporter said: " + str(pulse))
     return pulse
-
 
 def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
     virtual_pod_name = 'jepsen-'+str(api_pod)
@@ -911,6 +917,10 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
     )
     check_benchmark(ok, out)
 
+    info("Waiting until current pulse will be finalized...")
+    wait_until_current_pulse_will_be_finalized()
+    info("Current pulse is finalized!")
+
     for pod in virtual_pods:
         info("Killing virtual on pod #"+str(pod))
         kill(pod, "insolard")
@@ -930,7 +940,6 @@ def test_stop_start_virtuals_min_roles_not_ok(virtual_pods, pod_ips):
 
     info("==== start/stop virtual at pods #"+str(virtual_pods)+" passed! ====")
     stop_test()
-
 
 def test_stop_start_lights(light_pods, pod_ips):
     light_pods_indexes = ""
@@ -955,12 +964,7 @@ def test_stop_start_lights(light_pods, pod_ips):
     check_benchmark(ok, out)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
-    pulse = current_pulse()
-    finalized_pulse = get_finalized_pulse_from_exporter()
-    while pulse != finalized_pulse:
-        wait(1)
-        finalized_pulse = get_finalized_pulse_from_exporter()
-
+    wait_until_current_pulse_will_be_finalized()
     info("Data was saved on heavy (top sync pulse changed)")
 
     for pod in light_pods:
@@ -1004,12 +1008,7 @@ def test_stop_start_heavy(heavy_pod, pod_ips, restore_from_backup=False):
     check_benchmark(ok, out)
 
     info("Wait for data to save on heavy (top sync pulse must change)")
-    pulse = current_pulse()
-    finalized_pulse = get_finalized_pulse_from_exporter()
-    while pulse != finalized_pulse:
-        wait(1)
-        finalized_pulse = get_finalized_pulse_from_exporter()
-
+    wait_until_current_pulse_will_be_finalized()
     info("Data was saved on heavy (top sync pulse changed)")
 
     info("Killing heavy on pod #"+str(heavy_pod))
@@ -1055,12 +1054,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
         pod_ips, extra_args='-m --members-file=' + MEMBERS_FILE)
     check_benchmark(ok, bench_out)
     info("Wait for data to save on heavy (top sync pulse must change)")
-    pulse = current_pulse()
-    finalized_pulse = get_finalized_pulse_from_exporter()
-    while pulse != finalized_pulse:
-        wait(1)
-        finalized_pulse = get_finalized_pulse_from_exporter()
-
+    wait_until_current_pulse_will_be_finalized()
     info("Starting benchmark on these members in the background, wait several transfer to pass")
     ok, bench_out = run_benchmark(pod_ips, r=10000, timeout=100, background=True,
                                   extra_args='-b -m --members-file=' + MEMBERS_FILE)
@@ -1437,12 +1431,7 @@ ok, bench_out = run_benchmark(
 check_benchmark(ok, bench_out)
 members_creted_at = time.time()
 info("Wait for data to save on heavy (top sync pulse must change)")
-pulse_when_members_created = current_pulse()
-finalized_pulse = get_finalized_pulse_from_exporter()
-while pulse_when_members_created != finalized_pulse:
-    wait(1)
-    finalized_pulse = get_finalized_pulse_from_exporter()
-
+wait_until_current_pulse_will_be_finalized()
 info("Data was saved on heavy (top sync pulse changed)")
 
 tests = [
