@@ -812,13 +812,9 @@ def deploy_observer(path):
         """; bash\\" """)
 
 
-def bootstrap_config():
-    return "scripts/insolard/bootstrap_with_vesting.yaml" if args.others_path else "scripts/insolard/bootstrap.yaml"
-
-
 def gen_certs():
-    ssh(HEAVY, "cd "+INSPATH+" && ./bin/insolar bootstrap --config " + bootstrap_config() +
-        " --certificates-out-dir scripts/insolard/certs")
+    ssh(HEAVY, "cd "+INSPATH+" && ./bin/insolar bootstrap --config scripts/insolard/bootstrap.yaml " +
+        "--certificates-out-dir scripts/insolard/certs")
     run("mkdir -p /tmp/insolar-jepsen-configs/certs/ || true")
     run("mkdir -p /tmp/insolar-jepsen-configs/reusekeys/not_discovery/ || true")
     run("mkdir -p /tmp/insolar-jepsen-configs/reusekeys/discovery/ || true")
