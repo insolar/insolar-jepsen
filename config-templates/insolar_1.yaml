@@ -44,7 +44,7 @@ ledger:
     postprocessbackupcmd:
     - bash
     - -c
-    - echo $$ > /tmp/heavy/backup.pid ; sleep 1; CMD="rsync -avz --delete ./data/* ./heavy_backup" ; while $CMD | grep -q "(MANIFEST\|\.sst)$"; do :; done ; touch $INSOLAR_CURRENT_BACKUP_DIR/BACKUPED
+    - echo $$ > /tmp/heavy/backup.pid ; sleep 1; CMD="rsync -avW --delete ./data/* ./heavy_backup" ; while $CMD | grep -q "(MANIFEST\|\.sst)$"; do :; done ; touch $INSOLAR_CURRENT_BACKUP_DIR/BACKUPED
 
 log:
   level: Debug
