@@ -11,10 +11,9 @@ contracts:
 root_balance: "0"
 fee: "1000000000"
 md_balance: "5000000000000000000"
-vesting_pulse_period: 10
-lockup_pulse_period: 10
-lokup_pulse_period: 10
-vesting_pulse_step: 1
+vesting_pulse_period: 70
+lockup_pulse_period: 60
+vesting_pulse_step: 10
 pk_shard_count: 10
 ma_shard_count: 10
 majority_rule: 6
@@ -49,74 +48,6 @@ discovery_nodes:
     host: "JEPSEN-6:53866"
     role: "light_material"
     cert_name: "discovery_cert_6.json"
-#  -
-#    host: "127.0.0.1:53877"
-#    role: "light_material"
-#    cert_name: "discovery_cert_7.json"
-#  -
-#    host: "127.0.0.1:53888"
-#    role: "virtual"
-#    cert_name: "discovery_cert_8.json"
-#  -
-#    host: "127.0.0.1:53899"
-#    role: "light_material"
-#    cert_name: "discovery_cert_9.json"
-#  -
-#    host: "127.0.0.1:53100"
-#    role: "virtual"
-#    cert_name: "discovery_cert_10.json"
-#  -
-#    host: "127.0.0.1:51101"
-#    role: "light_material"
-#    cert_name: "discovery_cert_11.json"
-#  -
-#    host: "127.0.0.1:53202"
-#    role: "virtual"
-#    cert_name: "discovery_cert_12.json"
-#  -
-#    host: "127.0.0.1:53404"
-#    role: "virtual"
-#    cert_name: "discovery_cert_13.json"
-#  -
-#    host: "127.0.0.1:53606"
-#    role: "virtual"
-#    cert_name: "discovery_cert_14.json"
-#  -
-#    host: "127.0.0.1:53707"
-#    role: "light_material"
-#    cert_name: "discovery_cert_15.json"
-#  -
-#    host: "127.0.0.1:53808"
-#    role: "virtual"
-#    cert_name: "discovery_cert_16.json"
-#  -
-#    host: "127.0.0.1:53909"
-#    role: "light_material"
-#    cert_name: "discovery_cert_17.json"
-#  -
-#    host: "127.0.0.1:51110"
-#    role: "virtual"
-#    cert_name: "discovery_cert_18.json"
-#  -
-#    host: "127.0.0.1:53111"
-#    role: "light_material"
-#    cert_name: "discovery_cert_19.json"
-#  -
-#    host: "127.0.0.1:51112"
-#    role: "virtual"
-#    cert_name: "discovery_cert_20.json"
-#  -
-#    host: "127.0.0.1:53113"
-#    role: "light_material"
-#    cert_name: "discovery_cert_21.json"
-#  -
-#    host: "127.0.0.1:54114"
-#    role: "light_material"
-#    cert_name: "discovery_cert_22.json"
-#  -
-#    host: "127.0.0.1:51115"
-#    role: "light_material"
-#    cert_name: "discovery_cert_23.json"
 
 nodes:
   -
@@ -139,8 +70,3 @@ nodes:
     host: "JEPSEN-11:63876"
     role: "virtual"
     cert_name: "node_cert_5.json"
-#  - # Attention! You must wait `lightChainLimit` pulses after LM joined to run benchmark w/o errors.
-#    host: "127.0.0.1:63936"
-#    role: "light_material"
-#    keys_file: "scripts/insolard/nodes/2/keys.json"
-#    cert_name: "node_cert_2.json"
