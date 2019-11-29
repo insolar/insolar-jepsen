@@ -1396,13 +1396,16 @@ parser.add_argument(
     help='enable debug output')
 parser.add_argument(
     '-s', '--skip-all-tests', action="store_true",
-    help='skip all tests, check only deploy procedure; use with -o and -r to only re-deploy observer')
+    help='skip all tests, check only deploy procedure')
 parser.add_argument(
     '-m', '--minimum-tests', action="store_true",
     help='run minimal required tests set')
 parser.add_argument(
     '-r', '--repeat', metavar='N', type=int, default=1,
-    help='number of times to repeat tests; when -o and -s are used, -r means to only re-deploy observer')
+    help='number of times to repeat tests')
+parser.add_argument(
+    '--redeploy-observer', action="store_true",
+    help='re-deploy observer on running pods; valid only when -o and -s flags are used')
 parser.add_argument(
     '-n', '--namespace', metavar='X', type=str, default="default",
     help='exact k8s namespace to use')
@@ -1447,9 +1450,8 @@ POD_NODES = k8s_get_pod_nodes()
 wait_until_ssh_is_up_on_pods()
 pod_ips = k8s_get_pod_ips()
 
-# When --skip-all-tests and --others-path are used, the -r flag changes
-# it meaning to "only re-deploy observer and do nothing else"
-if args.skip_all_tests and args.others_path and args.repeat:
+if args.skip_all_tests and args.others_path and args.redeploy_observer:
+    info("Re-deploying observer on running pods...")
     deploy_observer(args.others_path)
     notify("Observer re-deployed!")
     sys.exit(0)
