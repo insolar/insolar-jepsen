@@ -805,8 +805,11 @@ def deploy_observer(path, keep_database=False):
            INSPATH+"/../observer/.artifacts/observer.yaml")
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observerapi.yaml",
            INSPATH+"/../observer/.artifacts/observerapi.yaml")
-    ssh(OBSERVER, "cd "+INSPATH +
-        "/../observer && GO111MODULE=on make migrate && mkdir -p .artifacts")
+    if not keep_database:
+        info("purging observer's database...")
+        ssh(OBSERVER, """echo -e \\"DROP DATABASE observer; CREATE DATABASE observer;\\" | sudo -u postgres psql""")
+        ssh(OBSERVER, "cd "+INSPATH +
+            "/../observer && GO111MODULE=on make migrate && mkdir -p .artifacts")
     # run observer
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
         """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
