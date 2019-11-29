@@ -788,7 +788,7 @@ def deploy_observer_deps(path):
            "/tmp/nginx_default.conf")
     ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
 
-def deploy_observer(path):
+def deploy_observer(path, keep_database=False):
     info("deploying observer @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/observer")
     # cleanup after previous deploy, if there was one
@@ -1439,7 +1439,7 @@ if args.skip_all_tests and args.others_path and args.redeploy_observer:
     info("=== Re-deploying observer on running pods, keep_database = "+str(keep_database)+"... ===")
     POD_NODES = k8s_get_pod_nodes()
     wait_until_ssh_is_up_on_pods()
-    deploy_observer(args.others_path)
+    deploy_observer(args.others_path, keep_database = keep_database)
     notify("Observer re-deployed!")
     sys.exit(0)
 
