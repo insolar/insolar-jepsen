@@ -777,7 +777,7 @@ def deploy_pulsar():
     start_pulsard(extra_args="-s pulsard")
 
 
-def deploy_observer(path):
+def deploy_observer_deps(path):
     info("deploying PostgreSQL @ pod "+str(OBSERVER))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
@@ -787,8 +787,15 @@ def deploy_observer(path):
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
            "/tmp/nginx_default.conf")
     ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
+
+def deploy_observer(path):
     info("deploying observer @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/observer")
+    # cleanup after previous deploy, if there was one
+    ssh(OBSERVER, "tmux kill-session -t observer || true")
+    ssh(OBSERVER, "tmux kill-session -t observerapi || true")
+    ssh(OBSERVER, "tmux kill-session -t stats-collector || true")
+    ssh(OBSERVER, "rm -rf "+INSPATH+"/../observer || true")
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
     scp_to(OBSERVER, path + "/observer", INSPATH +
            "/../observer", flags="-r", ignore_errors=True)
@@ -1389,13 +1396,13 @@ parser.add_argument(
     help='enable debug output')
 parser.add_argument(
     '-s', '--skip-all-tests', action="store_true",
-    help='skip all tests, check only deploy procedure')
+    help='skip all tests, check only deploy procedure; use with -o and -r to only re-deploy observer')
 parser.add_argument(
     '-m', '--minimum-tests', action="store_true",
     help='run minimal required tests set')
 parser.add_argument(
     '-r', '--repeat', metavar='N', type=int, default=1,
-    help='number of times to repeat tests')
+    help='number of times to repeat tests; when -o and -s are used, -r means to only re-deploy observer')
 parser.add_argument(
     '-n', '--namespace', metavar='X', type=str, default="default",
     help='exact k8s namespace to use')
@@ -1439,12 +1446,20 @@ k8s_start_pods(k8s_yaml)
 POD_NODES = k8s_get_pod_nodes()
 wait_until_ssh_is_up_on_pods()
 pod_ips = k8s_get_pod_ips()
-upload_tools(HEAVY, pod_ips)
 
+# When --skip-all-tests and --others-path are used, the -r flag changes
+# it meaning to "only re-deploy observer and do nothing else"
+if args.skip_all_tests and args.others_path and args.repeat:
+    deploy_observer(args.others_path)
+    notify("Observer re-deployed!")
+    sys.exit(0)
+
+upload_tools(HEAVY, pod_ips)
 prepare_configs()
 deploy_pulsar()
 deploy_insolar(skip_benchmark=args.skip_all_tests)
 if args.others_path:
+    deploy_observer_deps(args.others_path)
     deploy_observer(args.others_path)
 stop_test()
 
