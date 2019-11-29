@@ -19,7 +19,7 @@ cd base-image && docker build --no-cache -t tsovak/insolar-jepsen-base . && cd .
 ./build-docker.py branch-name
 ```
 
-## Usage: how to run Jepsen-test
+## Usage: how to run Jepsen-tests
 
 ```
 # use --help flag to see all arguments
