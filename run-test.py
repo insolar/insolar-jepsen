@@ -809,7 +809,7 @@ def deploy_observer(path, keep_database=False):
         info("purging observer's database...")
         ssh(OBSERVER, """echo -e \\"DROP DATABASE observer; CREATE DATABASE observer;\\" | sudo -u postgres psql""")
         ssh(OBSERVER, "cd "+INSPATH +
-            "/../observer && GO111MODULE=on make migrate && mkdir -p .artifacts")
+            "/../observer && GO111MODULE=on make migrate")
     # run observer
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
         """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
