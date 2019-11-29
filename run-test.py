@@ -1407,6 +1407,9 @@ parser.add_argument(
     '--redeploy-observer', action="store_true",
     help='re-deploy observer on running pods; valid only when -o and -s flags are used')
 parser.add_argument(
+    '--keep-database', metavar='K', type=str,
+    help='Whether to keep the database during the re-deploy of observer')
+parser.add_argument(
     '-n', '--namespace', metavar='X', type=str, default="default",
     help='exact k8s namespace to use')
 parser.add_argument(
@@ -1423,6 +1426,22 @@ parser.add_argument(
     help='Path to cloned reposities of observer and Java API microservices (closed-source projects)')
 
 args = parser.parse_args()
+NAMESPACE = args.namespace
+DEBUG = args.debug
+start_test("prepare")
+check_dependencies()
+
+if args.skip_all_tests and args.others_path and args.redeploy_observer:
+    if args.keep_database != 'true' and args.keep_database != 'false':
+        info("When using --redeploy-observer you should specify `--keep-database true` or `--keep-database false`")
+        sys.exit(1)
+    keep_database = (args.keep_database == 'true')
+    info("=== Re-deploying observer on running pods, keep_database = "+str(keep_database)+"... ===")
+    POD_NODES = k8s_get_pod_nodes()
+    wait_until_ssh_is_up_on_pods()
+    deploy_observer(args.others_path)
+    notify("Observer re-deployed!")
+    sys.exit(0)
 
 if args.launch_only:
     POD_NODES = k8s_get_pod_nodes()
@@ -1433,13 +1452,8 @@ if args.launch_only:
     info("=== Launching insolar network... ===")
     start_insolar_net(NODES, pod_ips, step="starting",
                       skip_benchmark=args.skip_all_tests)
-    info("==== Insolar launched! ====")
+    info("=== Insolar launched! ===")
     sys.exit(0)
-
-NAMESPACE = args.namespace
-DEBUG = args.debug
-start_test("prepare")
-check_dependencies()
 
 k8s_yaml = "jepsen-pods.yaml"
 info("Generating "+k8s_yaml)
@@ -1449,13 +1463,6 @@ k8s_start_pods(k8s_yaml)
 POD_NODES = k8s_get_pod_nodes()
 wait_until_ssh_is_up_on_pods()
 pod_ips = k8s_get_pod_ips()
-
-if args.skip_all_tests and args.others_path and args.redeploy_observer:
-    info("Re-deploying observer on running pods...")
-    deploy_observer(args.others_path)
-    notify("Observer re-deployed!")
-    sys.exit(0)
-
 upload_tools(HEAVY, pod_ips)
 prepare_configs()
 deploy_pulsar()
