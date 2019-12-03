@@ -76,3 +76,13 @@ IS_LOCAL_RUN=0 IS_JEPSEN_RUN=1 go test --count=1 -tags 'platform observer_api' .
 # instead of using environment variables you can edit apitests/entrypoint.yaml:
 # is_local_run: false, is_jepsen_run: true
 ```
+
+## Re-deploy observer only
+
+```
+# Re-deploy observer, keeping the database
+./run-test.py --debug -i insolar-jepsen:latest --others-path .. --skip-all-tests --redeploy-observer --keep-database true
+
+# Re-deploy observer, purging the database
+./run-test.py --debug -i insolar-jepsen:latest --others-path .. --skip-all-tests --redeploy-observer --keep-database false
+```
