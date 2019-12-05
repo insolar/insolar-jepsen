@@ -1,16 +1,17 @@
-loglevel: debug
 replicator:
   addr: JEPSEN-1:5678
   maxtransportmsg: 1073741824
   attempts: 2147483647
   attemptinterval: 10s
-  fastforwardinterval: 250ms
-  batchsize: 2000
+  fastforwardinterval: 25ms
+  batchsize: 20000
   cachesize: 10000
   listen: :0
 db:
   url: postgres://observer:observer@localhost/observer?sslmode=disable
+  poolsize: 100
   attempts: 5
   attemptinterval: 3s
-  createtables: false
-
+log:
+  level: debug
+  format: json

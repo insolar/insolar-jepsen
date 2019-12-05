@@ -1,8 +1,11 @@
-loglevel: debug
 listen: 0.0.0.0:8090
 db:
   url: postgres://observer:observer@localhost/observer?sslmode=disable
+  poolsize: 10
   attempts: 5
   attemptinterval: 3s
-feeamount: 1000000000
-price: 0.05
+feeamount: "1000000000"
+price: "0.05"
+log:
+  level: debug
+  format: json
