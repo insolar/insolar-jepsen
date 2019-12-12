@@ -52,11 +52,13 @@ apirunner:
   rpc: /api/rpc
   isadmin: false
   timeout: 15
+  swaggerpath: /home/gopher/go/src/github.com/insolar/insolar/application/api/spec/api-exported.yaml
 adminapirunner:
   address: JEPSEN-9:19009
   rpc: /admin-api/rpc
   isadmin: true
   timeout: 15
+  swaggerpath: /home/gopher/go/src/github.com/insolar/insolar/application/api/spec/api-exported.yaml
 availabilitychecker:
   enabled: false
 pulsar:
