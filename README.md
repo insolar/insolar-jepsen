@@ -60,8 +60,11 @@ ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p 32001 gopher@localho
 tmux ls
 tmux attach -t insolard
 
-# Get logs from `jepsen-1` pod (its't not final log, because service is running):
-sh get_logs.sh
+# To copy a file from `jepsen-1` pod:
+scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P 32001 gopher@localhost:.bash_profile ./
+
+# Get logs from all pods (its't not final log if insolard and pulsar is running on pods):
+./aggregate-logs.py /tmp/jepsen-agg/
 
 # Unpack current logs (change count if need more records)
 gzip -cd /tmp/jepsen-agg/320*/*.log.gz | dd count=1000 > out.txt
@@ -69,7 +72,7 @@ gzip -cd /tmp/jepsen-agg/320*/*.log.gz | dd count=1000 > out.txt
 # Stop insolard in pods and pulsard
 sh stop_all.sh
 
-# Unpack all logs (only after stop_all.sh)
+# Unpack all logs (only after all insolard and pulsar were stoped)
 gunzip /tmp/jepsen-agg/320*/*.log.gz
 
 # Example of how to sort and properly format logs for a given trace id:
