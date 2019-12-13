@@ -26,30 +26,6 @@ cd base-image && docker build --no-cache -t tsovak/insolar-jepsen-base . && cd .
 ./run-test.py -i insolar-jepsen:latest
 ```
 
-After the test:
-
-```
-# To login to `jepsen-1` pod:
-ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p 32001 gopher@localhost
-
-# To attach a process running in background:
-tmux ls
-tmux attach -t insolard
-
-# To copy a file from `jepsen-1` pod:
-scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P 32001 gopher@localhost:.bash_profile ./
-
-# Aggregate all logfiles:
-./aggregate-logs.py /tmp/jepsen-agg/
-
-# Example of how to sort and properly format logs for a given trace id:
-gunzip /tmp/jepsen-agg/320*/*.log.gz
-grep -r 32bc366d-b144-4765-9483-6be37c55fd9d ./320* > trace.txt
-cat trace.txt | ./format-trace-logs.py | \
-  grep -v '"caller":"insolar/bus/bus' | \
-  grep -v '"caller":"network/' | sort > trace-sorted.txt
-```
-
 ## Usage: how to run go-autotests
 
 The projects mentioned in this sections are closed-source for now, sorry.
@@ -66,15 +42,42 @@ The projects mentioned in this sections are closed-source for now, sorry.
 curl -vvv -XPOST http://localhost:31009/api/rpc
 
 # collect keys and configs required for go-autotests:
-rm -r /tmp/jepsen-keys || true
-mkdir /tmp/jepsen-keys
-scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P32001 -r 'gopher@localhost:go/src/github.com/insolar/insolar/scripts/insolard/configs/migration_*_member_keys.json' /tmp/jepsen-keys/
-scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P32001 -r gopher@localhost:go/src/github.com/insolar/insolar/scripts/insolard/bootstrap.yaml /tmp/jepsen-keys/bootstrap_default.yaml
+sh prepare_keys.sh
 
 # run go-autotests
 IS_LOCAL_RUN=0 IS_JEPSEN_RUN=1 go test --count=1 -tags 'platform observer_api' ./...
 # instead of using environment variables you can edit apitests/entrypoint.yaml:
 # is_local_run: false, is_jepsen_run: true
+```
+
+## After the test:
+
+```
+# To login to `jepsen-1` pod:
+ssh -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -p 32001 gopher@localhost
+
+# To attach a process running in background:
+tmux ls
+tmux attach -t insolard
+
+# Get logs from `jepsen-1` pod (its't not final log, because service is running):
+sh get_logs.sh
+
+# Unpack current logs (change count if need more records)
+gzip -cd /tmp/jepsen-agg/320*/*.log.gz | dd count=1000 > out.txt
+
+# Stop insolard in pods and pulsard
+sh stop_all.sh
+
+# Unpack all logs (only after stop_all.sh)
+gunzip /tmp/jepsen-agg/320*/*.log.gz
+
+# Example of how to sort and properly format logs for a given trace id:
+grep -r 32bc366d-b144-4765-9483-6be37c55fd9d ./320* > trace.txt
+cat trace.txt | ./format-trace-logs.py | grep -v '"caller":"insolar/bus/bus' | grep -v '"caller":"network/' | sort > trace-sorted.txt
+
+# Delete pods
+kubectl delete -f jepsen-pods.yaml
 ```
 
 ## Re-deploy observer only
