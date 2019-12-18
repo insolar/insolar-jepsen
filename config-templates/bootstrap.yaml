@@ -8,7 +8,7 @@ heavy_genesis_plugins_dir: "scripts/insolard/configs/contracts/"
 contracts:
   insgocc: "bin/insgocc"
   outdir: "scripts/insolard/configs/contracts/"
-root_balance: "0"
+root_balance: "5000000000000000000"
 fee: "1000000000"
 md_balance: "5000000000000000000"
 vesting_pulse_period: 70
