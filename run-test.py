@@ -722,9 +722,8 @@ def kill(pod, proc_name):
 
 def restore_heavy_from_backup(heavy_pod):
     info("Restoring heavy from backup at pod#..."+str(heavy_pod))
-    kill(heavy_pod, "backupmanager")
     ssh(heavy_pod, "cd "+INSPATH+" && " +
-        "./bin/backupmanager prepare_backup -d ./heavy_backup/ && " +
+        "rsync -aW --no-compress data heavy_backup" +
         "rm -r data && cp -r heavy_backup data")
 
 
@@ -1134,53 +1133,6 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
 
     info("==== kill heavy under load at pod #"+str(heavy_pod) +
          (" with restore from backup" if restore_from_backup else "")+" passed! ====")
-    stop_test()
-
-
-def test_kill_backupprocess(heavy_pod, pod_ips, restore_from_backup=False, create_backup_from_existing_db=False):
-    start_test("test_kill_backupprocess" +
-               ("_restore_from_backup" if restore_from_backup else "") +
-               ("_created_backup_from_existing_db" if create_backup_from_existing_db else ""))
-    info("==== kill backupmanager " +
-         ("with restore from backup " if restore_from_backup else "") +
-         ("and create backup from existing DB " if create_backup_from_existing_db else "") + "test started ====")
-    alive = wait_until_insolar_is_alive(
-        pod_ips, NODES, step="before-killing-backupmanager")
-    check_alive(alive)
-
-    info("Running benchmark and trying to kill backupmanager on pod #"+str(heavy_pod))
-
-    # Note: when backuping script starts it saves its pid to /tmp/heavy/backup.pid
-    ssh(heavy_pod, "tmux new-session -d -s backupprocess-killer " +
-        """\\"while true; do cat /tmp/heavy/backup.pid | xargs kill -9 ;  sleep 0.1; done """ +
-        """; bash\\" """)
-
-    ok, bench_out = run_benchmark(pod_ips, r=100, timeout=100)
-    check(not ok, "Benchmark should fail while killing backupmanager (increase -c or -r?), but it was successfull:\n" + bench_out)
-
-    info("Shutting down backupprocess-killer")
-    ssh(heavy_pod, "tmux kill-session -t backupprocess-killer")
-
-    down = wait_until_insolar_is_down()
-    check_down(down)
-    info("Insolar is down")
-
-    if restore_from_backup:
-        restore_heavy_from_backup(heavy_pod)
-    else:
-        if create_backup_from_existing_db:
-            ssh(heavy_pod, "cd "+INSPATH +
-                " && (rm -r ./heavy_backup || true) && cp -r ./data ./heavy_backup")
-
-    info("Re-launching nodes")
-    start_insolar_net(NODES, pod_ips, step="heavy-up")
-
-    ok, bench_out = run_benchmark(pod_ips)
-    check_benchmark(ok, bench_out)
-
-    info("==== kill backupprocess " +
-         ("with restore from backup " if restore_from_backup else "") +
-         ("and create backup from existing DB " if create_backup_from_existing_db else "") + "passed! ====")
     stop_test()
 
 

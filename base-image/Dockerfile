@@ -17,7 +17,7 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-k
 RUN apt-get update
 RUN apt-get install -y openssh-server iptables net-tools \
     iputils-ping vim sudo git make lsof gcc curl tmux psmisc \
-    timelimit tree htop telnet
+    timelimit tree htop telnet rsync
 RUN apt-get clean
 
 # Speeds up Observer deployment
