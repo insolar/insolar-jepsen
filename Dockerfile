@@ -28,7 +28,7 @@ RUN ./bin/insolar gen-key-pair --target=user > scripts/insolard/configs/root_mem
 RUN ./bin/insolar gen-key-pair --target=user > scripts/insolard/configs/fee_member_keys.json
 RUN ./bin/insolar gen-key-pair --target=user > scripts/insolard/configs/migration_admin_member_keys.json
 RUN ./bin/insolar gen-key-pair --target=user > scripts/insolard/configs/funds_and_enterprise_member_keys.json
-RUN for m in $(seq 0 9); do ./bin/insolar gen-key-pair --target=user > \
+RUN for m in $(seq 0 9); do ./bin/insolar gen-key-pair --target=node > \
   scripts/insolard/configs/migration_daemon_${m}_member_keys.json; done
 RUN for m in $(seq 0 139); do ./bin/insolar gen-key-pair --target=user > \
   scripts/insolard/configs/network_incentives_${m}_member_keys.json; done
