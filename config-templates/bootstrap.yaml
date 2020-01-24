@@ -11,7 +11,7 @@ contracts:
 root_balance: "5000000000000000000"
 fee: "1000000000"
 md_balance: "5000000000000000000"
-vesting_pulse_period: 18260
+vesting_pulse_period: 10960
 lockup_pulse_period: 0
 vesting_pulse_step: 10
 pk_shard_count: 10
