@@ -4,7 +4,7 @@ db:
   poolsize: 10
   attempts: 5
   attemptinterval: 3s
-feeamount: "1000000000"
+feeamount: "100000000"
 price: "0.05"
 log:
   level: debug
