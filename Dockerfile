@@ -23,22 +23,20 @@ RUN make install-deps && \
   make build
 RUN mkdir -p scripts/insolard/configs
 RUN mkdir -p scripts/insolard/certs
-RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/pulsar_keys.json
-RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/root_member_keys.json
-RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/fee_member_keys.json
-RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/migration_admin_member_keys.json
-RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/funds_and_enterprise_member_keys.json
-RUN for m in $(seq 0 9); do ./bin/insolar gen-key-pair > \
+RUN ./bin/insolar gen-key-pair --target=node > scripts/insolard/configs/pulsar_keys.json
+RUN ./bin/insolar gen-key-pair --target=user > scripts/insolard/configs/root_member_keys.json
+RUN ./bin/insolar gen-key-pair --target=user > scripts/insolard/configs/fee_member_keys.json
+RUN ./bin/insolar gen-key-pair --target=user > scripts/insolard/configs/migration_admin_member_keys.json
+RUN ./bin/insolar gen-key-pair --target=user > scripts/insolard/configs/funds_and_enterprise_member_keys.json
+RUN for m in $(seq 0 9); do ./bin/insolar gen-key-pair --target=node > \
   scripts/insolard/configs/migration_daemon_${m}_member_keys.json; done
-RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
+RUN for m in $(seq 0 19); do ./bin/insolar gen-key-pair --target=user > \
   scripts/insolard/configs/network_incentives_${m}_member_keys.json; done
-RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
+RUN for m in $(seq 0 19); do ./bin/insolar gen-key-pair --target=user > \
   scripts/insolard/configs/application_incentives_${m}_member_keys.json; done
-RUN for m in $(seq 0 39); do ./bin/insolar gen-key-pair > \
+RUN for m in $(seq 0 19); do ./bin/insolar gen-key-pair --target=user > \
   scripts/insolard/configs/foundation_${m}_member_keys.json; done
-RUN ./bin/insolar gen-key-pair > scripts/insolard/configs/funds_0_member_keys.json
-RUN for m in $(seq 0 3); do ./bin/insolar gen-key-pair > \
-    scripts/insolard/configs/enterprise_${m}_member_keys.json; done
+RUN ./bin/insolar gen-key-pair --target=user > scripts/insolard/configs/enterprise_0_member_keys.json
 
 RUN ./bin/insolar gen-migration-addresses > scripts/insolard/configs/migration_addresses.json || true
 

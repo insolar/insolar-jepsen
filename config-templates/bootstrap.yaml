@@ -8,11 +8,11 @@ heavy_genesis_plugins_dir: "scripts/insolard/configs/contracts/"
 contracts:
   insgocc: "bin/insgocc"
   outdir: "scripts/insolard/configs/contracts/"
-root_balance: "0"
+root_balance: "5000000000000000000"
 md_balance: "5000000000000000000"
-vesting_pulse_period: 70
-lockup_pulse_period: 60
-vesting_pulse_step: 10
+vesting_pulse_period: 21920
+lockup_pulse_period: 0
+vesting_pulse_step: 20
 pk_shard_count: 10
 ma_shard_count: 10
 majority_rule: 6
