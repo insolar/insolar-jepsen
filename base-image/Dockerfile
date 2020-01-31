@@ -68,3 +68,4 @@ RUN git clone https://github.com/insolar/insolar.git
 WORKDIR /home/gopher/go/src/github.com/insolar/insolar
 RUN make install-deps ensure
 
+RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh

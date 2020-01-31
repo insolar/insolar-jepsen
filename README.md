@@ -50,6 +50,25 @@ IS_LOCAL_RUN=0 IS_JEPSEN_RUN=1 go test --count=1 -tags 'platform observer_api' .
 # is_local_run: false, is_jepsen_run: true
 ```
 
+### Run tests with ledger-nano keys
+
+Download keys from `https://github.com/insolar/xns-ledger-keygen/blob/master/generate-test-keys/genesiswallets_test.zip`
+
+Unzip them in insolar-jepsen (they will be in folder `genesiswallets_test`)
+
+```
+# rebuild image with new keys
+docker build -t insolar-jepsen -f ledger-nano.Dockerfile .
+
+# start net
+./run-test.py --debug -i insolar-jepsen:latest --others-path .. --skip-all-tests
+
+# collect keys and configs required for go-autotests:
+sh prepare_keys.sh
+```
+
+Run tests
+
 ## After the test:
 
 ```

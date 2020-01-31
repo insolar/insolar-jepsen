@@ -2,3 +2,4 @@
 venv
 jepsen-pods.yaml
 *.swp
+*.DS_Store
