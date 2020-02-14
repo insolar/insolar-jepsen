@@ -780,8 +780,8 @@ def deploy_postgresql(pod, service_name):
     info("deploying PostgreSQL @ pod "+str(pod))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
-    ssh(OBSERVER, """echo -e \\"CREATE DATABASE """+service_name+"""; CREATE USER """+service_name+""" WITH PASSWORD \\x27"""+service_name+"""\\x27; GRANT ALL ON DATABASE """+service_name+""" TO """+service_name+""";\\" | sudo -u postgres psql""")
+    ssh(pod, """sudo bash -c \\"apt install -y postgresql-11 && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(pod, """echo -e \\"CREATE DATABASE """+service_name+"""; CREATE USER """+service_name+""" WITH PASSWORD \\x27"""+service_name+"""\\x27; GRANT ALL ON DATABASE """+service_name+""" TO """+service_name+""";\\" | sudo -u postgres psql""")
 
 
 def deploy_observer_deps():
@@ -866,7 +866,7 @@ def deploy_insolar(skip_benchmark=False, use_postgresql=False):
 
         if pod == HEAVY and use_postgresql:
             scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
-                   str(pod)+"_postgresql.yaml", pod_path)
+                   str(pod)+"_postgresql.yaml", pod_path + '/insolar_'+str(HEAVY)+".yaml")
         else:
             scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
                    str(pod)+".yaml", pod_path)
