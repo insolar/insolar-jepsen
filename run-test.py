@@ -776,14 +776,18 @@ def deploy_pulsar():
            INSPATH+"/pulsar.yaml")
     start_pulsard(extra_args="-s pulsard")
 
-
-def deploy_observer_deps(path):
-    info("deploying PostgreSQL @ pod "+str(OBSERVER))
+def deploy_postgresql(pod, service_name):
+    info("deploying PostgreSQL @ pod "+str(pod))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 nginx && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
-    ssh(OBSERVER, """echo -e \\"CREATE DATABASE observer; CREATE USER observer WITH PASSWORD \\x27observer\\x27; GRANT ALL ON DATABASE observer TO observer;\\" | sudo -u postgres psql""")
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y postgresql-11 && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(OBSERVER, """echo -e \\"CREATE DATABASE """+service_name+"""; CREATE USER """+service_name+""" WITH PASSWORD \\x27"""+service_name+"""\\x27; GRANT ALL ON DATABASE """+service_name+""" TO """+service_name+""";\\" | sudo -u postgres psql""")
+
+
+def deploy_observer_deps():
+    deploy_postgresql(OBSERVER, 'observer')
     info("starting Nginx @ pod "+str(OBSERVER))
+    ssh(OBSERVER, """sudo bash -c \\"apt install -y nginx\\" """)
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
            "/tmp/nginx_default.conf")
     ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
@@ -843,9 +847,13 @@ def gen_certs():
                INSPATH+"/scripts/insolard/reusekeys/discovery/")
 
 
-def deploy_insolar(skip_benchmark=False):
+def deploy_insolar(skip_benchmark=False, use_postgresql=False):
     info("copying configs and fixing certificates for discovery nodes")
     pod_ips = k8s_get_pod_ips()
+
+    if use_postgresql:
+        deploy_postgresql(HEAVY, 'heavy')
+
     for pod in NODES:
         path = INSPATH+"/scripts/insolard/"
         pod_path = path+str(pod)
@@ -855,8 +863,13 @@ def deploy_insolar(skip_benchmark=False):
                 " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
         if pod == HEAVY:
             ssh(pod, "mkdir -p /tmp/heavy/tmp && mkdir -p /tmp/heavy/target && mkdir -p "+INSPATH+"/data")
-        scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
-               str(pod)+".yaml", pod_path)
+
+        if pod == HEAVY and use_postgresql:
+            scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
+                   str(pod)+"_postgresql.yaml", pod_path)
+        else:
+            scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
+                   str(pod)+".yaml", pod_path)
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml",
                INSPATH+"/pulsewatcher.yaml")
 
@@ -1407,6 +1420,9 @@ parser.add_argument(
     '-r', '--repeat', metavar='N', type=int, default=1,
     help='number of times to repeat tests')
 parser.add_argument(
+    '-p', '--postgresql', action="store_true",
+    help='Use PostgreSQL for storing data on Heavy istead of Badger')
+parser.add_argument(
     '--redeploy-observer', action="store_true",
     help='re-deploy observer on running pods; valid only when -o and -s flags are used')
 parser.add_argument(
@@ -1469,9 +1485,9 @@ pod_ips = k8s_get_pod_ips()
 upload_tools(HEAVY, pod_ips)
 prepare_configs()
 deploy_pulsar()
-deploy_insolar(skip_benchmark=args.skip_all_tests)
+deploy_insolar(skip_benchmark=args.skip_all_tests, use_postgresql = args.postgresql)
 if args.others_path:
-    deploy_observer_deps(args.others_path)
+    deploy_observer_deps()
     deploy_observer(args.others_path)
 stop_test()
 
