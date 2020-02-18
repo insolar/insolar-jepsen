@@ -702,6 +702,14 @@ def wait_until_insolar_is_down(nattempts=10, pause_sec=5):
     return all_down
 
 
+def run_genesis():
+    ssh(HEAVY, "cd " + INSPATH + " && " +
+        "INSOLAR_LOG_LEVEL="+LOG_LEVEL+" ./bin/insolard --config " +
+        "./scripts/insolard/"+str(HEAVY) +
+        "/insolar_"+str(HEAVY)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json " +
+        "--genesis-only")
+
+
 def start_insolard(pod, extra_args=""):
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +
         """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +
@@ -873,8 +881,11 @@ def deploy_insolar(skip_benchmark=False, use_postgresql=False):
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml",
                INSPATH+"/pulsewatcher.yaml")
 
+    info("Calling gen_certs()...")
     gen_certs()
-
+    info("Calling run_genesis()...")
+    run_genesis()
+    info("Calling start_insolar_net()...")
     start_insolar_net(NODES, pod_ips, step="starting",
                       skip_benchmark=skip_benchmark)
     info("==== Insolar started! ====")
