@@ -1508,7 +1508,7 @@ if args.skip_all_tests:
 
 # TODO: we don't actually need this delay but there is a slight unresolved issue
 # that requires it when PostgreSQL backend is used. This is a temporary workaround
-# to make sure all other tests pass
+# to make sure all other tests pass. See MN-126
 info("Waiting until current pulse will be finalized.")
 wait_until_current_pulse_will_be_finalized()
 info("Current pulse is finalized. Executing migrate_member()...")
