@@ -572,7 +572,7 @@ def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS
     # --delay-before-getting-balance is required because transfer uses sagas and benchmark has no way
     # to know when the second part of saga will be executed. If you see that tests fail with balance
     # mismatch, try increasing the delay.
-    delay_before_getting_balance=50
+    delay_before_getting_balance = 60
     info("migrate_member() is called, delay_before_getting_balance = "+str(delay_before_getting_balance))
     ok, migration_out = run_benchmark(
         pod_ips, api_pod, ssh_pod, c=c, extra_args='-t=migration --savemembers --delay-before-getting-balance='+
