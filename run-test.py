@@ -38,7 +38,7 @@ PULSE_DELTA = 10
 # --delay-before-getting-balance is required because transfer uses sagas and benchmark has no way
 # to know when the second part of saga will be executed. If you see that tests fail with balance
 # mismatch, try increasing the delay.
-DELAY='--delay-before-getting-balance=45s'
+DELAY='--delay-before-getting-balance=60s'
 
 HEAVY = 1
 LIGHTS = [2, 3, 4, 5, 6]
