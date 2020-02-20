@@ -1512,6 +1512,13 @@ if args.skip_all_tests:
     notify("Deploy checked, skipping all tests")
     sys.exit(0)
 
+# We don't actually need this delay but there is a slight unresolved issue
+# that requires it when PostgreSQL backend is used. This is a temporary workaround
+# to make sure all other tests pass. See MN-126
+info("Waiting until current pulse will be finalized.")
+wait_until_current_pulse_will_be_finalized()
+info("Current pulse is finalized. Executing migrate_member()...")
+
 migrate_member(pod_ips, members_file=OLD_MEMBERS_FILE)
 ok, bench_out = run_benchmark(
     pod_ips, extra_args="-m "+DELAY+" --members-file=" + OLD_MEMBERS_FILE)
