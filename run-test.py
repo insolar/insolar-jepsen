@@ -38,7 +38,8 @@ PULSE_DELTA = 10
 # --delay-before-getting-balance is required because transfer uses sagas and benchmark has no way
 # to know when the second part of saga will be executed. If you see that tests fail with balance
 # mismatch, try increasing the delay.
-DELAY='--delay-before-getting-balance=60s'
+DELAY='--delay-before-getting-balance=120s'
+BENCHMARK_TIMEOUT=200
 
 HEAVY = 1
 LIGHTS = [2, 3, 4, 5, 6]
@@ -554,7 +555,7 @@ def get_finalized_pulse_from_exporter():
     return pulse
 
 
-def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
+def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=BENCHMARK_TIMEOUT, background=False):
     virtual_pod_name = 'jepsen-'+str(api_pod)
     port = VIRTUAL_START_RPC_PORT + api_pod
     out = ""
@@ -573,7 +574,7 @@ def benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, 
     return out
 
 
-def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS_FILE, c=C*2, timeout=120):
+def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS_FILE, c=C*2, timeout=BENCHMARK_TIMEOUT):
     ok, migration_out = run_benchmark(
         pod_ips, api_pod, ssh_pod, c=c, extra_args='-t=migration --savemembers '+
         DELAY+' --members-file=' + members_file, timeout=timeout
@@ -589,7 +590,7 @@ def migrate_member(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, members_file=MEMBERS
     check_benchmark(ok, out)
 
 
-def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, withoutBalanceCheck=False, extra_args="", c=C, r=R, timeout=120, background=False):
+def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, withoutBalanceCheck=False, extra_args="", c=C, r=R, timeout=BENCHMARK_TIMEOUT, background=False):
     if withoutBalanceCheck:
         extra_args = extra_args + ' -b'
     out = benchmark(pod_ips, api_pod, ssh_pod,
@@ -604,7 +605,7 @@ def run_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, withoutBalanceCheck=F
     return False, out
 
 
-def check_balance_at_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=30, background=False):
+def check_balance_at_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_args="", c=C, r=R, timeout=BENCHMARK_TIMEOUT, background=False):
     out = benchmark(pod_ips, api_pod, ssh_pod,
                     extra_args, c, r, timeout, background)
 
@@ -1123,7 +1124,7 @@ def test_kill_heavy_under_load(heavy_pod, pod_ips, restore_from_backup=False):
     info("Wait for data to save on heavy (top sync pulse must change)")
     wait_until_current_pulse_will_be_finalized()
     info("Starting benchmark on these members in the background, wait several transfer to pass")
-    ok, bench_out = run_benchmark(pod_ips, r=10000, timeout=100, background=True,
+    ok, bench_out = run_benchmark(pod_ips, r=10000, timeout=BENCHMARK_TIMEOUT, background=True,
                                   extra_args='-b -m '+DELAY+' --members-file=' + MEMBERS_FILE)
 
     info("Bench run output: " + bench_out)
@@ -1185,7 +1186,7 @@ def test_kill_backupprocess(heavy_pod, pod_ips, restore_from_backup=False, creat
         """\\"while true; do cat /tmp/heavy/backup.pid | xargs kill -9 ;  sleep 0.1; done """ +
         """; bash\\" """)
 
-    ok, bench_out = run_benchmark(pod_ips, r=100, timeout=100)
+    ok, bench_out = run_benchmark(pod_ips, r=100, timeout=BENCHMARK_TIMEOUT)
     check(not ok, "Benchmark should fail while killing backupmanager (increase -c or -r?), but it was successfull:\n" + bench_out)
 
     info("Shutting down backupprocess-killer")
@@ -1518,13 +1519,15 @@ if args.skip_all_tests:
 info("Waiting until current pulse will be finalized.")
 wait_until_current_pulse_will_be_finalized()
 info("Current pulse is finalized. Executing migrate_member()...")
+#### DIRTY HACK DIRTY HACK DIRTY HACK
+###wait_until_current_pulse_will_be_finalized()
 
-migrate_member(pod_ips, members_file=OLD_MEMBERS_FILE)
-ok, bench_out = run_benchmark(
-    pod_ips, extra_args="-m "+DELAY+" --members-file=" + OLD_MEMBERS_FILE)
-check_benchmark(ok, bench_out)
-members_creted_at = time.time()
-pulse_when_members_created = current_pulse()
+###migrate_member(pod_ips, members_file=OLD_MEMBERS_FILE)
+###ok, bench_out = run_benchmark(
+###    pod_ips, extra_args="-m "+DELAY+" --members-file=" + OLD_MEMBERS_FILE)
+###check_benchmark(ok, bench_out)
+###members_creted_at = time.time()
+###pulse_when_members_created = current_pulse()
 
 info("Wait for data to save on heavy (top sync pulse must change)")
 wait_until_current_pulse_will_be_finalized()
@@ -1534,19 +1537,19 @@ tests = [
     # lambda: test_network_slow_down_speed_up(pod_ips), # TODO: doesn't work well on CI, see INS-3695
     # lambda: test_virtuals_slow_down_speed_up(pod_ips), TODO: this test doesn't pass currently, see INS-3688
     # lambda: test_small_mtu(pod_ips), # TODO: this test doesn't pass currently, see INS-3689
-#    lambda: test_stop_start_pulsar(pod_ips, test_num),
+    lambda: test_stop_start_pulsar(pod_ips, test_num),
     # TODO: sometimes test_netsplit_single_virtual doesn't pass, see INS-3687
     # Temporary skipped until release (15 Jan).
     # This test does not affects mainnet scope but can hide other problems.
     # This is still a major problem!
     # lambda: test_netsplit_single_virtual(VIRTUALS[0], pod_ips),
-#    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
-#    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
-#    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
-#    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
-#    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
-#    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
-#    lambda: test_stop_start_lights(LIGHTS, pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:1], pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_ok(VIRTUALS[:2], pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS, pod_ips),
+    lambda: test_stop_start_virtuals_min_roles_not_ok(VIRTUALS[1:], pod_ips),
+    lambda: test_stop_start_lights([LIGHTS[0]], pod_ips),
+    lambda: test_stop_start_lights([LIGHTS[1], LIGHTS[2]], pod_ips),
+    lambda: test_stop_start_lights(LIGHTS, pod_ips),
 #    lambda: test_stop_start_heavy(HEAVY, pod_ips),
 #    lambda: test_kill_heavy_under_load(HEAVY, pod_ips),
 ]
@@ -1592,16 +1595,16 @@ for test_num in range(0, args.repeat):
             break
         wait(PULSE_DELTA/2)
 
-    info("Make calls to members, created at the beginning: " +
-         str(pulses_pass) + " pulses ago")
-    ok, out = check_balance_at_benchmark(
-        pod_ips, extra_args="-m "+DELAY+" --members-file=" +
-        OLD_MEMBERS_FILE + " --check-members-balance"
-    )
-    check_benchmark(ok, out)
-    ok, bench_out = run_benchmark(
-        pod_ips, extra_args="-m "+DELAY+" --members-file=" + OLD_MEMBERS_FILE)
-    check_benchmark(ok, bench_out)
+#    info("Make calls to members, created at the beginning: " +
+#         str(pulses_pass) + " pulses ago")
+#    ok, out = check_balance_at_benchmark(
+#        pod_ips, extra_args="-m "+DELAY+" --members-file=" +
+#        OLD_MEMBERS_FILE + " --check-members-balance"
+#    )
+#    check_benchmark(ok, out)
+#    ok, bench_out = run_benchmark(
+#        pod_ips, extra_args="-m "+DELAY+" --members-file=" + OLD_MEMBERS_FILE)
+#    check_benchmark(ok, bench_out)
     if test_num != args.repeat-1:
         clear_logs_after_repetition_and_restart()
 
