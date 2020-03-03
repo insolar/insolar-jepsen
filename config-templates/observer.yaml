@@ -15,3 +15,6 @@ db:
 log:
   level: debug
   format: json
+  outputtype: stderr
+  outputparams: ""
+  buffer: 0

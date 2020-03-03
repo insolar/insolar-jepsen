@@ -670,7 +670,7 @@ def wait_until_insolar_is_alive(pod_ips, nodes_online, virtual_pod=-1, nattempts
     return nalive >= min_nalive
 
 
-def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step="", skip_benchmark=False):
+def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step="", skip_benchmark=False, use_postgresql=False):
     alive = False
 
     for attempt in range(1, 4):
@@ -679,7 +679,7 @@ def start_insolar_net(nodes, pod_ips, extra_args_insolard="", step="", skip_benc
             kill(node, "insolard")
         info("Starting insolar net (attempt %s)" % str(attempt))
         for pod in nodes:
-            start_insolard(pod, extra_args=extra_args_insolard)
+            start_insolard(pod, use_postgresql=use_postgresql, extra_args=extra_args_insolard)
         info("Check insolar net alive")
         alive = wait_until_insolar_is_alive(
             pod_ips, NODES, step=step, skip_benchmark=skip_benchmark)
@@ -702,19 +702,43 @@ def wait_until_insolar_is_down(nattempts=10, pause_sec=5):
     return all_down
 
 
-def run_genesis():
+def run_genesis(use_postgresql=False):
+    if use_postgresql:
+        database = "postgres"
+    else:
+        database = "badger"
     ssh(HEAVY, "cd " + INSPATH + " && " +
-        "INSOLAR_LOG_LEVEL="+LOG_LEVEL+" ./bin/insolard --config " +
+        "INSOLAR_LOG_LEVEL="+LOG_LEVEL+" ./bin/insolard heavy --config " +
         "./scripts/insolard/"+str(HEAVY) +
         "/insolar_"+str(HEAVY)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json " +
+        "--database=" + database + " " +
         "--genesis-only")
 
 
-def start_insolard(pod, extra_args=""):
+def start_insolard(pod, use_postgresql=False, extra_args=""):
+    role = "unknown"
+    if pod == HEAVY:
+        if use_postgresql:
+            start_heavy(pod, extra_args, "postgres")
+        else:
+            start_heavy(pod, extra_args, "badger")
+    elif pod in VIRTUALS:
+        role = "virtual"
+    elif pod in LIGHTS:
+        role = "light"
     ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +
-        """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard --config """ +
+        """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard """+role+""" --config """ +
         "./scripts/insolard/"+str(pod) +
-        "/insolar_"+str(pod)+".yaml --heavy-genesis scripts/insolard/configs/heavy_genesis.json " +
+        "/insolar_"+str(pod)+".yaml " +
+        logto("insolard")+"""; bash\\" """)
+
+
+def start_heavy(pod, extra_args="", database=""):
+    ssh(pod, "cd " + INSPATH + " && tmux new-session -d "+extra_args+" " +
+        """\\"INSOLAR_LOG_LEVEL="""+LOG_LEVEL+""" ./bin/insolard heavy --config """ +
+        "./scripts/insolard/"+str(pod) +
+        "/insolar_"+str(pod)+".yaml --heavy-genesis=scripts/insolard/configs/heavy_genesis.json " +
+        "--database=" + database + " " +
         logto("insolard")+"""; bash\\" """)
 
 
@@ -884,10 +908,10 @@ def deploy_insolar(skip_benchmark=False, use_postgresql=False):
     info("Calling gen_certs()...")
     gen_certs()
     info("Calling run_genesis()...")
-    run_genesis()
+    run_genesis(use_postgresql)
     info("Calling start_insolar_net()...")
     start_insolar_net(NODES, pod_ips, step="starting",
-                      skip_benchmark=skip_benchmark)
+                      skip_benchmark=skip_benchmark, use_postgresql=use_postgresql)
     info("==== Insolar started! ====")
 
 
