@@ -15,8 +15,7 @@ RUN git checkout $BRANCH
 RUN git merge origin/master --no-edit
 RUN make install-deps && \
   (make ensure || rm -rvf vendor && make ensure) && \
-  make clean && \
-  make build
+  make all
 RUN mkdir -p scripts/insolard/configs
 RUN mkdir -p scripts/insolard/certs
 RUN ./bin/insolar gen-key-pair --target=node > scripts/insolard/configs/pulsar_keys.json
