@@ -542,7 +542,7 @@ def wait_until_current_pulse_will_be_finalized():
 def get_finalized_pulse_from_exporter():
     cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/insolar/vendor' +\
           ' -proto /home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto' +\
-          """ -plaintext localhost:5678 exporter.PulseExporter.TopSyncPulse"""
+          """ -plaintext JEPSEN-1:5678 exporter.PulseExporter.TopSyncPulse"""
     out = ssh_output(HEAVY, cmd)
     pulse = json.loads(out)["PulseNumber"]
     info("exporter said: " + str(pulse))
@@ -722,6 +722,7 @@ def start_insolard(pod, use_postgresql=False, extra_args=""):
             start_heavy(pod, extra_args, "postgres")
         else:
             start_heavy(pod, extra_args, "badger")
+        return
     elif pod in VIRTUALS:
         role = "virtual"
     elif pod in LIGHTS:

@@ -27,7 +27,7 @@ metrics:
 logicrunner:
   rpclisten: JEPSEN-9:33306
   rpcprotocol: tcp
-  builtin: {}
+  builtin: true
   goplugin:
     runnerlisten: JEPSEN-9:33305
     runnerprotocol: tcp
