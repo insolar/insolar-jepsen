@@ -2,39 +2,23 @@ host:
   transport:
     protocol: TCP
     address: JEPSEN-7:63836
-    behindnat: false
-  isrelay: false
-  infinitybootstrap: false
+    fixedpublicaddress: ""
   mintimeout: 1
   maxtimeout: 60
   timeoutmult: 2
   signmessages: false
   handshakesessionttl: 5000
 service:
-  skip: 10
-ledger:
-  storage:
-    datadirectory: ./data
-    txretriesonconflict: 3
-  pulsemanager:
-    heavysyncenabled: true
-    heavysyncmessagelimit: 1048576
-    heavybackoff:
-      factor: 2
-      jitter: true
-      min: 200ms
-      max: 2s
-    splitthreshold: 1000
-  recentstorage:
-    defaultttl: 10
-  lightchainlimit: 15
-  jetsizeshistorydepth: 10
-  exporter:
-    exportlag: 40
+  cachedirectory: network_cache
 log:
   level: Debug
   adapter: zerolog
   formatter: json
+  outputtype: stderr
+  outputparallellimit: ""
+  outputparams: ""
+  buffersize: 0
+  llbuffersize: 0
 metrics:
   listenaddress: JEPSEN-7:8080
   namespace: insolar
@@ -43,50 +27,26 @@ metrics:
 logicrunner:
   rpclisten: JEPSEN-7:33306
   rpcprotocol: tcp
-  builtin: {}
+  builtin: true
   goplugin:
     runnerlisten: JEPSEN-7:33305
     runnerprotocol: tcp
+  pulselrusize: 100
 apirunner:
   address: JEPSEN-7:19107
   rpc: /api/rpc
   isadmin: false
-  timeout: 15
   swaggerpath: /home/gopher/go/src/github.com/insolar/insolar/application/api/spec/api-exported.yaml
 adminapirunner:
   address: JEPSEN-7:19007
   rpc: /admin-api/rpc
   isadmin: true
-  timeout: 15
   swaggerpath: /home/gopher/go/src/github.com/insolar/insolar/application/api/spec/api-exported.yaml
 availabilitychecker:
   enabled: false
-pulsar:
-  connectiontype: tcp
-  mainlisteneraddress: 0.0.0.0:18090
-  storage:
-    datadirectory: ./data/pulsar
-    txretriesonconflict: 0
-  pulsetime: 10000
-  receivingsigntimeout: 1000
-  receivingnumbertimeout: 1000
-  receivingvectortimeout: 1000
-  receivingsignsforchosentimeout: 0
-  neighbours: []
-  numberdelta: 10
-  distributiontransport:
-    protocol: TCP
-    address: 0.0.0.0:18091
-    behindnat: false
-  pulsedistributor:
-    bootstraphosts:
-    - localhost:53837
-    pingrequesttimeout: 1000
-    randomhostsrequesttimeout: 1000
-    pulserequesttimeout: 1000
-    randomnodescount: 5
-versionmanager:
-  minalowedversion: v0.3.0
+  keeperurl: ""
+  requesttimeout: 15
+  checkperiod: 5
 keyspath: scripts/insolard/reusekeys/not_discovery/node_01.json
 certificatepath: scripts/insolard/certs/node_cert_1.json
 tracer:
@@ -95,3 +55,8 @@ tracer:
     agentendpoint: JAEGER:6831
     probabilityrate: 1
   samplingrules: {}
+introspection:
+  addr: ""
+bus:
+  replytimeout: 15s
+lightchainlimit: 15

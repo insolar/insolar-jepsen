@@ -2,36 +2,20 @@ host:
   transport:
     protocol: TCP
     address: JEPSEN-1:13831
-    behindnat: false
-  isrelay: false
-  infinitybootstrap: false
+    fixedpublicaddress: ""
   mintimeout: 1
   maxtimeout: 60
   timeoutmult: 2
   signmessages: false
   handshakesessionttl: 5000
 service:
-  skip: 10
+  cachedirectory: network_cache
+databasetype: badger
 ledger:
   storage:
     datadirectory: ./data
-    txretriesonconflict: 3
+    badgervalueloggcdiscardratio: 0.4
     gcrunfrequency: 4
-  pulsemanager:
-    heavysyncenabled: true
-    heavysyncmessagelimit: 1048576
-    heavybackoff:
-      factor: 2
-      jitter: true
-      min: 200ms
-      max: 2s
-    splitthreshold: 1000
-  recentstorage:
-    defaultttl: 10
-  lightchainlimit: 15
-  jetsizeshistorydepth: 10
-  exporter:
-    exportlag: 40
   backup:
     enabled: true
     tmpdirectory: "/tmp/heavy/tmp"
@@ -42,66 +26,39 @@ ledger:
     dirnametemplate: pulse-%d
     backupwaitperiod: 60
     postprocessbackupcmd:
-    - bash
-    - -c
-    - echo $$ > /tmp/heavy/backup.pid ; sleep 1; CMD="rsync -avW --delete ./data/* ./heavy_backup" ; while $CMD | grep -q "(MANIFEST\|\.sst)$"; do :; done ; touch $INSOLAR_CURRENT_BACKUP_DIR/BACKUPED
+      - bash
+      - -c
+      - echo $$ > /tmp/heavy/backup.pid ; sleep 1; CMD="rsync -avW --delete ./data/* ./heavy_backup" ; while $CMD | grep -q "(MANIFEST\|\.sst)$"; do :; done ; touch $INSOLAR_CURRENT_BACKUP_DIR/BACKUPED
 
 log:
   level: Debug
   adapter: zerolog
   formatter: json
+  outputtype: stderr
+  outputparallellimit: ""
+  outputparams: ""
+  buffersize: 0
+  llbuffersize: 0
 metrics:
   listenaddress: JEPSEN-1:8080
   namespace: insolar
   zpagesenabled: true
   reportingperiod: 0s
-logicrunner:
-  rpclisten: JEPSEN-1:33301
-  rpcprotocol: tcp
-  builtin: {}
-  goplugin:
-    runnerlisten: JEPSEN-1:33300
-    runnerprotocol: tcp
 apirunner:
   address: 0.0.0.0:19101
   rpc: /api/rpc
   isadmin: false
-  timeout: 15
   swaggerpath: /home/gopher/go/src/github.com/insolar/insolar/application/api/spec/api-exported.yaml
 adminapirunner:
   address: 0.0.0.0:19001
   rpc: /admin-api/rpc
   isadmin: true
-  timeout: 15
   swaggerpath: /home/gopher/go/src/github.com/insolar/insolar/application/api/spec/api-exported.yaml
 availabilitychecker:
   enabled: false
-pulsar:
-  connectiontype: tcp
-  mainlisteneraddress: 0.0.0.0:18090
-  storage:
-    datadirectory: ./data/pulsar
-    txretriesonconflict: 0
-  pulsetime: 10000
-  receivingsigntimeout: 1000
-  receivingnumbertimeout: 1000
-  receivingvectortimeout: 1000
-  receivingsignsforchosentimeout: 0
-  neighbours: []
-  numberdelta: 10
-  distributiontransport:
-    protocol: TCP
-    address: 0.0.0.0:18091
-    behindnat: false
-  pulsedistributor:
-    bootstraphosts:
-    - localhost:53837
-    pingrequesttimeout: 1000
-    randomhostsrequesttimeout: 1000
-    pulserequesttimeout: 1000
-    randomnodescount: 5
-versionmanager:
-  minalowedversion: v0.3.0
+  keeperurl: ""
+  requesttimeout: 15
+  checkperiod: 5
 keyspath: scripts/insolard/reusekeys/discovery/node_01.json
 certificatepath: scripts/insolard/certs/discovery_cert_1.json
 tracer:
@@ -110,3 +67,10 @@ tracer:
     agentendpoint: JAEGER:6831
     probabilityrate: 1
   samplingrules: {}
+introspection:
+  addr: ""
+bus:
+  replytimeout: 15s
+exporter:
+  addr: JEPSEN-1:5678
+lightchainlimit: 15
