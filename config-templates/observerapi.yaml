@@ -5,7 +5,11 @@ db:
   attempts: 5
   attemptinterval: 3s
 feeamount: "100000000"
+priceorigin: const
 price: "0.05"
 log:
   level: debug
   format: json
+  outputtype: stderr
+  outputparams: ""
+  buffer: 0
