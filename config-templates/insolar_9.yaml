@@ -41,12 +41,6 @@ metrics:
   zpagesenabled: true
   reportingperiod: 0s
 logicrunner:
-  rpclisten: JEPSEN-9:33306
-  rpcprotocol: tcp
-  builtin: {}
-  goplugin:
-    runnerlisten: JEPSEN-9:33305
-    runnerprotocol: tcp
 apirunner:
   address: JEPSEN-9:19109
   rpc: /api/rpc
