@@ -30,12 +30,12 @@ apirunner:
   address: JEPSEN-8:19108
   rpc: /api/rpc
   isadmin: false
-  swaggerpath: /home/gopher/go/src/github.com/insolar/insolar/application/api/spec/api-exported.yaml
+  swaggerpath: /home/gopher/go/src/github.com/insolar/mainnet/application/api/spec/api-exported.yaml
 adminapirunner:
   address: JEPSEN-8:19008
   rpc: /admin-api/rpc
   isadmin: true
-  swaggerpath: /home/gopher/go/src/github.com/insolar/insolar/application/api/spec/api-exported.yaml
+  swaggerpath: /home/gopher/go/src/github.com/insolar/mainnet/application/api/spec/api-exported.yaml
 availabilitychecker:
   enabled: false
   keeperurl: ""

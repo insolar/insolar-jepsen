@@ -42,6 +42,7 @@ RUN mkdir -p scripts/insolard/reusekeys/not_discovery
 RUN mkdir -p scripts/insolard/reusekeys/discovery
 
 RUN go get github.com/fullstorydev/grpcurl
+RUN go get github.com/insolar/insolar/cmd/backupmanager
 RUN go install github.com/fullstorydev/grpcurl/cmd/grpcurl
 
 EXPOSE 22

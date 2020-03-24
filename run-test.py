@@ -29,7 +29,7 @@ import datetime
 START_PORT = 32000
 VIRTUAL_START_RPC_PORT = 19000
 VIRTUAL_START_ADMIN_PORT = 19100
-INSPATH = "go/src/github.com/insolar/insolar"
+INSPATH = "go/src/github.com/insolar/mainnet"
 OLD_MEMBERS_FILE = ".artifacts/bench-members/members-from-start.txt"
 MEMBERS_FILE = ".artifacts/bench-members/members.txt"
 LIGHT_CHAIN_LIMIT = 5
@@ -237,7 +237,7 @@ def check_alive(condition):
     if not condition:
         out = ssh_output(1, 'cd '+INSPATH+' && ' +
                          'timelimit -s9 -t10 ' +  # timeout: 10 seconds
-                         './bin/pulsewatcher --single --config ./pulsewatcher.yaml')
+                         'pulsewatcher --single --config ./pulsewatcher.yaml')
         msg = "Insolar must be alive, but its not:\n" + out
         fail_test(msg)
 
@@ -540,8 +540,8 @@ def wait_until_current_pulse_will_be_finalized():
 
 
 def get_finalized_pulse_from_exporter():
-    cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/insolar/vendor' +\
-          ' -proto /home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto' +\
+    cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/mainnet/vendor' +\
+          ' -proto /home/gopher/go/src/github.com/insolar/mainnet/pulse_exporter.proto' +\
           """ -plaintext JEPSEN-1:5678 exporter.PulseExporter.TopSyncPulse"""
     out = ssh_output(HEAVY, cmd)
     pulse = json.loads(out)["PulseNumber"]
@@ -613,7 +613,7 @@ def check_balance_at_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_ar
 def pulsewatcher_output(ssh_pod=1):
     return ssh_output(ssh_pod, 'cd '+INSPATH+' && ' +
                       'timelimit -s9 -t10 ' +  # timeout: 10 seconds
-                      './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
+                      'pulsewatcher --single --json --config ./pulsewatcher.yaml')
 
 
 def current_pulse(node_index=HEAVY, ssh_pod=1):
@@ -745,7 +745,7 @@ def start_heavy(pod, extra_args="", database=""):
 
 def start_pulsard(extra_args=""):
     ssh(PULSAR, "cd " + INSPATH + """ && tmux new-session -d """ +
-        extra_args+""" \\"./bin/pulsard -c pulsar.yaml """ +
+        extra_args+""" \\"pulsard -c pulsar.yaml """ +
         logto("pulsar") + """; bash\\" """)
 
 
@@ -757,7 +757,7 @@ def restore_heavy_from_backup(heavy_pod):
     info("Restoring heavy from backup at pod#..."+str(heavy_pod))
     kill(heavy_pod, "backupmanager")
     ssh(heavy_pod, "cd "+INSPATH+" && " +
-        "./bin/backupmanager prepare_backup -d ./heavy_backup/ && " +
+        "backupmanager prepare_backup -d ./heavy_backup/ && " +
         "rm -r data && cp -r heavy_backup data")
 
 
@@ -905,6 +905,8 @@ def deploy_insolar(skip_benchmark=False, use_postgresql=False):
                    str(pod)+".yaml", pod_path)
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml",
                INSPATH+"/pulsewatcher.yaml")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/pulse_exporter.proto",
+               INSPATH+"/pulse_exporter.proto")
 
     info("Calling gen_certs()...")
     gen_certs()
