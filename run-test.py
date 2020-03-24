@@ -237,7 +237,7 @@ def check_alive(condition):
     if not condition:
         out = ssh_output(1, 'cd '+INSPATH+' && ' +
                          'timelimit -s9 -t10 ' +  # timeout: 10 seconds
-                         'pulsewatcher --single --config ./pulsewatcher.yaml')
+                         './bin/pulsewatcher --single --config ./pulsewatcher.yaml')
         msg = "Insolar must be alive, but its not:\n" + out
         fail_test(msg)
 
@@ -613,7 +613,7 @@ def check_balance_at_benchmark(pod_ips, api_pod=VIRTUALS[0], ssh_pod=1, extra_ar
 def pulsewatcher_output(ssh_pod=1):
     return ssh_output(ssh_pod, 'cd '+INSPATH+' && ' +
                       'timelimit -s9 -t10 ' +  # timeout: 10 seconds
-                      'pulsewatcher --single --json --config ./pulsewatcher.yaml')
+                      './bin/pulsewatcher --single --json --config ./pulsewatcher.yaml')
 
 
 def current_pulse(node_index=HEAVY, ssh_pod=1):
@@ -745,7 +745,7 @@ def start_heavy(pod, extra_args="", database=""):
 
 def start_pulsard(extra_args=""):
     ssh(PULSAR, "cd " + INSPATH + """ && tmux new-session -d """ +
-        extra_args+""" \\"pulsard -c pulsar.yaml """ +
+        extra_args+""" \\"./bin/pulsard -c pulsar.yaml """ +
         logto("pulsar") + """; bash\\" """)
 
 
@@ -892,6 +892,9 @@ def deploy_insolar(skip_benchmark=False, use_postgresql=False):
         pod_path = path+str(pod)
         ssh(pod, "mkdir -p "+pod_path)
         for k in pod_ips.keys():
+            output = ssh_output(pod, "find "+path+" -type f -print " +
+                " | grep -v .bak")
+            debug(output)
             ssh(pod, "find "+path+" -type f -print " +
                 " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
         if pod == HEAVY:
