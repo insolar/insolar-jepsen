@@ -29,7 +29,7 @@ import datetime
 START_PORT = 32000
 VIRTUAL_START_RPC_PORT = 19000
 VIRTUAL_START_ADMIN_PORT = 19100
-INSPATH = "go/src/github.com/insolar/insolar"
+INSPATH = "go/src/github.com/insolar/mainnet"
 OLD_MEMBERS_FILE = ".artifacts/bench-members/members-from-start.txt"
 MEMBERS_FILE = ".artifacts/bench-members/members.txt"
 LIGHT_CHAIN_LIMIT = 5
@@ -540,8 +540,8 @@ def wait_until_current_pulse_will_be_finalized():
 
 
 def get_finalized_pulse_from_exporter():
-    cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/insolar/vendor' +\
-          ' -proto /home/gopher/go/src/github.com/insolar/insolar/ledger/heavy/exporter/pulse_exporter.proto' +\
+    cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/mainnet/vendor' +\
+          ' -proto /home/gopher/go/src/github.com/insolar/mainnet/pulse_exporter.proto' +\
           """ -plaintext JEPSEN-1:5678 exporter.PulseExporter.TopSyncPulse"""
     out = ssh_output(HEAVY, cmd)
     pulse = json.loads(out)["PulseNumber"]
@@ -757,7 +757,7 @@ def restore_heavy_from_backup(heavy_pod):
     info("Restoring heavy from backup at pod#..."+str(heavy_pod))
     kill(heavy_pod, "backupmanager")
     ssh(heavy_pod, "cd "+INSPATH+" && " +
-        "./bin/backupmanager prepare_backup -d ./heavy_backup/ && " +
+        "backupmanager prepare_backup -d ./heavy_backup/ && " +
         "rm -r data && cp -r heavy_backup data")
 
 
@@ -892,6 +892,9 @@ def deploy_insolar(skip_benchmark=False, use_postgresql=False):
         pod_path = path+str(pod)
         ssh(pod, "mkdir -p "+pod_path)
         for k in pod_ips.keys():
+            output = ssh_output(pod, "find "+path+" -type f -print " +
+                " | grep -v .bak")
+            debug(output)
             ssh(pod, "find "+path+" -type f -print " +
                 " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
         if pod == HEAVY:
@@ -905,6 +908,8 @@ def deploy_insolar(skip_benchmark=False, use_postgresql=False):
                    str(pod)+".yaml", pod_path)
         scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml",
                INSPATH+"/pulsewatcher.yaml")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/pulse_exporter.proto",
+               INSPATH+"/pulse_exporter.proto")
 
     info("Calling gen_certs()...")
     gen_certs()

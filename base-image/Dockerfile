@@ -63,8 +63,8 @@ RUN echo "alias obsdb=\"PGPASSWORD=observer psql -hlocalhost -Uobserver observer
 RUN mkdir -p go/src/github.com/insolar
 
 WORKDIR /home/gopher/go/src/github.com/insolar
-RUN git clone https://github.com/insolar/insolar.git
+RUN git clone https://github.com/insolar/mainnet.git
 
-WORKDIR /home/gopher/go/src/github.com/insolar/insolar
+WORKDIR /home/gopher/go/src/github.com/insolar/mainnet
 RUN make install-deps ensure
 

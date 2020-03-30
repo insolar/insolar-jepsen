@@ -64,17 +64,17 @@ for port in range(START_PORT, END_PORT+1):
     run("""mkdir -p """+node_dir+""" || true """)
     if port == START_PORT:
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/.artifacts/bench-members/* """+node_dir+""" || true""")
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/mainnet/.artifacts/bench-members/* """+node_dir+""" || true""")
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/background-bench-*.log.gz """+node_dir+""" || true""")
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/mainnet/background-bench-*.log.gz """+node_dir+""" || true""")
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/backupmanager.log """+node_dir+""" || true""")
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/mainnet/backupmanager.log """+node_dir+""" || true""")
     if port == OBSERVER_PORT:
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
             """ gopher@"""+hostname+""":go/src/github.com/insolar/observer/*.log """+node_dir)
     else:
         run("""scp -o 'StrictHostKeyChecking no' -i ./base-image/id_rsa -P """+str(port) +
-            """ gopher@"""+hostname+""":go/src/github.com/insolar/insolar/*.log.gz """+node_dir)
+            """ gopher@"""+hostname+""":go/src/github.com/insolar/mainnet/*.log.gz """+node_dir)
 
 run(ZCAT + " " + copy_to_dir + """*/*.log.gz | egrep -n '"level":"(error|fatal|panic)"' """ +
     """ | sort -n > """ + copy_to_dir + """all_errors.log""")
