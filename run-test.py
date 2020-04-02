@@ -842,7 +842,7 @@ def deploy_observer(path, keep_database=False):
     ssh(OBSERVER, "cd "+INSPATH +
         "/../observer && GO111MODULE=on make all && mkdir -p .artifacts")
 
-    for сqw in "".split("observer observerapi stats-collector migrate"):
+    for cqw in "".split("observer observerapi stats-collector migrate"):
         scp_to(OBSERVER, f"/tmp/insolar-jepsen-configs/{cqw}.yaml",
                INSPATH+f"/../observer/.artifacts/{cqw}.yaml")
     if not keep_database:
