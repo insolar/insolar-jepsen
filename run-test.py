@@ -838,10 +838,12 @@ def deploy_observer(path, keep_database=False):
            "/../observer", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd "+INSPATH +
         "/../observer && GO111MODULE=on make all && mkdir -p .artifacts")
-    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
-           INSPATH+"/../observer/.artifacts/observer.yaml")
-    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observerapi.yaml",
-           INSPATH+"/../observer/.artifacts/observerapi.yaml")
+
+
+    for cqw in "observer observerapi stats-collector migrate".split(""):
+        scp_to(OBSERVER, f"/tmp/insolar-jepsen-configs/{cqw}.yaml",
+               INSPATH+f"/../observer/.artifacts/{cqw}.yaml")
+
     if not keep_database:
         info("purging observer's database...")
         ssh(OBSERVER, """echo -e \\"DROP DATABASE observer; CREATE DATABASE observer;\\" | sudo -u postgres psql""")
