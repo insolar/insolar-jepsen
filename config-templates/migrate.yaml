@@ -1,5 +1,0 @@
-db:
-  url: postgres://observer:observer@localhost/observer?sslmode=disable
-  poolsize: 100
-  attempts: 5
-  attemptinterval: 3s

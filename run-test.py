@@ -825,9 +825,6 @@ def deploy_observer_deps():
            "/tmp/nginx_default.conf")
     ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
 
-
-
-# this pasta must be refactored
 def deploy_observer(path, keep_database=False):
     info("deploying observer @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/observer")
@@ -841,10 +838,10 @@ def deploy_observer(path, keep_database=False):
            "/../observer", flags="-r", ignore_errors=True)
     ssh(OBSERVER, "cd "+INSPATH +
         "/../observer && GO111MODULE=on make all && mkdir -p .artifacts")
-
-    for сqw in "".split("observer observerapi stats-collector migrate"):
-        scp_to(OBSERVER, f"/tmp/insolar-jepsen-configs/{cqw}.yaml",
-               INSPATH+f"/../observer/.artifacts/{cqw}.yaml")
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observer.yaml",
+           INSPATH+"/../observer/.artifacts/observer.yaml")
+    scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/observerapi.yaml",
+           INSPATH+"/../observer/.artifacts/observerapi.yaml")
     if not keep_database:
         info("purging observer's database...")
         ssh(OBSERVER, """echo -e \\"DROP DATABASE observer; CREATE DATABASE observer;\\" | sudo -u postgres psql""")
