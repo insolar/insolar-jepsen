@@ -840,7 +840,7 @@ def deploy_observer(path, keep_database=False):
         "/../observer && GO111MODULE=on make all && mkdir -p .artifacts")
 
 
-    for cqw in "observer observerapi stats-collector migrate".split(""):
+    for cqw in "observer observerapi stats-collector migrate".split(" "):
         scp_to(OBSERVER, f"/tmp/insolar-jepsen-configs/{cqw}.yaml",
                INSPATH+f"/../observer/.artifacts/{cqw}.yaml")
 
