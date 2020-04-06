@@ -820,7 +820,7 @@ def deploy_postgresql(pod, service_name):
 def deploy_observer_deps():
     deploy_postgresql(OBSERVER, 'observer')
     info("starting Nginx @ pod "+str(OBSERVER))
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y nginx\\" """)
+    ssh(OBSERVER, """sudo bash -c \\"apt-get update && apt install -y nginx\\" """)
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
            "/tmp/nginx_default.conf")
     ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
