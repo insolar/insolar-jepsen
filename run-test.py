@@ -820,7 +820,6 @@ def deploy_postgresql(pod, service_name):
 def deploy_observer_deps():
     deploy_postgresql(OBSERVER, 'observer')
     info("starting Nginx @ pod "+str(OBSERVER))
-    ssh(OBSERVER, """sudo bash -c \\"apt update\\" """)
     ssh(OBSERVER, """sudo bash -c \\"apt install -y nginx\\" """)
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
            "/tmp/nginx_default.conf")
@@ -925,7 +924,6 @@ def deploy_insolar(skip_benchmark=False, use_postgresql=False):
         queue.put(pod)
         t = Thread(target=deploy_insolar_for_each_pod, args=(queue, pod_ips, use_postgresql))
         t.start()
-        #deploy_insolar_for_each_pod(queue, pod_ips, use_postgresql)
     queue.join()
 
     info("Calling gen_certs()...")
