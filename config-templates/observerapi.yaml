@@ -7,9 +7,16 @@ db:
 feeamount: "100000000"
 priceorigin: const
 price: "0.05"
+cmcmarketstatsparams:
+  circulatingsupply: true
+  dailychange: true
+  marketcap: true
+  rank: true
+  volume: true
 log:
   level: debug
   format: json
   outputtype: stderr
   outputparams: ""
   buffer: 0
+
