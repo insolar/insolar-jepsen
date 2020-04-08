@@ -851,13 +851,13 @@ def deploy_observer(path, keep_database=False):
             "/../observer && GO111MODULE=on make migrate")
     # run observer
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
-        """/../observer && ./bin/observer 2>&1 | tee -a observer.log; bash\\" """)
+        """/../observer && ./bin/observer --config=./.artifacts/observer.yaml 2>&1 | tee -a observer.log; bash\\" """)
     # run observer-api
     ssh(OBSERVER, """tmux new-session -d -s observerapi \\"cd """+INSPATH +
-        """/../observer && ./bin/api 2>&1 | tee -a observerapi.log; bash\\" """)
+        """/../observer && ./bin/api --config=./.artifacts/observerapi.yaml 2>&1 | tee -a observerapi.log; bash\\" """)
     # run stats-collector every 10 seconds
     ssh(OBSERVER, "tmux new-session -d -s stats-collector " +
-        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/stats-collector 2>&1 | tee -a stats-collector.log;  sleep 10; done""" +
+        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/stats-collector --config=./.artifacts/stats-collector.yaml 2>&1 | tee -a stats-collector.log;  sleep 10; done""" +
         """; bash\\" """)
 
 
