@@ -881,36 +881,6 @@ def gen_certs():
         scp_to(pod, "/tmp/insolar-jepsen-configs/reusekeys/discovery/*",
                INSPATH+"/scripts/insolard/reusekeys/discovery/")
 
-from queue import Queue
-from threading import Thread
-
-def deploy_insolar_for_each_pod(queue, pod_ips, use_postgresql):
-    pod = queue.get()
-    path = INSPATH+"/scripts/insolard/"
-    pod_path = path+str(pod)
-    ssh(pod, "mkdir -p "+pod_path)
-    for k in pod_ips.keys():
-        output = ssh_output(pod, "find "+path+" -type f -print " +
-            " | grep -v .bak")
-        debug(output)
-        ssh(pod, "find "+path+" -type f -print " +
-            " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
-    if pod == HEAVY:
-        ssh(pod, "mkdir -p /tmp/heavy/tmp && mkdir -p /tmp/heavy/target && mkdir -p "+INSPATH+"/data")
-
-    if pod == HEAVY and use_postgresql:
-        scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
-               str(pod)+"_postgresql.yaml", pod_path + '/insolar_'+str(HEAVY)+".yaml")
-    else:
-        scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
-               str(pod)+".yaml", pod_path)
-    scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml",
-           INSPATH+"/pulsewatcher.yaml")
-    scp_to(pod, "/tmp/insolar-jepsen-configs/pulse_exporter.proto",
-           INSPATH+"/pulse_exporter.proto")
-    queue.task_done()
-
-
 
 def deploy_insolar(skip_benchmark=False, use_postgresql=False):
     info("copying configs and fixing certificates for discovery nodes")
@@ -919,12 +889,29 @@ def deploy_insolar(skip_benchmark=False, use_postgresql=False):
     if use_postgresql:
         deploy_postgresql(HEAVY, 'heavy')
 
-    queue = Queue()
     for pod in NODES:
-        queue.put(pod)
-        t = Thread(target=deploy_insolar_for_each_pod, args=(queue, pod_ips, use_postgresql))
-        t.start()
-    queue.join()
+        path = INSPATH+"/scripts/insolard/"
+        pod_path = path+str(pod)
+        ssh(pod, "mkdir -p "+pod_path)
+        for k in pod_ips.keys():
+            output = ssh_output(pod, "find "+path+" -type f -print " +
+                " | grep -v .bak")
+            debug(output)
+            ssh(pod, "find "+path+" -type f -print " +
+                " | grep -v .bak | xargs sed -i.bak 's/"+k.upper()+"/"+pod_ips[k]+"/g'")
+        if pod == HEAVY:
+            ssh(pod, "mkdir -p /tmp/heavy/tmp && mkdir -p /tmp/heavy/target && mkdir -p "+INSPATH+"/data")
+
+        if pod == HEAVY and use_postgresql:
+            scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
+                   str(pod)+"_postgresql.yaml", pod_path + '/insolar_'+str(HEAVY)+".yaml")
+        else:
+            scp_to(pod, "/tmp/insolar-jepsen-configs/insolar_" +
+                   str(pod)+".yaml", pod_path)
+        scp_to(pod, "/tmp/insolar-jepsen-configs/pulsewatcher.yaml",
+               INSPATH+"/pulsewatcher.yaml")
+        scp_to(pod, "/tmp/insolar-jepsen-configs/pulse_exporter.proto",
+               INSPATH+"/pulse_exporter.proto")
 
     info("Calling gen_certs()...")
     gen_certs()
