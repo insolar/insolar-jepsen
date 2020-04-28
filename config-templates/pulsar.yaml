@@ -1,7 +1,12 @@
 log:
-  level: Debug
-  adapter: zerolog
-  formatter: json
+  Level:               "Debug"
+  Adapter:             "zerolog"
+  Formatter:           "json"
+  OutputType:          "stderr"
+  BufferSize:          0
+  OutputParallelLimit: 0
+  OutputParams:        ""
+  LLBufferSize:        0
 metrics:
   listenaddress: JEPSEN-12:9090
   namespace: insolar
@@ -14,10 +19,6 @@ pulsar:
     datadirectory: ./data_pulsar
     txretriesonconflict: 0
   pulsetime: 10000
-  receivingsigntimeout: 1000
-  receivingnumbertimeout: 1000
-  receivingvectortimeout: 1000
-  receivingsignsforchosentimeout: 0
   neighbours: []
   numberdelta: 10
   distributiontransport:
@@ -37,10 +38,7 @@ pulsar:
     - JEPSEN-9:63856
     - JEPSEN-10:63866
     - JEPSEN-11:63876
-    pingrequesttimeout: 1000
-    randomhostsrequesttimeout: 1000
     pulserequesttimeout: 1000
-    randomnodescount: 5
 keyspath: scripts/insolard/configs/pulsar_keys.json
 tracer:
   jaeger:
