@@ -19,7 +19,7 @@ pulsar:
     protocol: TCP
     address: JEPSEN-12:58091
     fixedpublicaddress: JEPSEN-12:58091
-    pulsedistributor:
+  pulsedistributor:
     bootstraphosts:
     - JEPSEN-1:13831
     - JEPSEN-2:23832
