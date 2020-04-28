@@ -13,18 +13,11 @@ metrics:
   zpagesenabled: true
   reportingperiod: 0s
 pulsar:
-  connectiontype: tcp
-  mainlisteneraddress: JEPSEN-12:58090
-  storage:
-    datadirectory: ./data_pulsar
-    txretriesonconflict: 0
   pulsetime: 10000
-  neighbours: []
   numberdelta: 10
   distributiontransport:
     protocol: TCP
     address: JEPSEN-12:58091
-    behindnat: false
   pulsedistributor:
     bootstraphosts:
     - JEPSEN-1:13831
