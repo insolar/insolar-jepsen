@@ -825,7 +825,10 @@ def deploy_observer_deps():
            "/tmp/nginx_default.conf")
     ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
 
-def deploy_observer(path, keep_database=False):
+def deploy_observer(path, keep_database=False, public=False):
+    build_mode = "all"
+    if public:
+        build_mode = "all-public"
     info("deploying observer @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/observer")
     # cleanup after previous deploy, if there was one
@@ -836,8 +839,7 @@ def deploy_observer(path, keep_database=False):
     # ignore_errors=True is used because Observer's dependencies have symbolic links pointing to non-existing files
     scp_to(OBSERVER, path + "/observer", INSPATH +
            "/../observer", flags="-r", ignore_errors=True)
-    ssh(OBSERVER, "cd "+INSPATH +
-        "/../observer && GO111MODULE=on make all && mkdir -p .artifacts")
+    ssh(OBSERVER, "cd %s/../observer && GO111MODULE=on make %s && mkdir -p .artifacts" % (INSPATH, build_mode))
 
 
     for cqw in "observer observerapi stats-collector migrate".split(" "):
@@ -1486,6 +1488,9 @@ parser.add_argument(
 parser.add_argument(
     '-o', '--others-path', metavar='P', type=str, default="",
     help='Path to cloned reposities of observer and Java API microservices (closed-source projects)')
+parser.add_argument(
+    '-po', '--public-observer', action="store_true",
+    help='build public observer version')
 
 args = parser.parse_args()
 NAMESPACE = args.namespace
@@ -1501,7 +1506,7 @@ if args.skip_all_tests and args.others_path and args.redeploy_observer:
     info("=== Re-deploying observer on running pods, keep_database = "+str(keep_database)+"... ===")
     POD_NODES = k8s_get_pod_nodes()
     wait_until_ssh_is_up_on_pods()
-    deploy_observer(args.others_path, keep_database = keep_database)
+    deploy_observer(args.others_path, keep_database=keep_database, public=args.public_observer)
     notify("Observer re-deployed!")
     sys.exit(0)
 
@@ -1531,7 +1536,7 @@ deploy_pulsar()
 deploy_insolar(skip_benchmark=args.skip_all_tests, use_postgresql = args.postgresql)
 if args.others_path:
     deploy_observer_deps()
-    deploy_observer(args.others_path)
+    deploy_observer(args.others_path, public=args.public_observer)
 stop_test()
 
 if args.skip_all_tests:
