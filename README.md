@@ -34,6 +34,11 @@ The projects mentioned in this sections are closed-source for now, sorry.
 
 * observer
 
+if you want public observer version, add ```--public-observer``` flag
+```
+./run-test.py --debug -i insolar-jepsen:latest --others-path .. --skip-all-tests --public-observer
+```
+
 ```
 # skipped: steps from "Usage" section above
 ./run-test.py --debug -i insolar-jepsen:latest --others-path .. --skip-all-tests
@@ -84,6 +89,8 @@ kubectl delete -f jepsen-pods.yaml
 ```
 
 ## Re-deploy observer only
+
+if you want public observer version, add ```--public-observer``` flag
 
 ```
 # Re-deploy observer, keeping the database
