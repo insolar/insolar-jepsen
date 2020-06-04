@@ -826,9 +826,11 @@ def deploy_observer_deps():
     ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
 
 def deploy_observer(path, keep_database=False, public=False):
+    cfgs_list = ["observer", "observerapi", "stats-collector", "migrate"]
     build_mode = "all"
     if public:
         build_mode = "all-public"
+        cfgs_list = ["observer", "observerapi_public", "migrate"]
     info("deploying observer @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/observer")
     # cleanup after previous deploy, if there was one
@@ -842,7 +844,7 @@ def deploy_observer(path, keep_database=False, public=False):
     ssh(OBSERVER, "cd %s/../observer && GO111MODULE=on make %s && mkdir -p .artifacts" % (INSPATH, build_mode))
 
 
-    for cqw in "observer observerapi stats-collector migrate".split(" "):
+    for cqw in cfgs_list:
         scp_to(OBSERVER, f"/tmp/insolar-jepsen-configs/{cqw}.yaml",
                INSPATH+f"/../observer/.artifacts/{cqw}.yaml")
 
@@ -855,12 +857,17 @@ def deploy_observer(path, keep_database=False, public=False):
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
         """/../observer && ./bin/observer --config=./.artifacts/observer.yaml 2>&1 | tee -a observer.log; bash\\" """)
     # run observer-api
-    ssh(OBSERVER, """tmux new-session -d -s observerapi \\"cd """+INSPATH +
-        """/../observer && ./bin/api --config=./.artifacts/observerapi.yaml 2>&1 | tee -a observerapi.log; bash\\" """)
-    # run stats-collector every 10 seconds
-    ssh(OBSERVER, "tmux new-session -d -s stats-collector " +
-        """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/stats-collector --config=./.artifacts/stats-collector.yaml 2>&1 | tee -a stats-collector.log;  sleep 10; done""" +
-        """; bash\\" """)
+    if public:
+        ssh(OBSERVER, """tmux new-session -d -s observerapi \\"cd """+INSPATH +
+            """/../observer && ./bin/api --config=./.artifacts/observerapi_public.yaml 2>&1 | tee -a observerapi.log; bash\\" """)
+    else:
+        ssh(OBSERVER, """tmux new-session -d -s observerapi \\"cd """ + INSPATH +
+            """/../observer && ./bin/api --config=./.artifacts/observerapi.yaml 2>&1 | tee -a observerapi.log; bash\\" """)
+    if not public:
+        # run stats-collector every 10 seconds
+        ssh(OBSERVER, "tmux new-session -d -s stats-collector " +
+            """\\"cd """+INSPATH+"""/../observer && while true; do ./bin/stats-collector --config=./.artifacts/stats-collector.yaml 2>&1 | tee -a stats-collector.log;  sleep 10; done""" +
+            """; bash\\" """)
 
 
 def gen_certs():

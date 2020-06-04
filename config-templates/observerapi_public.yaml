@@ -1,0 +1,13 @@
+listen: 0.0.0.0:8090
+db:
+  url: postgres://observer:observer@localhost/observer?sslmode=disable
+  poolsize: 10
+  attempts: 5
+  attemptinterval: 3s
+log:
+  level: debug
+  format: json
+  outputtype: stderr
+  outputparams: ""
+  buffer: 0
+
