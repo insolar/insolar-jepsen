@@ -829,7 +829,7 @@ def deploy_observer(path, keep_database=False, public=False):
     cfgs_list = ["observer", "observerapi", "stats-collector", "migrate"]
     build_mode = "all"
     if public:
-        build_mode = "all-public"
+        build_mode = "all-node"
         cfgs_list = ["observer", "observerapi_public", "migrate"]
     info("deploying observer @ pod "+str(OBSERVER) +
          ", using source code from "+path+"/observer")
@@ -852,6 +852,8 @@ def deploy_observer(path, keep_database=False, public=False):
         info("purging observer's database...")
         ssh(OBSERVER, """echo -e \\"DROP DATABASE observer; CREATE DATABASE observer;\\" | sudo -u postgres psql""")
         ssh(OBSERVER, "cd "+INSPATH +
+            "/../observer && GO111MODULE=on make migrate-init")
+        ssh(OBSERVER, "cd " + INSPATH +
             "/../observer && GO111MODULE=on make migrate")
     # run observer
     ssh(OBSERVER, """tmux new-session -d -s observer \\"cd """+INSPATH +
