@@ -2,7 +2,7 @@
 
 FROM ubuntu:16.04
 
-MAINTAINER Tsovak Sahakyan 
+MAINTAINER Tsovak Sahakyan
 
 # To trigger base-image rebuild on CI change this timestamp - Fri Nov 15 17:51:47 MSK 2019 ;)
 
@@ -17,11 +17,8 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-k
 RUN apt-get update
 RUN apt-get install -y openssh-server iptables net-tools \
     iputils-ping vim sudo git make lsof gcc curl tmux psmisc \
-    timelimit tree htop telnet
+    timelimit tree htop telnet postgresql-11 nginx
 RUN apt-get clean
-
-# Speeds up Observer deployment
-RUN apt-get install -y --download-only postgresql-11 nginx
 
 RUN mkdir /var/run/sshd
 RUN adduser --disabled-password --gecos '' gopher

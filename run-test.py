@@ -813,14 +813,13 @@ def deploy_postgresql(pod, service_name):
     info("deploying PostgreSQL @ pod "+str(pod))
     # The base64-encoded string is: listen_addresses = '*'
     # I got tired to fight with escaping quotes in bash...
-    ssh(pod, """sudo bash -c \\"apt install -y postgresql-11 && echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
+    ssh(pod, """sudo bash -c \\"echo bGlzdGVuX2FkZHJlc3NlcyA9ICcqJwo= | base64 -d >> /etc/postgresql/11/main/postgresql.conf && echo host all all 0.0.0.0/0 md5 >> /etc/postgresql/11/main/pg_hba.conf && service postgresql start\\" """)
     ssh(pod, """echo -e \\"CREATE DATABASE """+service_name+"""; CREATE USER """+service_name+""" WITH PASSWORD \\x27"""+service_name+"""\\x27; GRANT ALL ON DATABASE """+service_name+""" TO """+service_name+""";\\" | sudo -u postgres psql""")
 
 
 def deploy_observer_deps():
     deploy_postgresql(OBSERVER, 'observer')
     info("starting Nginx @ pod "+str(OBSERVER))
-    ssh(OBSERVER, """sudo bash -c \\"apt install -y nginx\\" """)
     scp_to(OBSERVER, "/tmp/insolar-jepsen-configs/nginx_default.conf",
            "/tmp/nginx_default.conf")
     ssh(OBSERVER, """sudo bash -c \\"cat /tmp/nginx_default.conf > /etc/nginx/sites-enabled/default && service nginx start\\" """)
