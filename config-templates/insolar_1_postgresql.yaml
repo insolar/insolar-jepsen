@@ -58,4 +58,8 @@ bus:
   replytimeout: 15s
 exporter:
   addr: JEPSEN-1:5678
+  auth:
+    required: false
+    issuer: ""
+    secret: ""
 lightchainlimit: 15
