@@ -7,6 +7,14 @@ replicator:
   batchsize: 20000
   cachesize: 10000
   listen: :0
+  auth:
+    required: false
+    url: https://{access_token_url}
+    login: '{unique_login}'
+    password: '{strong_password}'
+    refreshoffset: 60
+    timeout: 15s
+    insecuretls: false
 db:
   url: postgres://observer:observer@localhost/observer?sslmode=disable
   poolsize: 100
