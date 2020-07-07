@@ -60,6 +60,6 @@ exporter:
   addr: JEPSEN-1:5678
   auth:
     required: false
-    issuer: ""
-    secret: ""
+    issuer: "insolar-auth"
+    secret: "1111111111111111111111111111111111111111111111111111111111111111"
 lightchainlimit: 15
