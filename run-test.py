@@ -873,7 +873,7 @@ def restore_heavy_from_backup(heavy_pod):
 
 def check_ssh_is_up_on_pods():
     try:
-        for pod in ALL_PODS:
+        for pod in NODES + [PULSAR, OBSERVER]:
             out = ssh_output(pod, "echo 1")
             if out != "1":
                 return False
