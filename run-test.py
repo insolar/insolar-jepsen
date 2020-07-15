@@ -229,7 +229,7 @@ data:
     listen: :8080
     exptoken: 900
     issuer: insolar-auth
-    secret: EIbUiZIRJqqwgZFdcNB6GBbkxBMtxafrePflq4FzIk
+    secret: GLUEiXzHFLikRlpVbFWVmVY9SN8XuQLgjPKffDy2vno43RCIDOJXvD89mTdaG59G
     admin:
       login: auth-service
       password: 9To9mhHs3FqAYCuO8

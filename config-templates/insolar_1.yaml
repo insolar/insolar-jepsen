@@ -74,7 +74,7 @@ bus:
 exporter:
   addr: JEPSEN-1:5678
   auth:
-    required: false
+    required: true
     issuer: "insolar-auth"
-    secret: "1111111111111111111111111111111111111111111111111111111111111111"
+    secret: "GLUEiXzHFLikRlpVbFWVmVY9SN8XuQLgjPKffDy2vno43RCIDOJXvD89mTdaG59G"
 lightchainlimit: 15
