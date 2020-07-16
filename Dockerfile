@@ -2,6 +2,8 @@
 
 FROM tsovak/insolar-jepsen-base
 
+RUN curl -sL https://github.com/fullstorydev/grpcurl/releases/download/v1.6.1/grpcurl_1.6.1_linux_x86_64.tar.gz | tar xzf - && mv grpcurl /home/gopher/go/bin/grpcurl
+
 ARG CACHE=1
 ARG BRANCH
 ENV BRANCH ${BRANCH:-master}
@@ -41,7 +43,6 @@ COPY config-templates/bootstrap.yaml ./scripts/insolard/bootstrap.yaml
 RUN mkdir -p scripts/insolard/reusekeys/not_discovery
 RUN mkdir -p scripts/insolard/reusekeys/discovery
 
-RUN curl -sL https://github.com/fullstorydev/grpcurl/releases/download/v1.6.1/grpcurl_1.6.1_linux_x86_64.tar.gz | tar xzf - && mv grpcurl /home/gopher/go/bin/grpcurl | rm *.tar.gz
 RUN go get github.com/insolar/insolar/cmd/backupmanager
 
 EXPOSE 22
