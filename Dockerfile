@@ -41,9 +41,8 @@ COPY config-templates/bootstrap.yaml ./scripts/insolard/bootstrap.yaml
 RUN mkdir -p scripts/insolard/reusekeys/not_discovery
 RUN mkdir -p scripts/insolard/reusekeys/discovery
 
-RUN GO111MODULE=on go get github.com/fullstorydev/grpcurl@v1.6.1
+RUN curl -sL https://github.com/fullstorydev/grpcurl/releases/download/v1.6.1/grpcurl_1.6.1_linux_x86_64.tar.gz | tar xzf - && mv grpcurl /home/gopher/go/bin/grpcurl | rm *.tar.gz
 RUN go get github.com/insolar/insolar/cmd/backupmanager
-RUN GO111MODULE=on go install github.com/fullstorydev/grpcurl/cmd/grpcurl
 
 EXPOSE 22
 CMD ["/usr/bin/sudo", "/usr/sbin/sshd", "-D"]
