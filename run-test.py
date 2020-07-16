@@ -650,8 +650,10 @@ def wait_until_current_pulse_will_be_finalized():
 
 
 def get_finalized_pulse_from_exporter():
+    token = str(json.loads(ssh_output(HEAVY, 'curl -s "replicator:replicator@auth-service:8080/auth/token"'))["access_token"])
     cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/mainnet/vendor' +\
           ' -proto /home/gopher/go/src/github.com/insolar/mainnet/pulse_exporter.proto' +\
+          ' -H \\"authorization: Bearer {}\\"'.format(token) +\
           """ -plaintext JEPSEN-1:5678 exporter.PulseExporter.TopSyncPulse"""
     out = ssh_output(HEAVY, cmd)
     pulse = json.loads(out)["PulseNumber"]
