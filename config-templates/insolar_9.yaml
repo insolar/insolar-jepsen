@@ -35,7 +35,7 @@ adminapirunner:
   address: JEPSEN-9:19009
   rpc: /admin-api/rpc
   isadmin: true
-  swaggerpath: /home/gopher/go/src/github.com/insolar/mainnet/application/api/spec/api-exported.yaml
+  swaggerpath: /home/gopher/go/src/github.com/insolar/mainnet/application/api/spec/api-exported-internal.yaml
 availabilitychecker:
   enabled: false
   keeperurl: ""
