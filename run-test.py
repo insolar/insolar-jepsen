@@ -25,7 +25,6 @@ import datetime
 # jepsen-11: virtual (not-discovery)
 # jepsen-12: pulsar
 # jepsen-13: observer, PostgreSQL, Nginx
-# jepsen-14: auth-service, PostgreSQL
 
 START_PORT = 32000
 VIRTUAL_START_RPC_PORT = 19000
@@ -46,8 +45,7 @@ NODES = DISCOVERY_NODES + NOT_DISCOVERY_NODES
 
 PULSAR = 12
 OBSERVER = 13
-AUTHSERVICE = 14
-ALL_PODS = NODES + [PULSAR, OBSERVER, AUTHSERVICE]
+ALL_PODS = NODES + [PULSAR, OBSERVER]
 
 MIN_ROLES_VIRTUAL = 2
 LOG_LEVEL = "Debug"  # Info
@@ -158,110 +156,6 @@ spec:
   selector:
     name: {pod_name}
 ---
-"""
-
-K8S_AUTHSERVICE_YAML_TEMPLATE = """
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: insolar-jepsen
-    component: auth-service
-  name: auth-service
-spec:
-  containers:
-  - image: registry.insolar.io/auth-service:v1.0.0
-    command: 
-      - /opt/app/auth-service
-    args:
-      - --config
-      - /auth-service.yaml
-    name: auth-service
-    volumeMounts:
-    - mountPath: /auth-service.yaml
-      name: auth-service-config
-      subPath: auth-service.yaml
-    workingDir: /
-  - env:
-    - name: POSTGRES_DB
-      value: "auth-service"
-    - name: POSTGRES_USER
-      value: "auth-service"
-    - name: POSTGRES_PASSWORD
-      value: "local_password"
-    image: postgres:12
-    name: postgres
-    volumeMounts:
-    - mountPath: /docker-entrypoint-initdb.d/auth-service.sql.gz
-      name: auth-service-db
-      subPath: auth-service.sql.gz
-  enableServiceLinks: false
-  restartPolicy: Always
-  volumes:
-  - configMap:
-      defaultMode: 420
-      name: auth-service
-    name: auth-service-config
-  - configMap:
-      name: auth-service-db
-    name: auth-service-db
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: auth-service
-  labels:
-    app: insolar-jepsen
-    component: auth-service
-spec:
-  selector:
-    app: insolar-jepsen
-    component: auth-service
-  ports:
-    - protocol: TCP
-      port: 8080
-      targetPort: 8080
----
-apiVersion: v1
-data:
-  auth-service.yaml: |
-    host: http://localhost
-    listen: :8080
-    exptoken: 900
-    issuer: insolar-auth
-    secret: GLUEiXzHFLikRlpVbFWVmVY9SN8XuQLgjPKffDy2vno43RCIDOJXvD89mTdaG59G
-    admin:
-      login: auth-service
-      password: 9To9mhHs3FqAYCuO8
-    db:
-      url: postgres://auth-service:local_password@localhost:5432/auth-service?sslmode=disable
-      poolsize: 100
-    log:
-      level: debug
-      adapter: zerolog
-      formatter: text
-      outputtype: stderr
-      outputparallellimit:
-      outputparams:
-      buffersize: 0
-      llbuffersize: 0
-kind: ConfigMap
-metadata:
-  labels:
-    app: insolar-jepsen
-    component: auth-service
-  name: auth-service
----
-apiVersion: v1
-data:
-kind: ConfigMap
-binaryData:
-  auth-service.sql.gz: H4sICDElD18AA2R1bXAuc3FsALVXW2/aSBR+Dr9i1JckKqCZscfjCdoHGugWLTFtgG0rRUJzBatgs7bJZX/9HttQaG5N1C4SgvG5fec7Z86BVqvRaqGPaV7MMzv+NERGFlLJ3CKzWa1B1ijlPfhuDXJZutorXNssj9MEEdrG6KRnVSzrQ4u213MzJxi/JacH5uoOreez0u9LbRvj/gTlhSzsyibFrIhXNt0U6A+EO5VomepvD5/GZmlncTIrMpnkUhcQaJbbvAz4UFkv49K1TXRq4mQOguPp5H143NnFTozMzEyniUuzFWjM8iKDjxw006TUGvbPJ2ViGohZpvN2botKPZ6fHOdWZnoxW8ticdxEx/B2cpnb023shQX8bpPUGBUgsKXfSqdWuV0t03UphcfgtACsP+AGRLMV5CbnleWNzBIAV6tk6Q3krTdZXNyVaJ3r1Iwa6+RmCXxKtbT5Wmpbpn38mHQmtQb3EKNYpAbUFlauO2VTlIWN5MqebaHkHTS5W8Nx0n037HfQGLJbyTO03qhlrDtodJPY7AzJTbFo5Ta7jrWt2uv8st+d9GurrXJ76xGdNBC8YoNiyHxuMxSNJiiaDofNSqAzC61hZrJAZV2hWNBaN3GxqI7o3zSxteJmbV6maOzSvkgRCh0nUECZQYMBsGuZ3QHxJ9C4p7VGLpcFtHxhZX1ONqtZDKqyquY2oVq0lsDwQuaLQ/2yca8tUmm6tDLZJryQyby8STFELxrQRo1GdzjpXz5O3+hzVIpG6M0h628eL98sNtAt/+yqOO5/mvaj89cXcmd4D8zWfZVGd7zLvzqOJ93LCfo8mHxApHowiMDXRT+aoHdft4+iEboYRH93h9P+93P3y/583j3/0EfkeUK2GH4LL5WTHgB8OUE1sOf5+e72nrgdmzK3Q3yreF430++8eXun+8v3sMspY6ff7+KTbXjg61WMQ8xdRr3+++50OHktxzWMUTS8TyOq5eej4fQiKnMrB942CErsbXEtlyfHj1bm+Owss3O9hLt6ui9FD4Y+gs3wzChEve6k+4qqjD4+QH0Sm+bBtGseDLTmwcxq1mOpWc2e5o8Tp7mfMs3tbGnu5skpen85uoBlBxuw0yBHFFPcwrxFGCLszCdnBLcDH3vcf4vxQ6nH20FIMA1L6VV0lNk1gJdFmh1dXd1yxrCymFgirEedY4ELGHFeQMOQEWuPBPU9r9QUjAc+oRjUPYO1JIERhAtOtfaNh7nAAebKiVB6mmjFma809SWYUyw9gSWWGkuqnKacgyUJseKWh8r3BXYWGwYvZ2XAqNCCYSmo4dzDSlGDFVMeDZ3BATOUhz4XgQmZskYT31ee8Q2jyhCrnNQe1iENcOAL4wEtTAR+4KiCRK3hkgkMSXAuNeHW84zxQ0mIZ0LK/EAT4QWYuADMjHBOBFYQbIw0RFufOEc4V8SDkFJ5VjjhKV9y4sJAW22BORqCIdMEmJCUu5JWwwOltBM+syWvXClMgtBnRlIMWKUURFBtFAmoF2IbUl9oF4Sac0o9A/tdmtAxLZUJLfCHQy0MCTWGOB4xOFTYo8xBsZSCpCRhmIEDbUPuS8MNFN7XnqDCGOaU8JWR3MfMOgeelDQBQKTEOCDA+M4PLbCufEE968AdDaBAYUAIc0fFEWHCDykPBG9ctZ+6ZE8Mvl+4Z4dTL753Hcp2xwFwB6QegnrRkoDx8nJEj/6UfGYgNRFpoiLb2NP7q2E3N3YG62/2boftfBSNJ5fdQfT7pmq91Hu9A98/hEYfLwcX3cuv6K/+14rgp1fZwdf/DfU+xGPA7wH4KfbY3M52ye5H8Q73IOr1v7x6JVdWT3iGVO6vh+l4EP2JVJFZi072mg+gbuK9w2pT/BrKaTSANt+CfeD7ZzgrpQOIT/0Hhb89q3WZUhX6PzzYYW+wDgAA
-metadata:
-  labels:
-    app: insolar-jepsen
-    component: auth-service
-  name: auth-service-db
 """
 
 # to make `sed` work properly, otherwise it failes with an error:
@@ -453,10 +347,6 @@ def k8s_gen_yaml(fname, image_name, pull_policy):
                         to_port=to_port,
                     )
                     to_port += 1
-            if i == AUTHSERVICE:
-                descr = K8S_AUTHSERVICE_YAML_TEMPLATE.format(
-                    pull_policy=pull_policy
-                )
             f.write(descr)
 
 
@@ -650,10 +540,8 @@ def wait_until_current_pulse_will_be_finalized():
 
 
 def get_finalized_pulse_from_exporter():
-    token = str(json.loads(ssh_output(HEAVY, 'curl -s "replicator:replicator@auth-service:8080/auth/token"'))["access_token"])
     cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/mainnet/vendor' +\
           ' -proto /home/gopher/go/src/github.com/insolar/mainnet/pulse_exporter.proto' +\
-          ' -H \\"authorization: Bearer {}\\"'.format(token) +\
           """ -plaintext JEPSEN-1:5678 exporter.PulseExporter.TopSyncPulse"""
     out = ssh_output(HEAVY, cmd)
     pulse = json.loads(out)["PulseNumber"]

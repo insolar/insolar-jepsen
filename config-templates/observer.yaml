@@ -8,13 +8,13 @@ replicator:
   cachesize: 10000
   listen: :0
   auth:
-    required: true
-    url: http://auth-service:8080/auth/token
-    login: 'replicator'
-    password: 'replicator'
+    required: false
+    url: https://{access_token_url}
+    login: '{unique_login}'
+    password: '{strong_password}'
     refreshoffset: 60
     timeout: 15s
-    insecuretls: true
+    insecuretls: false
 db:
   url: postgres://observer:observer@localhost/observer?sslmode=disable
   poolsize: 100
