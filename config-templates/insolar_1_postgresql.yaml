@@ -62,4 +62,5 @@ exporter:
     required: false
     issuer: "insolar-auth"
     secret: "1111111111111111111111111111111111111111111111111111111111111111"
+  checkversion: false
 lightchainlimit: 15

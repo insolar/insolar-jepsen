@@ -77,4 +77,5 @@ exporter:
     required: true
     issuer: "insolar-auth"
     secret: "GLUEiXzHFLikRlpVbFWVmVY9SN8XuQLgjPKffDy2vno43RCIDOJXvD89mTdaG59G"
+  checkversion: false
 lightchainlimit: 15
