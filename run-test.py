@@ -654,8 +654,6 @@ def get_finalized_pulse_from_exporter():
     cmd = 'grpcurl -import-path /home/gopher/go/src -import-path ./go/src/github.com/insolar/mainnet/vendor' +\
           ' -proto /home/gopher/go/src/github.com/insolar/mainnet/pulse_exporter.proto' +\
           ' -H \\"authorization: Bearer {}\\"'.format(token) +\
-          ' -H \\"client_type:ValidateHeavyVersion\\"' +\
-          ' -H \\"heavy_version:2\\"' +\
           """ -plaintext JEPSEN-1:5678 exporter.PulseExporter.TopSyncPulse"""
     out = ssh_output(HEAVY, cmd)
     pulse = json.loads(out)["PulseNumber"]
