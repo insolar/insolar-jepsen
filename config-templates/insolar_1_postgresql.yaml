@@ -64,6 +64,7 @@ exporter:
     secret: "1111111111111111111111111111111111111111111111111111111111111111"
   checkversion: false
   ratelimit:
+    required: false
     #    requests per second for unary and server_stream RPCs
     in:
       global: 3000
