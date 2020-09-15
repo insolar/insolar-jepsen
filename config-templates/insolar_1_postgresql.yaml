@@ -63,4 +63,22 @@ exporter:
     issuer: "insolar-auth"
     secret: "1111111111111111111111111111111111111111111111111111111111111111"
   checkversion: false
+  ratelimit:
+    required: false
+    #    requests per second for unary and server_stream RPCs
+    in:
+      global: 3000
+      perclient:
+        RecordExport: 300
+        PulseExport: 300
+        PulseTopSyncPulse: 300
+        PulseNextFinalizedPulse: 300
+    #        responses per second for server_stream RPCs
+    out:
+      global: 20000
+      perclient:
+        RecordExport: 2000
+        PulseExport: 2000
+        PulseTopSyncPulse: 2000
+        PulseNextFinalizedPulse: 2000
 lightchainlimit: 15
